@@ -1,0 +1,52 @@
+node_modules
+
+# Output
+.output
+.vercel
+.netlify
+.wrangler
+/.svelte-kit
+/build
+.kilocode
+.kombai
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+.env.*
+!.env.example
+!.env.test
+
+# Vite
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*
+package-lock.json
+
+# Database files (keep sqlite.empty.db for schema distribution)
+data/sqlite.db
+data/sqlite.test.db
+*.db-shm
+*.db-wal
+# User uploads
+static/uploads/
+
+# Claude Code worktrees
+.claude/worktrees/
+
+# Playwright
+e2e-results
+debug-*.png
+*-submit.png
+playwright-report
+test-results
+playwright-results
+playwright/.cache
+playwright/.auth/
+
+# Vitest
+coverage/
+.vitest/
+test-output.txt

@@ -1,0 +1,12 @@
+@import './lib/styles/fonts.css';
+
+@import 'tailwindcss';
+@plugin '@tailwindcss/forms';
+@plugin '@tailwindcss/typography';
+
+/* Dark mode strategy: data attribute (Skeleton native) */
+@custom-variant dark (&:where([data-mode="dark"], [data-mode="dark"] *));
+
+@import '@skeletonlabs/skeleton';
+@import '@skeletonlabs/skeleton-svelte';
+@import './lib/styles/svelteForge.css';

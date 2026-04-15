@@ -1,0 +1,26 @@
+<svelte:head>
+	<title>Welcome</title>
+	<meta name="description" content="Welcome" />
+</svelte:head>
+
+<main class="min-h-screen flex items-center justify-center bg-surface-50 dark:bg-surface-950">
+	<div class="max-w-lg mx-auto px-4 text-center space-y-8">
+		<div>
+			<h1 class="text-4xl sm:text-5xl font-black uppercase tracking-tight">
+				Welcome
+			</h1>
+			<p class="text-lg text-muted-foreground mt-4">
+				Sign in to access your dashboard.
+			</p>
+		</div>
+
+		<div class="flex flex-col sm:flex-row gap-3 justify-center">
+			<a href="/login">
+				<button class="btn btn-lg preset-filled-primary-500">Sign In</button>
+			</a>
+			<a href="/signup">
+				<button class="btn btn-lg preset-outlined-primary-500">Create Account</button>
+			</a>
+		</div>
+	</div>
+</main>
