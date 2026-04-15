@@ -86,7 +86,7 @@
 <AuthCard title="Sign Up" subtitle="Create your account">
 	{#if error}
 		<div
-			class="bg-error-500/10 border border-error-500/30 text-error-700 dark:text-error-300 p-4 rounded-xl mb-6 flex items-start gap-3"
+			class="bg-error-500/10 border border-error-500/30 text-error-700-300 p-4 rounded-xl mb-6 flex items-start gap-3"
 			role="alert"
 		>
 			<Icon name="alertCircle" size={20} class="shrink-0 mt-0.5" />
@@ -99,7 +99,7 @@
 
 	{#if $message}
 		<div
-			class="bg-success-500/10 border border-success-500/30 text-success-700 dark:text-success-300 p-4 rounded-xl mb-6 flex items-start gap-3"
+			class="bg-success-500/10 border border-success-500/30 text-success-700-300 p-4 rounded-xl mb-6 flex items-start gap-3"
 			role="status"
 		>
 			<p class="text-sm">{$message}</p>
@@ -142,12 +142,12 @@
 		{#if $form.password}
 			<div class="space-y-1">
 				<div class="flex items-center justify-between text-xs">
-					<span class="text-neutral-600 dark:text-neutral-400">
+					<span class="text-surface-600-400">
 						Strength: {passwordStrength.label}
 					</span>
 				</div>
 				<div
-					class="h-1.5 w-full bg-surface-200 dark:bg-surface-700 rounded-full overflow-hidden"
+					class="h-1.5 w-full bg-surface-200-700 rounded-full overflow-hidden"
 				>
 					<div
 						class="h-full transition-all duration-300 ease-out {passwordStrength.color}"
@@ -178,18 +178,18 @@
 	<!-- Global errors from Superforms -->
 	{#if $form._errors?.length}
 		<div
-			class="bg-error-500/10 border border-error-500/30 text-error-700 dark:text-error-300 p-4 rounded-xl mt-4"
+			class="bg-error-500/10 border border-error-500/30 text-error-700-300 p-4 rounded-xl mt-4"
 		>
 			{$form._errors[0]}
 		</div>
 	{/if}
 
 	{#snippet footer()}
-		<p class="text-center text-sm text-neutral-600 dark:text-neutral-400">
+		<p class="text-center text-sm text-surface-600-400">
 			Already have an account?
 			<a
 				href="/login"
-				class="text-primary-500 hover:text-primary-600 dark:text-primary-400 dark:hover:text-primary-300 font-medium transition-colors"
+				class="text-primary-500 hover:text-primary-600-400 font-medium transition-colors"
 			>
 				Sign in
 			</a>

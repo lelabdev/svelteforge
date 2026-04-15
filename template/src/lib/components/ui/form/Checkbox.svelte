@@ -44,8 +44,8 @@
 
 	const labelClass = $derived(
 		cn(
-			'text-sm leading-relaxed select-none text-surface-700 dark:text-surface-300',
-			disabled && 'text-surface-500 dark:text-surface-500'
+			'text-sm leading-relaxed select-none text-surface-700-300',
+			disabled && 'text-surface-500'
 		)
 	);
 </script>

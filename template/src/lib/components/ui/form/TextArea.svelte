@@ -30,7 +30,7 @@
 	const normalClass = 'textarea';
 
 	const errorClass =
-		'textarea border-error-500 text-error-900 dark:text-error-100 placeholder:text-error-400 dark:placeholder:text-error-500';
+		'textarea border-error-500 text-error-900-100 placeholder:text-error-400-500';
 
 	const textareaClass = $derived(cn(error ? errorClass : normalClass, className));
 </script>

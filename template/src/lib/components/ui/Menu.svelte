@@ -38,7 +38,7 @@
 
 	<Portal>
 		<SkeletonMenu.Positioner>
-			<SkeletonMenu.Content class="card p-1 min-w-[180px] shadow-lg border border-surface-300 dark:border-surface-700 z-50">
+			<SkeletonMenu.Content class="card p-1 min-w-[180px] shadow-lg border border-surface-300-700 z-50">
 				{#each items as item (item.key)}
 					<button
 						type="button"
@@ -47,7 +47,7 @@
 							? 'opacity-50 cursor-not-allowed'
 							: item.danger
 								? 'text-error-500 hover:bg-error-500/10'
-								: 'hover:bg-surface-200 dark:hover:bg-surface-700'
+								: 'hover:bg-surface-200-700'
 						}"
 						disabled={item.disabled}
 						onclick={() => { if (!item.disabled) onSelect(item.key); }}

@@ -8,17 +8,17 @@
 	let { children }: Props = $props();
 </script>
 
-<div class="min-h-screen bg-surface-50 dark:bg-surface-900 flex">
+<div class="min-h-screen bg-surface-50-900 flex">
 	<!-- Admin Sidebar -->
-	<aside class="hidden lg:flex w-64 bg-surface-100 dark:bg-surface-800 border-r border-surface-300 dark:border-surface-700 flex-col">
-		<div class="p-4 border-b border-surface-300 dark:border-surface-700">
+	<aside class="hidden lg:flex w-64 bg-surface-100-800 border-r border-surface-300-700 flex-col">
+		<div class="p-4 border-b border-surface-300-700">
 			<h2 class="text-lg font-bold">Admin</h2>
 		</div>
 		<nav class="flex-1 p-4 space-y-1">
-			<a href="/admin" class="block px-3 py-2 rounded-lg hover:bg-surface-200 dark:hover:bg-surface-700 text-sm">
+			<a href="/admin" class="block px-3 py-2 rounded-lg hover:bg-surface-200-700 text-sm">
 				Dashboard
 			</a>
-			<a href="/dashboard" class="block px-3 py-2 rounded-lg hover:bg-surface-200 dark:hover:bg-surface-700 text-sm">
+			<a href="/dashboard" class="block px-3 py-2 rounded-lg hover:bg-surface-200-700 text-sm">
 				My Account
 			</a>
 		</nav>

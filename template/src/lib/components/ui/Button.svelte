@@ -54,7 +54,7 @@
 		secondary: 'preset-filled-secondary-500',
 		outline: 'preset-outlined-primary-500',
 		ghost:
-			'hover:bg-surface-200 dark:hover:bg-surface-800 text-surface-700 dark:text-surface-300 hover:text-surface-900 dark:hover:text-white',
+			'hover:bg-surface-200-800 text-surface-700-300 hover:text-surface-900-50',
 		danger: 'preset-filled-error-500',
 		success: 'preset-filled-success-500',
 		glass:

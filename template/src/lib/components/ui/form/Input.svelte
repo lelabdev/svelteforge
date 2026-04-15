@@ -43,7 +43,7 @@
 		'input';
 
 	const errorClass =
-		'input border-error-500 text-error-900 dark:text-error-100 placeholder:text-error-400 dark:placeholder:text-error-500';
+		'input border-error-500 text-error-900-100 placeholder:text-error-400-500';
 
 	const inputClass = $derived(cn(error ? errorClass : normalClass, className));
 </script>

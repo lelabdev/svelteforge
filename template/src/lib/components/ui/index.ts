@@ -8,7 +8,6 @@ export { default as ErrorAlert } from './ErrorAlert.svelte';
 export { default as Loader } from './Loader.svelte';
 export { default as Menu } from './Menu.svelte';
 export { default as Modal } from './Modal.svelte';
-export { default as ModalCard } from './ModalCard.svelte';
 export { default as Switch } from './Switch.svelte';
 export { default as Tabs } from './Tabs.svelte';
 export { default as ThemeToggle } from './ThemeToggle.svelte';

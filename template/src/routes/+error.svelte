@@ -29,19 +29,19 @@
 	<meta name="description" content={errorConfig.description} />
 </svelte:head>
 
-<div class="min-h-screen flex items-center justify-center bg-surface-50 dark:bg-surface-950 px-4 py-16">
+<div class="min-h-screen flex items-center justify-center bg-surface-50-950 px-4 py-16">
 	<div class="card p-8 sm:p-12 text-center max-w-lg">
-		<div class="inline-flex items-center justify-center w-24 h-24 rounded-full bg-primary-500/10 dark:bg-primary-500/20 mb-8">
+		<div class="inline-flex items-center justify-center w-24 h-24 rounded-full bg-primary-500/10 mb-8">
 			<Icon name={errorConfig.icon} size={48} class="text-primary-500" />
 		</div>
 
 		<div class="space-y-4">
 			<p class="text-8xl font-black text-primary-500/20">{errorConfig.code}</p>
 			<h1 class="text-2xl sm:text-3xl font-bold">{errorConfig.title}</h1>
-			<p class="text-surface-600 dark:text-surface-400 text-base">{errorConfig.description}</p>
+			<p class="text-surface-600-400 text-base">{errorConfig.description}</p>
 
 			{#if status !== 404 && message}
-				<div class="mt-6 p-4 bg-surface-50 dark:bg-surface-900/50 border border-surface-300 dark:border-surface-700 rounded-xl text-left">
+				<div class="mt-6 p-4 bg-surface-50-900/50 border border-surface-300-700 rounded-xl text-left">
 					<p class="text-[10px] uppercase font-bold text-muted-foreground mb-1 tracking-wider">Error Details</p>
 					<p class="text-xs font-mono text-error-500 break-all leading-relaxed">{message}</p>
 				</div>

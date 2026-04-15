@@ -14,13 +14,13 @@
 		<div class="space-y-10">
 			<section>
 				<h2
-					class="text-xl font-bold mb-4 uppercase tracking-wide text-primary-600 dark:text-primary-400"
+					class="text-xl font-bold mb-4 uppercase tracking-wide text-primary-600-400"
 				>
 					1. Publisher
 				</h2>
-				<div class="text-surface-600 dark:text-surface-400 leading-relaxed">
+				<div class="text-surface-600-400 leading-relaxed">
 					This website is published by:<br />
-					<strong class="text-surface-900 dark:text-surface-100">[Company name]</strong><br />
+					<strong class="text-surface-900-100">[Company name]</strong><br />
 					[Legal form] with a capital of [amount]<br />
 					Registered office: [address]<br />
 					SIRET: [SIRET number]<br />
@@ -32,13 +32,13 @@
 
 			<section>
 				<h2
-					class="text-xl font-bold mb-4 uppercase tracking-wide text-primary-600 dark:text-primary-400"
+					class="text-xl font-bold mb-4 uppercase tracking-wide text-primary-600-400"
 				>
 					2. Hosting
 				</h2>
-				<div class="text-surface-600 dark:text-surface-400 leading-relaxed">
+				<div class="text-surface-600-400 leading-relaxed">
 					This website is hosted by:<br />
-					<strong class="text-surface-900 dark:text-surface-100">[Hosting provider]</strong><br />
+					<strong class="text-surface-900-100">[Hosting provider]</strong><br />
 					[Hosting provider address]<br />
 					[Hosting provider phone]
 				</div>
@@ -46,11 +46,11 @@
 
 			<section>
 				<h2
-					class="text-xl font-bold mb-4 uppercase tracking-wide text-primary-600 dark:text-primary-400"
+					class="text-xl font-bold mb-4 uppercase tracking-wide text-primary-600-400"
 				>
 					3. Intellectual property
 				</h2>
-				<p class="text-surface-600 dark:text-surface-400 leading-relaxed">
+				<p class="text-surface-600-400 leading-relaxed">
 					All content on this website (texts, images, videos, logos, etc.) is protected by
 					copyright and trademark law. Any reproduction, representation, modification,
 					publication, or adaptation of all or part of the site's elements is prohibited without
@@ -60,11 +60,11 @@
 
 			<section>
 				<h2
-					class="text-xl font-bold mb-4 uppercase tracking-wide text-primary-600 dark:text-primary-400"
+					class="text-xl font-bold mb-4 uppercase tracking-wide text-primary-600-400"
 				>
 					4. Personal data
 				</h2>
-				<p class="text-surface-600 dark:text-surface-400 leading-relaxed">
+				<p class="text-surface-600-400 leading-relaxed">
 					For any information regarding the processing of your personal data, please consult our
 					<a href="/privacy" class="text-primary-500 hover:underline font-bold">privacy policy</a>.
 				</p>
@@ -72,11 +72,11 @@
 
 			<section>
 				<h2
-					class="text-xl font-bold mb-4 uppercase tracking-wide text-primary-600 dark:text-primary-400"
+					class="text-xl font-bold mb-4 uppercase tracking-wide text-primary-600-400"
 				>
 					5. Cookies
 				</h2>
-				<p class="text-surface-600 dark:text-surface-400 leading-relaxed">
+				<p class="text-surface-600-400 leading-relaxed">
 					This website uses cookies to improve the user experience. By continuing to browse this
 					site, you accept the use of cookies.
 				</p>
@@ -84,17 +84,17 @@
 
 			<section>
 				<h2
-					class="text-xl font-bold mb-4 uppercase tracking-wide text-primary-600 dark:text-primary-400"
+					class="text-xl font-bold mb-4 uppercase tracking-wide text-primary-600-400"
 				>
 					6. Contact
 				</h2>
-				<p class="text-surface-600 dark:text-surface-400 leading-relaxed">
+				<p class="text-surface-600-400 leading-relaxed">
 					For any questions regarding this legal notice, you can contact us at: [contact email]
 				</p>
 			</section>
 		</div>
 
-		<div class="mt-12 pt-8 border-t border-surface-200 dark:border-surface-700">
+		<div class="mt-12 pt-8 border-t border-surface-200-700">
 			<p class="text-xs text-muted-foreground uppercase font-bold tracking-widest">
 				Last updated: {currentYear}
 			</p>

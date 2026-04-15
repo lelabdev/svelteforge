@@ -71,7 +71,7 @@
 <div class="overflow-x-auto {className}">
 	<table class="w-full text-sm">
 		<thead>
-			<tr class="border-b border-surface-300 dark:border-surface-700">
+			<tr class="border-b border-surface-300-700">
 				{#each columns as col (col.key)}
 					<th
 						class="px-4 py-3 text-left font-semibold text-muted-foreground text-xs uppercase tracking-wider {col.width ?? ''}"
@@ -79,7 +79,7 @@
 						{#if col.sortable}
 							<button
 								type="button"
-								class="inline-flex items-center gap-1 hover:text-surface-900 dark:hover:text-surface-100 transition-colors"
+								class="inline-flex items-center gap-1 hover:text-surface-900-100 transition-colors"
 								onclick={() => handleSort(col.key)}
 							>
 								{col.label}
@@ -98,9 +98,9 @@
 		<tbody>
 			{#if loading}
 				{#each columns as _}
-					<tr class="border-b border-surface-200 dark:border-surface-800">
+					<tr class="border-b border-surface-200-800">
 						<td class="px-4 py-3">
-							<div class="h-4 bg-surface-200 dark:bg-surface-700 rounded animate-pulse"></div>
+							<div class="h-4 bg-surface-200-700 rounded animate-pulse"></div>
 						</td>
 					</tr>
 				{/each}
@@ -113,8 +113,8 @@
 			{:else}
 				{#each sortedData() as row (String(row[rowKey] ?? ''))}
 					<tr
-						class="border-b border-surface-200 dark:border-surface-800
-							{onRowClick ? 'hover:bg-surface-100 dark:hover:bg-surface-800 cursor-pointer' : ''}"
+						class="border-b border-surface-200-800
+							{onRowClick ? 'hover:bg-surface-100-800 cursor-pointer' : ''}"
 						onclick={() => onRowClick?.(row)}
 						onkeydown={(e) => { if (e.key === 'Enter') onRowClick?.(row); }}
 						role={onRowClick ? 'button' : undefined}

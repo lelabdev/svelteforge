@@ -48,7 +48,7 @@
 		color: string;
 		label: string;
 	} {
-		if (!password) return { strength: 0, color: 'bg-surface-300 dark:bg-surface-600', label: '' };
+		if (!password) return { strength: 0, color: 'bg-surface-300-600', label: '' };
 
 		let score = 0;
 		if (password.length >= minLength) score++;
@@ -80,7 +80,7 @@
 	const inputWrapperClass = $derived(
 		cn(
 			'relative flex items-center',
-			'border border-surface-300 dark:border-surface-700',
+			'border border-surface-300-700',
 			'rounded-lg',
 			'transition-all duration-200',
 			'focus-within:ring-2 focus-within:ring-primary-500/50 focus-within:border-primary-500',
@@ -92,8 +92,8 @@
 		cn(
 			'w-full px-3 py-2 pr-10 rounded-lg text-sm',
 			'bg-transparent border-0 focus:outline-none',
-			'text-neutral-900 dark:text-neutral-100',
-			'placeholder:text-neutral-400 dark:placeholder:text-neutral-500',
+			'text-surface-900-100',
+			'placeholder:text-surface-400-500',
 			'disabled:opacity-50 disabled:cursor-not-allowed'
 		)
 	);
@@ -101,8 +101,8 @@
 	const toggleButtonClass = $derived(
 		cn(
 			'absolute right-2 p-1.5 rounded-md',
-			'text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300',
-			'hover:bg-neutral-100 dark:hover:bg-neutral-700',
+			'text-surface-400-600 hover:text-surface-600-400',
+			'hover:bg-surface-100-700',
 			'transition-all duration-200',
 			'focus:outline-none focus:ring-2 focus:ring-primary-500/50',
 			'disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent'
@@ -155,7 +155,7 @@
 	{#if showStrength && inputValue}
 		<div class="space-y-1 mt-2">
 			<div class="flex items-center justify-between text-xs">
-				<span class="text-neutral-600 dark:text-neutral-400 flex items-center gap-1">
+				<span class="text-surface-600-400 flex items-center gap-1">
 					{#if strength.strength === 0}
 						<Icon name="shield" size={12} />
 					{:else if strength.strength <= 2}

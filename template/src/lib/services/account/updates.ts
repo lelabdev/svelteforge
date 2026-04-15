@@ -1,14 +1,14 @@
 /**
  * account/updates.ts - User data updates
  *
- * Functions for updating user information and managing passwords.
+ * Functions for updating user information.
  * All operations use the core user table only.
  */
 
 import { db } from '$lib/db';
-import { user, account } from '$lib/db/schemas';
+import { user } from '$lib/db/schemas';
 import { eq, and, ne } from 'drizzle-orm';
-import { NotFoundError, ConflictError, InternalError, ValidationError } from '$lib/errors';
+import { NotFoundError, ConflictError, InternalError } from '$lib/errors';
 import { logger, logError } from '$lib/logger';
 import type { UpdateUserAsAdminData } from '$lib/types';
 
@@ -100,75 +100,4 @@ export async function updateUserName(userId: string, name: string): Promise<void
 	}
 }
 
-// ============================================================================
-// ADMIN PASSWORD MANAGEMENT
-// ============================================================================
 
-/**
- * Force change a user's password (admin only)
- *
- * Uses BetterAuth's API to securely set a new password for a user.
- *
- * @param userId - Target user ID
- * @param newPassword - New password (min 8 characters)
- * @throws ValidationError if password is too short
- * @throws InternalError on database error
- */
-export async function forceUserPassword(userId: string, newPassword: string): Promise<void> {
-	logger.debug({ userId }, 'Forcing user password (admin)');
-
-	if (!newPassword || newPassword.length < 8) {
-		throw new ValidationError('Password must be at least 8 characters');
-	}
-
-	try {
-		// Update password in the credential account using a raw hash approach
-		// BetterAuth handles hashing internally, so we use the context hasher
-		const { db } = await import('$lib/db');
-		const { account } = await import('$lib/db/schemas');
-		const { eq } = await import('drizzle-orm');
-
-		// Use the scrypt hash from BetterAuth's internal utilities
-		// Since we can't call auth.api directly without a session, we hash via Web Crypto
-		// and let BetterAuth re-hash on next login. This is a temporary password that
-		// will be re-hashed on first use.
-		const encoder = new TextEncoder();
-		const salt = crypto.randomUUID();
-		const data = encoder.encode(newPassword + salt);
-		const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-		const hashArray = Array.from(new Uint8Array(hashBuffer));
-		const hashedPassword = `sha256:${salt}:${hashArray.map((b) => b.toString(16).padStart(2, '0')).join('')}`;
-
-		const [existingAccount] = await db
-			.select({ id: account.id })
-			.from(account)
-			.where(eq(account.userId, userId))
-			.limit(1);
-
-		if (existingAccount) {
-			await db
-				.update(account)
-				.set({
-					password: hashedPassword,
-					updatedAt: new Date()
-				})
-				.where(eq(account.userId, userId));
-		} else {
-			await db.insert(account).values({
-				id: crypto.randomUUID(),
-				accountId: userId,
-				providerId: 'credential',
-				userId,
-				password: hashedPassword,
-				createdAt: new Date(),
-				updatedAt: new Date()
-			});
-		}
-
-		logger.info({ userId }, 'User password forced successfully by admin');
-	} catch (error) {
-		if (error instanceof ValidationError) throw error;
-		logError(error as Error, { userId, context: 'forceUserPassword' });
-		throw new InternalError('Error changing password', error);
-	}
-}

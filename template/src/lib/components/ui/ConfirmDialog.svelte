@@ -36,7 +36,7 @@
 		<Dialog.Positioner>
 			<Dialog.Content class="card max-w-md p-6 shadow-xl">
 				<Dialog.Title class="text-xl font-semibold mb-4">{title}</Dialog.Title>
-				<p class="text-surface-600 dark:text-surface-400 mb-6">{message}</p>
+				<p class="text-surface-600-400 mb-6">{message}</p>
 				<div class="flex justify-end gap-3">
 					<button class="btn preset-outlined-surface-500" onclick={onCancel}>{cancelLabel}</button>
 					<button class="btn {variantClasses[variant]}" onclick={onConfirm}>{confirmLabel}</button>

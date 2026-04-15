@@ -37,7 +37,7 @@
 <AuthCard title="Sign In" subtitle="Access your account">
 	{#if $message}
 		<div
-			class="bg-error-500/10 border border-error-500/30 text-error-700 dark:text-error-300 p-4 rounded-xl mb-6 flex items-start gap-3"
+			class="bg-error-500/10 border border-error-500/30 text-error-700-300 p-4 rounded-xl mb-6 flex items-start gap-3"
 			role="alert"
 		>
 			<Icon name="alertCircle" size={20} class="shrink-0 mt-0.5" />
@@ -73,7 +73,7 @@
 
 			<a
 				href="/forgot-password"
-				class="text-sm text-primary-500 hover:text-primary-600 dark:text-primary-400 dark:hover:text-primary-300 transition-colors"
+				class="text-sm text-primary-500 hover:text-primary-600-400 transition-colors"
 			>
 				Forgot password?
 			</a>
@@ -90,11 +90,11 @@
 	</form>
 
 	{#snippet footer()}
-		<p class="text-center text-sm text-neutral-600 dark:text-neutral-400">
+		<p class="text-center text-sm text-surface-600-400">
 			Don't have an account?
 			<a
 				href="/signup"
-				class="text-primary-500 hover:text-primary-600 dark:text-primary-400 dark:hover:text-primary-300 font-medium transition-colors"
+				class="text-primary-500 hover:text-primary-600-400 font-medium transition-colors"
 			>
 				Sign up
 			</a>

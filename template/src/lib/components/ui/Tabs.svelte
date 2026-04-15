@@ -28,7 +28,7 @@
 
 	const variantClasses: Record<string, string> = {
 		underline: '',
-		pills: 'bg-surface-100 dark:bg-surface-800 rounded-lg p-1'
+		pills: 'bg-surface-100-800 rounded-lg p-1'
 	};
 </script>
 

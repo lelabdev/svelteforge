@@ -7,10 +7,12 @@
 		title: string;
 		onClose: () => void;
 		size?: 'sm' | 'md' | 'lg' | 'xl';
-		children?: Snippet;
+		header?: Snippet;
+		children: Snippet;
+		footer?: Snippet;
 	}
 
-	let { open, title, onClose, size = 'md', children }: Props = $props();
+	let { open, title, onClose, size = 'md', header, children, footer }: Props = $props();
 
 	const sizeClasses: Record<string, string> = {
 		sm: 'max-w-sm',
@@ -24,14 +26,23 @@
 	<Portal>
 		<Dialog.Backdrop class="bg-black/50" />
 		<Dialog.Positioner>
-			<Dialog.Content class="card {sizeClasses[size]} p-6 shadow-xl">
-				<header class="mb-4 flex items-center justify-between">
-					<Dialog.Title class="text-xl font-semibold">{title}</Dialog.Title>
-					<Dialog.CloseTrigger class="btn-icon hover:bg-surface-200 dark:hover:bg-surface-700" aria-label="Close">
+			<Dialog.Content class="card {sizeClasses[size]} shadow-xl overflow-hidden">
+				<div class="px-6 py-4 border-b border-surface-300-700 flex items-center justify-between">
+					<Dialog.Title class="font-bold text-lg">{title}</Dialog.Title>
+					<Dialog.CloseTrigger class="btn-icon hover:bg-surface-200-700" aria-label="Close">
 						✕
 					</Dialog.CloseTrigger>
-				</header>
-				{#if children}{@render children()}{/if}
+				</div>
+
+				<div class="p-6">
+					{@render children()}
+				</div>
+
+				{#if footer}
+					<div class="px-6 py-4 border-t border-surface-300-700">
+						{@render footer()}
+					</div>
+				{/if}
 			</Dialog.Content>
 		</Dialog.Positioner>
 	</Portal>

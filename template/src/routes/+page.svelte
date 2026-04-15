@@ -3,7 +3,7 @@
 	<meta name="description" content="Welcome" />
 </svelte:head>
 
-<main class="min-h-screen flex items-center justify-center bg-surface-50 dark:bg-surface-950">
+<main class="min-h-screen flex items-center justify-center bg-surface-50-950">
 	<div class="max-w-lg mx-auto px-4 text-center space-y-8">
 		<div>
 			<h1 class="text-4xl sm:text-5xl font-black uppercase tracking-tight">

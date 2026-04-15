@@ -31,10 +31,10 @@
 	}: Props = $props();
 
 	const variants: Record<CardVariant, string> = {
-		flat: 'bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700',
+		flat: 'bg-surface-50-800 border border-surface-200-700',
 		elevated:
-			'bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700 shadow-md',
-		outlined: 'bg-transparent border border-surface-200 dark:border-surface-700',
+			'bg-surface-50-800 border border-surface-200-700 shadow-md',
+		outlined: 'bg-transparent border border-surface-200-700',
 		none: ''
 	};
 
@@ -44,7 +44,7 @@
 <div class={cardClass}>
 	{#if header || title}
 		<div
-			class="px-4 sm:px-6 py-3 sm:py-4 border-b border-surface-200 dark:border-surface-700 flex items-center justify-between"
+			class="px-4 sm:px-6 py-3 sm:py-4 border-b border-surface-200-700 flex items-center justify-between"
 		>
 			<div class="flex items-center gap-2">
 				{#if header}
@@ -73,7 +73,7 @@
 
 	{#if footer}
 		<div
-			class="px-4 sm:px-6 py-3 sm:py-4 border-t border-surface-300 dark:border-surface-700 preset-tonal-surface-500"
+			class="px-4 sm:px-6 py-3 sm:py-4 border-t border-surface-300-700 preset-tonal-surface-500"
 		>
 			{@render footer()}
 		</div>
