@@ -50,3 +50,4 @@ playwright/.auth/
 coverage/
 .vitest/
 test-output.txt
+template/data/sqlite.db
