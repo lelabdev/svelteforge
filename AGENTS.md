@@ -12,7 +12,6 @@ svelteforge/                ← this repo
 └── template/               ← files copied into generated projects
     ├── src/                ← SvelteKit app (Full Stack mode)
     ├── scripts/            ← setup.ts, db-init.ts, db-reset.ts
-    ├── package.json        ← project template deps
     └── ...
 ```
 
@@ -68,32 +67,39 @@ src/
 │   ├── logger.ts            # Pino logger + createChildLogger()
 │   ├── types.ts             # Shared TypeScript interfaces
 │   ├── components/
-│   │   ├── ui/              # 17 Skeleton-based reusable components
-│   │   │   ├── Avatar, Badge, Button, Card, ConfirmDialog
-│   │   │   ├── DataTable, ErrorAlert, Loader, Menu, Modal
-│   │   │   ├── Switch, Tabs, ThemeToggle, Toast
-│   │   │   ├── SuccessAlert, AuthCard, NavigationLoader
-│   │   │   └── form/ (Checkbox, FormField, Input, PasswordInput, Select, SubmitButton, TextArea)
-│   │   ├── layout/          # Navbar, Footer, AuthButtons, MobileMenu
+│   │   ├── ui/              # 32 theme-swapable components
+│   │   │   ├── Surfaces: Card, AuthCard, Modal, Sheet, PopOver, Carousel
+│   │   │   ├── Feedback: Toast, ErrorAlert, SuccessAlert, Loader, Progress,
+│   │   │   │          SkeletonLoader, NavigationLoader
+│   │   │   ├── Navigation: Tabs, Breadcrumb, Stepper, Menu
+│   │   │   ├── Data: DataTable, EmptyState, NotificationBadge, Badge, Avatar
+│   │   │   ├── Controls: Button, Switch, Divider, Accordion, Tooltip,
+│   │   │   │           RadioGroup, SearchInput, ThemeToggle, ConfirmDialog
+│   │   │   └── form/ (Input, PasswordInput, TextArea, Select, Checkbox,
+│   │   │                RadioGroup, FormField, SubmitButton, SearchInput)
+│   │   ├── layout/          # Navbar, Footer, AuthButtons, MobileMenu, NavLinks
 │   │   └── icons/           # Lucide wrapper (Icon.svelte) — new icons need import + iconMap entry
 │   ├── db/
 │   │   ├── connection.ts    # Lazy SQLite connection (bun:sqlite)
 │   │   ├── config.ts        # getDatabaseConfig(), requireEnv()
 │   │   └── schemas/         # Drizzle tables (user, session, account, verification)
 │   ├── services/            # Service layer — ALL DB access goes here
-│   │   └── account/         # core.ts, management.ts, roles.ts, updates.ts
+│   │   └── account/         # core.ts (withUser helper), management.ts, roles.ts, updates.ts
 │   ├── schemas/             # Zod v4 validation (signup, login, password, account, profile)
 │   ├── middleware/           # rate-limit.ts
-│   ├── styles/              # svelteForge.css, fonts.css
+│   ├── styles/
+│   │   ├── svelteForge.css  # Skeleton theme colors (oklch, 7 domains × 10 shades)
+│   │   ├── tokens.css       # Design tokens (60+ semantic CSS custom properties)
+│   │   └── fonts.css        # Fontsource declarations
 │   └── utils/               # cn.ts, form-errors.ts, formatters.ts, slugify.ts, focus-trap.ts, theme.svelte.ts
 ├── routes/
 │   ├── (public)/            # /login, /signup, /forgot-password, /reset-password
-│   ├── (protected)/         # /dashboard, /admin, /logout
+│   ├── (protected)/         # /dashboard, /admin, /logout (/admin hides navbar/footer)
 │   ├── (legal)/             # /privacy, /legal
 │   └── api/                 # /api/auth/[...all], /api/health
 ├── hooks.server.ts          # Auth session, rate limiting, CSP + security headers
 ├── app.html                 # HTML shell (data-theme="svelteForge")
-├── app.css                  # Tailwind + Skeleton + theme + fonts
+├── app.css                  # Tailwind + Skeleton + theme + tokens + fonts
 └── app.d.ts                 # TypeScript declarations
 ```
 
@@ -110,6 +116,8 @@ import { db } from '$lib/db';
 // ✅ ALWAYS
 import { getUserById } from '$lib/services';
 ```
+
+Use `withUser(userId, context, fn)` from `core.ts` for operations that fetch a user then act on it. It handles NotFoundError + try/catch + logging automatically.
 
 ### DB & Auth are Lazy-Loaded Proxies
 
@@ -156,12 +164,34 @@ import { zod4Client } from 'sveltekit-superforms/adapters'; // ✅ client
 
 Components wrap Skeleton classes or `<Component>` from `@skeletonlabs/skeleton-svelte`. **Never write raw HTML/CSS for things Skeleton provides.**
 
-### Theme
+### Theme System
 
-- `data-theme="svelteForge"` (custom, in `src/lib/styles/svelteForge.css`)
-- Dark mode: `data-mode="dark"` on `<html>`
-- Toggle: `themeStore` from `$lib/utils/theme.svelte`
-- Fonts: Inter, Space Grotesk, Manrope, Fira Code via Fontsource
+Three-layer theming, all overridable per theme:
+
+| File | Purpose |
+|------|---------|
+| `svelteForge.css` | Skeleton color tokens (7 domains × 10 shades in oklch), fonts, borders |
+| `tokens.css` | 60+ semantic tokens (padding, radius, font-size, sizing, gap, spacing) |
+| `fonts.css` | Fontsource declarations (Inter, Space Grotesk, Manrope, Fira Code) |
+
+**To create a new theme:** copy `svelteForge.css` + `tokens.css`, change the `[data-theme]` name and values. Components adapt automatically — zero component changes needed.
+
+- Theme attribute: `data-theme="svelteForge"` on `<html>` (set in `app.html`)
+- Dark mode: `data-mode="dark"` toggled by `themeStore` from `$lib/utils/theme.svelte`
+
+### Design Tokens Rule
+
+Components use `var(--token)` via inline `style` for all spacing, radius, font-size, and sizing. **Never hardcode these values in Tailwind classes.**
+
+```svelte
+<!-- ❌ HARDcoded -->
+<div class="p-4 rounded-xl text-sm">
+
+<!-- ✅ Tokenized -->
+<div style="padding: var(--card-p); border-radius: var(--radius-card); font-size: var(--text-body)">
+```
+
+Color pairings and Skeleton utility classes (`card`, `btn`, `preset-*`) remain as Tailwind classes — only spacing/radius/font tokens move to CSS custom properties.
 
 ### Color Pairings (MANDATORY)
 
@@ -181,15 +211,13 @@ Valid shade pairings (inverted between light and dark):
 | `500` | `500` | Static (branding, accent) |
 
 ```html
-<!-- ❌ NEVER use dark: for color variants -->
+<!-- ❌ NEVER -->
 <div class="bg-surface-50 dark:bg-surface-950">
 <p class="text-surface-600 dark:text-surface-400">
-<button class="hover:bg-surface-200 dark:hover:bg-surface-700">
 
-<!-- ✅ ALWAYS use pairings -->
+<!-- ✅ ALWAYS -->
 <div class="bg-surface-50-950">
 <p class="text-surface-600-400">
-<button class="hover:bg-surface-200-800">
 ```
 
 Also applies to presets: `preset-filled-primary-50-950`, `preset-outlined-surface-200-800`, etc.
@@ -215,48 +243,19 @@ New icons need both an import AND an entry in `iconMap` in `Icon.svelte`.
 
 All UI text in **English**.
 
-### Admin Pages
-
-`/admin` routes hide navbar/footer via pathname check in root layout. Requires `user.role === 'admin'`.
-
 ## Superforms Gotchas
 
 1. `request.formData()` can only be called once — pass already-parsed FormData to `superValidate()`
 2. Initialize `superForm()` BEFORE any `$derived` that reads `$form`
 3. Use `message()` for business errors, `fail()` for validation errors
 
-## Adding New Features to the Template
+## Adding to the Template
 
-### New database table
-
-1. Create schema in `template/src/lib/db/schemas/`
-2. Create service in `template/src/lib/services/`
-3. Run `bun run db:push` in the generated project
-
-### New page
-
-1. Create route in `template/src/routes/`
-2. Use service layer for data
-3. Use Skeleton components for UI
-
-### New UI component
-
-1. Create in `template/src/lib/components/ui/`
-2. Must wrap Skeleton classes or `<Component>`
-3. Export from `template/src/lib/components/ui/index.ts`
-
-### OAuth provider
-
-Add to `template/src/lib/auth.ts`:
-
-```typescript
-socialProviders: {
-    github: {
-        clientId: env.GITHUB_CLIENT_ID,
-        clientSecret: env.GITHUB_CLIENT_SECRET
-    }
-}
-```
+- **New DB table:** schema in `db/schemas/` → service in `services/` → `bun run db:push` in generated project
+- **New page:** route in `routes/` → use service layer → use Skeleton components
+- **New UI component:** in `components/ui/` → wrap Skeleton → use tokens → export from `index.ts`
+- **New theme:** copy `svelteForge.css` + `tokens.css` → change `[data-theme]` name and values
+- **OAuth provider:** add `socialProviders` block in `auth.ts`
 
 ## Environment Variables (Full Stack mode)
 
@@ -265,9 +264,3 @@ DATABASE_URL="data/sqlite.db"           # SQLite database path
 BETTER_AUTH_SECRET="..."                # Auth secret (auto-generated by setup)
 BASE_URL="http://localhost:5173"        # Public URL
 ```
-
-## Git Workflow
-
-1. Branch from main: `git checkout -b feature/description`
-2. Conventional commits: `feat:`, `fix:`, `refactor:`, `chore:`
-3. PR via `gh pr create`, then squash-merge
