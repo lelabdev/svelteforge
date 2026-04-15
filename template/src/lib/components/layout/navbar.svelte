@@ -26,7 +26,7 @@
 <AppBar>
 	<AppBar.Toolbar class="grid-cols-[1fr_auto_1fr]">
 		<AppBar.Lead>
-			<a href="/" class="text-xl font-bold text-white hover:text-primary-200 transition-colors">
+			<a href="/" class="text-white hover:text-primary-200 transition-colors" style="font-size: var(--text-logo); font-weight: var(--weight-title)">
 				SvelteForge
 			</a>
 		</AppBar.Lead>
@@ -36,7 +36,7 @@
 		</AppBar.Headline>
 
 		<AppBar.Trail>
-			<AuthButtons {session} class="hidden md:flex items-center gap-2" />
+			<AuthButtons {session} class="hidden md:flex items-center" />
 
 			<!-- Mobile menu toggle -->
 			<button

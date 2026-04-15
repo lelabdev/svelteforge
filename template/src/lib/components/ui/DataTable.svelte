@@ -69,17 +69,19 @@
 </script>
 
 <div class="overflow-x-auto {className}">
-	<table class="w-full text-sm">
+	<table class="w-full" style="font-size: var(--text-body)">
 		<thead>
 			<tr class="border-b border-surface-300-700">
 				{#each columns as col (col.key)}
 					<th
-						class="px-4 py-3 text-left font-semibold text-muted-foreground text-xs uppercase tracking-wider {col.width ?? ''}"
+						class="text-left text-muted-foreground uppercase tracking-wider {col.width ?? ''}"
+						style="padding: var(--table-cell-py) var(--table-cell-px); font-size: var(--text-caption); font-weight: var(--weight-subtitle)"
 					>
 						{#if col.sortable}
 							<button
 								type="button"
-								class="inline-flex items-center gap-1 hover:text-surface-900-100 transition-colors"
+								class="inline-flex items-center hover:text-surface-900-100 transition-colors"
+								style="gap: var(--gap-xs)"
 								onclick={() => handleSort(col.key)}
 							>
 								{col.label}
@@ -99,14 +101,14 @@
 			{#if loading}
 				{#each columns as _}
 					<tr class="border-b border-surface-200-800">
-						<td class="px-4 py-3">
+						<td style="padding: var(--table-cell-py) var(--table-cell-px)">
 							<div class="h-4 bg-surface-200-700 rounded animate-pulse"></div>
 						</td>
 					</tr>
 				{/each}
 			{:else if data.length === 0}
 				<tr>
-					<td colspan={columns.length} class="px-4 py-8 text-center text-muted-foreground">
+					<td colspan={columns.length} class="text-center text-muted-foreground" style="padding: var(--table-empty-py) var(--table-cell-px)">
 						{emptyMessage}
 					</td>
 				</tr>
@@ -121,7 +123,7 @@
 						tabindex={onRowClick ? 0 : undefined}
 					>
 						{#each columns as col (col.key)}
-							<td class="px-4 py-3">
+							<td style="padding: var(--table-cell-py) var(--table-cell-px)">
 								{#if col.cell}
 									{@render col.cell(row)}
 								{:else}

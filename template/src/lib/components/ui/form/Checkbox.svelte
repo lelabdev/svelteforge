@@ -36,7 +36,7 @@
 
 	const containerClass = $derived(
 		cn(
-			'flex items-center gap-2 cursor-pointer',
+			'flex items-center cursor-pointer',
 			className,
 			disabled && 'opacity-50 cursor-not-allowed'
 		)
@@ -44,13 +44,13 @@
 
 	const labelClass = $derived(
 		cn(
-			'text-sm leading-relaxed select-none text-surface-700-300',
+			'leading-relaxed select-none text-surface-700-300',
 			disabled && 'text-surface-500'
 		)
 	);
 </script>
 
-<label class={containerClass}>
+<label class={containerClass} style="gap: var(--gap-sm)">
 	<input
 		type="checkbox"
 		id={checkboxId}
@@ -64,7 +64,7 @@
 	{#if children}
 		{@render children()}
 	{:else if label}
-		<span class={labelClass}>
+		<span class={labelClass} style="font-size: var(--text-label)">
 			{label}
 			{#if required}
 				<span class="text-error-500 ml-1">*</span>

@@ -65,6 +65,6 @@
 		{/each}
 	</select>
 	{#if error}
-		<p class="text-sm text-error-500">{error}</p>
+		<p class="text-error-500" style="font-size: var(--text-label)">{error}</p>
 	{/if}
 </div>

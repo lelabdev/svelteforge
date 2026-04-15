@@ -28,17 +28,22 @@
 
 	const variantClasses: Record<string, string> = {
 		underline: '',
-		pills: 'bg-surface-100-800 rounded-lg p-1'
+		pills: 'bg-surface-100-800'
+	};
+
+	const variantStyles: Record<string, string> = {
+		underline: '',
+		pills: 'border-radius: var(--radius-tab-pills); padding: var(--tab-pills-p)'
 	};
 </script>
 
 {#if tabs.length > 0}
 	<SkeletonTabs {value} onValueChange={(e: { value: string }) => { value = e.value; onValueChange?.(e.value); }}>
-		<div class="{variantClasses[variant]} {className}">
-			<SkeletonTabs.List class="flex gap-1">
+		<div class="{variantClasses[variant]} {className}" style="{variantStyles[variant]}">
+			<SkeletonTabs.List class="flex" style="gap: var(--gap-xs)">
 				{#each tabs as tab (tab.value)}
 					<SkeletonTabs.Trigger value={tab.value} disabled={tab.disabled}>
-						<div class="flex items-center gap-2 px-3 py-2 text-sm font-medium">
+						<div class="flex items-center" style="gap: var(--gap-sm); padding: var(--tab-trigger-py) var(--tab-trigger-px); font-size: var(--text-body); font-weight: var(--weight-subtitle)">
 							{#if tab.icon}{@render tab.icon()}{/if}
 							{tab.label}
 						</div>
@@ -48,7 +53,7 @@
 
 			{#each tabs as tab (tab.value)}
 				<SkeletonTabs.Content value={tab.value}>
-					<div class="pt-4">
+					<div style="padding-top: var(--space-inline)">
 						{@render tab.content()}
 					</div>
 				</SkeletonTabs.Content>

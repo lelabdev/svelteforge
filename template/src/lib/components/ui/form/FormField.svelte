@@ -38,7 +38,7 @@
 
 <div class={className}>
 	<label for={id} class="label">
-		<span class="label-text flex justify-between items-center gap-4">
+		<span class="label-text flex justify-between items-center" style="gap: var(--gap-lg)">
 			<span>
 				{label}
 				{#if hint}
@@ -46,7 +46,7 @@
 				{/if}
 			</span>
 			{#if error}
-				<span class="text-xs text-error-500 font-medium shrink-0">{error}</span>
+				<span class="text-error-500 shrink-0" style="font-size: var(--text-caption); font-weight: var(--weight-label)">{error}</span>
 			{/if}
 		</span>
 		<input

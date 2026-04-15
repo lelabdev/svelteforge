@@ -18,6 +18,7 @@
 		variant?: ButtonVariant;
 		size?: ButtonSize;
 		class?: string;
+		style?: string;
 		children: any;
 		onclick?: (event: MouseEvent) => void;
 		onmouseenter?: () => void;
@@ -35,6 +36,7 @@
 		variant = 'primary',
 		size = 'md',
 		class: className = '',
+		style: styleAttr = '',
 		children,
 		onclick,
 		onmouseenter,
@@ -88,6 +90,7 @@
 	aria-label={ariaLabel}
 	role={href ? 'button' : undefined}
 	class={buttonClass}
+	style={styleAttr || undefined}
 >
 	{#if loading}
 		<span class="flex items-center justify-center gap-2">

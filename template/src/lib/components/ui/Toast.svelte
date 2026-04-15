@@ -10,15 +10,16 @@
 </script>
 
 {#if getToasts().length > 0}
-	<div class="fixed bottom-4 right-4 z-50 flex flex-col gap-3 w-80">
+	<div class="fixed bottom-4 right-4 z-50 flex flex-col" style="max-width: var(--max-w-toast); gap: var(--gap-md)">
 		{#each getToasts() as toast (toast.id)}
 			<div
-				class="card {kindPresets[toast.kind] ?? kindPresets.info} p-4 shadow-lg flex items-start gap-3 transition-all duration-300"
+				class="card {kindPresets[toast.kind] ?? kindPresets.info} shadow-lg flex items-start transition-all duration-300"
+				style="padding: var(--toast-p); gap: var(--gap-md)"
 			>
 				<div class="flex-1 min-w-0">
-					<p class="font-semibold text-sm">{toast.title}</p>
+					<p class="font-semibold" style="font-size: var(--text-body)">{toast.title}</p>
 					{#if toast.description}
-						<p class="text-xs mt-1 opacity-80">{toast.description}</p>
+						<p class="mt-1 opacity-80" style="font-size: var(--text-caption)">{toast.description}</p>
 					{/if}
 				</div>
 				<button

@@ -81,7 +81,6 @@
 		cn(
 			'relative flex items-center',
 			'border border-surface-300-700',
-			'rounded-lg',
 			'transition-all duration-200',
 			'focus-within:ring-2 focus-within:ring-primary-500/50 focus-within:border-primary-500',
 			error && 'border-error-500 focus-within:ring-error-500/50 focus-within:border-error-500'
@@ -90,7 +89,7 @@
 
 	const inputClass = $derived(
 		cn(
-			'w-full px-3 py-2 pr-10 rounded-lg text-sm',
+			'w-full pr-10',
 			'bg-transparent border-0 focus:outline-none',
 			'text-surface-900-100',
 			'placeholder:text-surface-400-500',
@@ -100,7 +99,7 @@
 
 	const toggleButtonClass = $derived(
 		cn(
-			'absolute right-2 p-1.5 rounded-md',
+			'absolute right-2 p-1.5',
 			'text-surface-400-600 hover:text-surface-600-400',
 			'hover:bg-surface-100-700',
 			'transition-all duration-200',
@@ -112,20 +111,20 @@
 
 <div class={containerClass}>
 	<label for={id} class="label">
-		<span class="label-text flex justify-between items-center gap-4">
-			<span class="flex items-center gap-2">
+		<span class="label-text flex justify-between items-center" style="gap: var(--gap-lg); font-size: var(--text-label); font-weight: var(--weight-label)">
+			<span class="flex items-center" style="gap: var(--gap-sm)">
 				{label}
 				{#if required}
 					<span class="text-error-500">*</span>
 				{/if}
 			</span>
 			{#if error}
-				<span class="text-xs text-error-500 font-medium shrink-0">{error}</span>
+				<span class="text-error-500 shrink-0" style="font-size: var(--text-caption); font-weight: var(--weight-label)">{error}</span>
 			{/if}
 		</span>
 	</label>
 
-	<div class={inputWrapperClass}>
+	<div class={inputWrapperClass} style="border-radius: var(--radius-input-custom)">
 		<input
 			{id}
 			{name}
@@ -136,11 +135,13 @@
 			{disabled}
 			{onblur}
 			class={inputClass}
+			style="padding-left: var(--input-custom-px); padding-top: var(--input-custom-py); padding-bottom: var(--input-custom-py); border-radius: var(--radius-input-custom); font-size: var(--text-body)"
 		/>
 		<button
 			type="button"
 			onclick={togglePassword}
 			class={toggleButtonClass}
+			style="border-radius: var(--radius-toggle)"
 			aria-label={showPassword ? 'Hide password' : 'Show password'}
 			tabindex="-1"
 		>
@@ -153,9 +154,9 @@
 	</div>
 
 	{#if showStrength && inputValue}
-		<div class="space-y-1 mt-2">
-			<div class="flex items-center justify-between text-xs">
-				<span class="text-surface-600-400 flex items-center gap-1">
+		<div class="space-y-1" style="margin-top: var(--space-inline)">
+			<div class="flex items-center justify-between" style="font-size: var(--text-caption)">
+				<span class="text-surface-600-400 flex items-center" style="gap: var(--gap-xs)">
 					{#if strength.strength === 0}
 						<Icon name="shield" size={12} />
 					{:else if strength.strength <= 2}
@@ -166,7 +167,7 @@
 					Strength: {strength.label}
 				</span>
 			</div>
-			<div class="h-1.5 w-full bg-surface-300 dark:bg-surface-600 rounded-full overflow-hidden">
+			<div class="w-full bg-surface-300 dark:bg-surface-600 rounded-full overflow-hidden" style="height: var(--strength-bar-h)">
 				<div
 					class="h-full transition-all duration-300 ease-out {strength.color}"
 					style="width: {progressWidth}"

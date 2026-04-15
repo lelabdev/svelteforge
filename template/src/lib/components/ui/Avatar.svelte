@@ -16,11 +16,11 @@
 
 	let { src, alt = '', fallback = '', size = 'md', class: className = '' }: Props = $props();
 
-	const sizes: Record<string, string> = {
-		sm: 'size-8 text-xs',
-		md: 'size-10 text-sm',
-		lg: 'size-12 text-base',
-		xl: 'size-16 text-lg'
+	const sizeStyles: Record<string, string> = {
+		sm: 'width: var(--avatar-sm); height: var(--avatar-sm); font-size: var(--text-caption)',
+		md: 'width: var(--avatar-md); height: var(--avatar-md); font-size: var(--text-label)',
+		lg: 'width: var(--avatar-lg); height: var(--avatar-lg); font-size: var(--text-submit)',
+		xl: 'width: var(--avatar-xl); height: var(--avatar-xl); font-size: 1.125rem'
 	};
 
 	const initials = $derived(
@@ -37,7 +37,8 @@
 </script>
 
 <div
-	class="relative inline-flex items-center justify-center rounded-full bg-primary-500/10 text-primary-500 font-semibold overflow-hidden {sizes[size]} {className}"
+	class="relative inline-flex items-center justify-center rounded-full bg-primary-500/10 text-primary-500 overflow-hidden {className}"
+	style="{sizeStyles[size]}; font-weight: var(--weight-title)"
 >
 	{#if src}
 		<img {src} {alt} class="absolute inset-0 w-full h-full object-cover" />

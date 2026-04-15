@@ -38,17 +38,18 @@
 
 	<Portal>
 		<SkeletonMenu.Positioner>
-			<SkeletonMenu.Content class="card p-1 min-w-[180px] shadow-lg border border-surface-300-700 z-50">
+			<SkeletonMenu.Content class="card shadow-lg border border-surface-300-700 z-50" style="padding: var(--menu-panel-p); min-width: var(--menu-min-w)">
 				{#each items as item (item.key)}
 					<button
 						type="button"
-						class="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors
+						class="w-full flex items-center transition-colors
 							{item.disabled
 							? 'opacity-50 cursor-not-allowed'
 							: item.danger
 								? 'text-error-500 hover:bg-error-500/10'
 								: 'hover:bg-surface-200-700'
 						}"
+						style="gap: var(--gap-sm); padding: var(--menu-item-py) var(--menu-item-px); font-size: var(--text-body); border-radius: var(--radius-menu-item)"
 						disabled={item.disabled}
 						onclick={() => { if (!item.disabled) onSelect(item.key); }}
 					>

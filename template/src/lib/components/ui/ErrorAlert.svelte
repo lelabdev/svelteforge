@@ -10,10 +10,10 @@
 	let { title = 'Error', message, class: className = '' }: Props = $props();
 </script>
 
-<div class="preset-tonal-error-500 p-4 rounded-xl flex items-start gap-3 {className}" role="alert">
-	<Icon name="alertCircle" size={20} class="shrink-0 mt-0.5" />
+<div class="preset-tonal-error-500 flex items-start {className}" style="padding: var(--alert-p); border-radius: var(--radius-alert); gap: var(--gap-md)" role="alert">
+	<Icon name="alertCircle" size={20} class="shrink-0" style="margin-top: var(--space-nano)" />
 	<div>
-		<p class="font-semibold">{title}</p>
-		<p class="text-sm mt-0.5">{message}</p>
+		<p style="font-weight: var(--weight-subtitle)">{title}</p>
+		<p style="font-size: var(--text-body); margin-top: var(--space-nano)">{message}</p>
 	</div>
 </div>

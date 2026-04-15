@@ -5,10 +5,11 @@
 
 	interface Props {
 		class?: string;
+		style?: string;
 		session: ReturnType<typeof authClient.useSession>;
 	}
 
-	let { class: className = '', session }: Props = $props();
+	let { class: className = '', style: styleAttr, session }: Props = $props();
 
 	const isLoggedIn = $derived(!$session.isPending && $session.data);
 	const isAdmin = $derived($session.data?.user?.role === 'admin');
@@ -18,7 +19,7 @@
 	const hideDashboardLink = $derived($page.url.pathname === '/dashboard');
 </script>
 
-<div class="flex items-center gap-2 {className}">
+<div class="flex items-center {className}" style="gap: var(--gap-sm); {styleAttr || ''}">
 	{#if isLoggedIn}
 		{#if isAdmin}
 			<a href="/admin" class="btn-icon text-white hover:bg-white/10" aria-label="Admin">

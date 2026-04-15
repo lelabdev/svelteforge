@@ -26,12 +26,12 @@
 	}: Props = $props();
 </script>
 
-<div class="flex items-center justify-between gap-4 {className}">
+<div class="flex items-center justify-between {className}" style="gap: var(--gap-lg)">
 	{#if label}
 		<div class="flex-1">
-			<span class="text-sm font-medium">{label}</span>
+			<span style="font-size: var(--text-label); font-weight: var(--weight-label)">{label}</span>
 			{#if description}
-				<p class="text-xs text-muted-foreground mt-0.5">{description}</p>
+				<p class="text-muted-foreground" style="font-size: var(--text-caption); margin-top: var(--space-nano)">{description}</p>
 			{/if}
 		</div>
 	{/if}

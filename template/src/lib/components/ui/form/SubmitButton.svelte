@@ -36,9 +36,10 @@
 	{variant}
 	{size}
 	class={cn(
-		'w-full py-3 text-base font-medium hover:scale-[1.02] active:scale-[0.98] transition-transform',
+		'w-full hover:scale-[1.02] active:scale-[0.98] transition-transform',
 		className
 	)}
+	style="padding-top: var(--submit-py); padding-bottom: var(--submit-py); font-size: var(--text-submit); font-weight: var(--weight-label)"
 >
 	{#if loading}
 		{loadingText}

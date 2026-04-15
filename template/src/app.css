@@ -10,3 +10,4 @@
 @import '@skeletonlabs/skeleton';
 @import '@skeletonlabs/skeleton-svelte';
 @import './lib/styles/svelteForge.css';
+@import './lib/styles/tokens.css';
