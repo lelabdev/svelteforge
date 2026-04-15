@@ -2,8 +2,7 @@
 	import { superForm } from 'sveltekit-superforms';
 	import { zod4Client } from 'sveltekit-superforms/adapters';
 	import { signupSchema } from '$lib/schemas/signup';
-	import { AuthCard, Button, FormField, PasswordInput, SubmitButton } from '$lib/components/ui';
-	import Icon from '$lib/components/icons/Icon.svelte';
+	import { AuthCard, ErrorAlert, FormField, PasswordInput, SuccessAlert, SubmitButton } from '$lib/components/ui';
 	import { getFormError } from '$lib/utils/form-errors';
 	import { onMount } from 'svelte';
 
@@ -45,34 +44,6 @@
 			$form.password.length >= 8
 	);
 
-	function getPasswordStrength(password: string): {
-		strength: number;
-		color: string;
-		label: string;
-	} {
-		if (!password) return { strength: 0, color: 'bg-error-500', label: '' };
-
-		let score = 0;
-		if (password.length >= 8) score++;
-		if (password.length >= 12) score++;
-		if (/[a-z]/.test(password) && /[A-Z]/.test(password)) score++;
-		if (/\d/.test(password)) score++;
-		if (/[^a-zA-Z0-9]/.test(password)) score++;
-
-		const levels = [
-			{ color: 'bg-error-500', label: 'Very weak' },
-			{ color: 'bg-warning-500', label: 'Weak' },
-			{ color: 'bg-warning-400', label: 'Fair' },
-			{ color: 'bg-success-400', label: 'Strong' },
-			{ color: 'bg-success-500', label: 'Very strong' }
-		];
-
-		return { strength: score, ...levels[Math.min(score, 4)] };
-	}
-
-	let passwordStrength = $derived(getPasswordStrength($form.password || ''));
-	let progressWidth = $derived(`${(passwordStrength.strength / 5) * 100}%`);
-
 	onMount(() => {
 		document.getElementById('email')?.focus();
 	});
@@ -85,25 +56,11 @@
 
 <AuthCard title="Sign Up" subtitle="Create your account">
 	{#if error}
-		<div
-			class="bg-error-500/10 border border-error-500/30 text-error-700-300 p-4 rounded-xl mb-6 flex items-start gap-3"
-			role="alert"
-		>
-			<Icon name="alertCircle" size={20} class="shrink-0 mt-0.5" />
-			<div>
-				<p class="font-semibold">Error</p>
-				<p class="text-sm mt-0.5">{error}</p>
-			</div>
-		</div>
+		<ErrorAlert message={error} class="mb-6" />
 	{/if}
 
 	{#if $message}
-		<div
-			class="bg-success-500/10 border border-success-500/30 text-success-700-300 p-4 rounded-xl mb-6 flex items-start gap-3"
-			role="status"
-		>
-			<p class="text-sm">{$message}</p>
-		</div>
+		<SuccessAlert message={$message} class="mb-6" />
 	{/if}
 
 	<form method="POST" use:enhance class="space-y-5">
@@ -134,28 +91,9 @@
 			bind:value={$form.password}
 			label="Password"
 			error={getFormError($errors?.password)}
-			showStrength={false}
+			showStrength={true}
 			required
 		/>
-
-		<!-- Password strength indicator -->
-		{#if $form.password}
-			<div class="space-y-1">
-				<div class="flex items-center justify-between text-xs">
-					<span class="text-surface-600-400">
-						Strength: {passwordStrength.label}
-					</span>
-				</div>
-				<div
-					class="h-1.5 w-full bg-surface-200-700 rounded-full overflow-hidden"
-				>
-					<div
-						class="h-full transition-all duration-300 ease-out {passwordStrength.color}"
-						style="width: {progressWidth}"
-					></div>
-				</div>
-			</div>
-		{/if}
 
 		<FormField
 			id="confirmPassword"
@@ -174,15 +112,6 @@
 			disabled={!formValid}
 		/>
 	</form>
-
-	<!-- Global errors from Superforms -->
-	{#if $form._errors?.length}
-		<div
-			class="bg-error-500/10 border border-error-500/30 text-error-700-300 p-4 rounded-xl mt-4"
-		>
-			{$form._errors[0]}
-		</div>
-	{/if}
 
 	{#snippet footer()}
 		<p class="text-center text-sm text-surface-600-400">

@@ -2,7 +2,7 @@
 	import { superForm } from 'sveltekit-superforms';
 	import { zod4Client } from 'sveltekit-superforms/adapters';
 	import { resetPasswordSchema } from '$lib/schemas/password';
-	import { AuthCard, ErrorAlert, Button, SubmitButton } from '$lib/components/ui';
+	import { AuthCard, ErrorAlert, Button, PasswordInput, SubmitButton } from '$lib/components/ui';
 	import { getFormError } from '$lib/utils/form-errors';
 
 	let { data } = $props();
@@ -46,43 +46,26 @@
 			{/if}
 
 			<form method="POST" use:enhance class="space-y-5">
-				<div class="space-y-2">
-					<label for="password" class="label">
-						<span class="label-text">New password</span>
-					</label>
-					<input
-						id="password"
-						name="password"
-						type="password"
-						bind:value={$form.password}
-						placeholder="•••••••"
-						required
-						minlength={8}
-						class="input w-full"
-					/>
-					{#if $errors.password}
-						<p class="text-sm text-error-500">{getFormError($errors.password)}</p>
-					{/if}
-				</div>
+				<PasswordInput
+					id="password"
+					name="password"
+					bind:value={$form.password}
+					label="New password"
+					placeholder="•••••••"
+					error={getFormError($errors.password)}
+					showStrength={true}
+					required
+				/>
 
-				<div class="space-y-2">
-					<label for="confirmPassword" class="label">
-						<span class="label-text">Confirm password</span>
-					</label>
-					<input
-						id="confirmPassword"
-						name="confirmPassword"
-						type="password"
-						bind:value={confirmPassword}
-						placeholder="•••••••"
-						required
-						minlength={8}
-						class="input w-full"
-					/>
-					{#if confirmPassword && !passwordsMatch}
-						<p class="text-sm text-error-500">Passwords do not match</p>
-					{/if}
-				</div>
+				<PasswordInput
+					id="confirmPassword"
+					name="confirmPassword"
+					bind:value={confirmPassword}
+					label="Confirm password"
+					placeholder="•••••••"
+					error={confirmPassword && !passwordsMatch ? 'Passwords do not match' : ''}
+					required
+				/>
 
 				<SubmitButton
 					loading={$submitting}

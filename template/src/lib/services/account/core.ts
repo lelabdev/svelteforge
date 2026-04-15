@@ -9,11 +9,36 @@ import { db } from '$lib/db';
 import { user } from '$lib/db/schemas';
 import { eq } from 'drizzle-orm';
 import { logger, logError } from '$lib/logger';
+import { NotFoundError, InternalError } from '$lib/errors';
 import type { QueryRunner } from '$lib/db/types';
 import type { User } from '$lib/db/schemas';
 
 // Re-export types for convenience
 export type { User };
+
+// ============================================================================
+// HELPER
+// ============================================================================
+
+/**
+ * Fetch a user by ID, throw NotFoundError if missing, then run `fn`.
+ * Handles try/catch + logError + InternalError boilerplate.
+ */
+export async function withUser<T>(
+	userId: string,
+	context: string,
+	fn: (existing: User) => Promise<T>
+): Promise<T> {
+	const [existing] = await db.select().from(user).where(eq(user.id, userId)).limit(1);
+	if (!existing) throw new NotFoundError('User not found');
+	try {
+		return await fn(existing);
+	} catch (error) {
+		if (error instanceof NotFoundError) throw error;
+		logError(error as Error, { userId, context });
+		throw new InternalError(`Error in ${context}`, error);
+	}
+}
 
 // ============================================================================
 // USER EXISTENCE
