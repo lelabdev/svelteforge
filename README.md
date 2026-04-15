@@ -8,13 +8,12 @@ Production-ready SvelteKit boilerplate generator with BetterAuth, Drizzle ORM, a
 bun run scaffold.ts my-project
 ```
 
-## Modules
+## Modes
 
-| Mode | UI + Forms | Auth | DB |
-|------|:----------:|:----:|:--:|
-| **Full Stack** (default) | ✓ | ✓ | ✓ |
-| **Frontend Only** | ✓ | ✗ | ✗ |
-| **UI + DB** | ✓ | ✗ | ✓ |
+| Mode | UI + Forms | Auth + DB |
+|------|:----------:|:---------:|
+| **Full Stack** (default) | ✓ | ✓ |
+| **Landing Page** | ✓ | ✗ |
 
 ## Stack
 
@@ -41,9 +40,10 @@ svelteforge/            ← this repo
 
 ## Scaffold Flow
 
-1. `sv create` → base SvelteKit + Tailwind + ESLint/Prettier
-2. `sv add drizzle` → Drizzle ORM (only if DB/Auth selected)
-3. SvelteForge → Skeleton UI, components, forms, auth layer, etc.
+1. `sv create` → base SvelteKit + Tailwind + ESLint + Prettier
+2. `sv add vitest` → testing framework
+3. `bun add drizzle-orm` → DB deps (Full Stack only)
+4. SvelteForge → Skeleton UI, components, forms, auth layer, etc.
 
 ## Development
 

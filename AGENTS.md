@@ -34,12 +34,13 @@ bun run scaffold.ts my-project --no-setup # Skip setup phase
 
 ### Scaffold Flow
 
-1. `sv create` — base SvelteKit + Tailwind + ESLint + Prettier + Vitest
-2. `sv add drizzle` — Drizzle ORM (Full Stack only)
-3. Copy SvelteForge template files (components, auth, schemas, etc.)
-4. Install SvelteForge-only deps (Skeleton, BetterAuth, SuperForms, fonts, etc.)
-5. Generate `vite.config.ts` based on mode
-6. Optional: run `setup.ts` (creates .env, DB, admin user)
+1. `sv create` — base SvelteKit + Tailwind + ESLint + Prettier
+2. `sv add vitest` — testing (unit + component)
+3. `bun add drizzle-orm` — DB deps (Full Stack only)
+4. Copy SvelteForge template files (components, auth, schemas, etc.)
+5. Install SvelteForge-only deps (Skeleton, BetterAuth, SuperForms, fonts, etc.)
+6. Generate `vite.config.ts` based on mode
+7. Optional: run `setup.ts` (creates .env, DB, admin user)
 
 ## Stack (Full Stack mode)
 
@@ -67,7 +68,7 @@ src/
 │   ├── logger.ts            # Pino logger + createChildLogger()
 │   ├── types.ts             # Shared TypeScript interfaces
 │   ├── components/
-│   │   ├── ui/              # 18 Skeleton-based reusable components
+│   │   ├── ui/              # 17 Skeleton-based reusable components
 │   │   │   ├── Avatar, Badge, Button, Card, ConfirmDialog
 │   │   │   ├── DataTable, ErrorAlert, Loader, Menu, Modal
 │   │   │   ├── Switch, Tabs, ThemeToggle, Toast
