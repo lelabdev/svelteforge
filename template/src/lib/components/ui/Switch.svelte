@@ -29,7 +29,7 @@
 <div class="flex items-center justify-between gap-4 {className}">
 	{#if label}
 		<div class="flex-1">
-			<label class="text-sm font-medium">{label}</label>
+			<span class="text-sm font-medium">{label}</span>
 			{#if description}
 				<p class="text-xs text-muted-foreground mt-0.5">{description}</p>
 			{/if}
@@ -39,6 +39,7 @@
 	<SkeletonSwitch
 		{checked}
 		{disabled}
+		aria-label={label}
 		onCheckedChange={(e: { checked: boolean }) => onCheckedChange?.(e.checked)}
 	>
 		<SkeletonSwitch.Control>
