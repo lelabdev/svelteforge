@@ -17,101 +17,131 @@
 
 ---
 
+## 📦 Current Component Inventory
+
+The boilerplate already includes **48 components** across 3 categories:
+
+### UI Components (34)
+| Component | Variants/Features |
+|-----------|-------------------|
+| Accordion | Skeleton wrapper |
+| AuthCard | Auth form card |
+| Avatar | — |
+| Badge | primary, secondary, success, warning, error, surface |
+| Breadcrumb | Skeleton wrapper |
+| Button | ✅ variant system (primary, secondary, etc.) — 104 lines |
+| Card | flat, elevated, outlined, none |
+| Carousel | Skeleton wrapper |
+| ConfirmDialog | Confirmation modal |
+| DataTable | Table component |
+| Divider | — |
+| EmptyState | — |
+| ErrorAlert | Error alert |
+| Loader | — |
+| Menu | Skeleton wrapper |
+| Modal | Dialog component |
+| NavigationLoader | Route transition loader |
+| NotificationBadge | count, max, size |
+| PopOver | Skeleton wrapper |
+| Progress | Skeleton wrapper |
+| RadioGroup | Skeleton wrapper |
+| SearchInput | Search field |
+| Sheet | Side panel (Dialog-based) |
+| SkeletonLoader | Loading skeleton |
+| Stepper | Custom (completed/current/upcoming) |
+| SuccessAlert | Success alert |
+| Switch | Skeleton wrapper |
+| Tabs | Skeleton wrapper |
+| ThemeToggle | Dark/light toggle |
+| Toast | Toast notification |
+| Tooltip | Skeleton wrapper |
+
+### Form Components (8)
+| Component | Features |
+|-----------|----------|
+| Checkbox | — |
+| FormField | Label + error wrapper |
+| Input | Text input |
+| PasswordInput | With show/hide toggle |
+| Select | Dropdown select |
+| SubmitButton | Form submit button |
+| TextArea | Multiline input |
+
+### Layout Components (6)
+Navbar, MobileMenu, AuthButtons, Footer, NavLinks, index
+
+---
+
 ## 🔴 High Priority
 
-### 1. Wrapped UI Components (variants system)
-Wrap Skeleton primitives with pre-configured variants. Goal: `variant="primary"` instead of manually writing 6 classes.
+### 1. Landing Page Demo with rune-scroller
+- Integrate `rune-scroller` (lelabdev/rune-scroller) in the default landing page
+- Sections: Hero, Features, Pricing, CTA, Footer
+- Serves as demo for rune-scroller + promotion
+- Make landing page look polished and professional
 
-**Components to create:**
-- `Button` — variants: primary, secondary, danger, ghost, outline, link
-- `Input` — variants: default, error, with icon, with label
-- `Card` — variants: default, elevated, outlined, interactive
-- `Badge` — variants: default, success, warning, error, info
-- `Alert` — variants: info, success, warning, error
-- `Textarea` — same as Input variants
-- `Select` — with label, error state
-- `Avatar` — sizes, fallback, group
-- `Tooltip` — simple wrapper
-- `Dialog/Modal` — confirm, prompt variants
-- `Tabs` — pre-styled
-- `Toast/Notification` — system-wide feedback
+### 2. Audit Existing Components Quality
+- Verify all 48 components follow consistent patterns
+- Check variant systems are complete
+- Ensure all respect Skeleton color pairings (no `text-white` etc.)
+- Accessibility pass (aria attributes, keyboard nav)
 
-### 2. Landing Page Demo with rune-scroller
-- Integrate `rune-scroller` in the default landing page template
-- Show animations on hero, features, CTA sections
-- Serves as both demo and promotion for rune-scroller
-- Landing page sections: Hero, Features, Pricing, CTA, Footer
-
-### 3. Form Components (SuperForms + Zod integration)
-- `FormField` — label + input + error message wrapper
-- `FormInput` — Input with validation state from SuperForms
-- `FormSelect` — Select with options + validation
-- `FormTextarea` — Textarea with validation
-- Pre-configured to work with SuperForms + Zod out of the box
+### 3. rune-scroller Improvements
+- Audit rune-scroller for potential improvements
+- New animations?
+- API refinements?
 
 ---
 
 ## 🟡 Medium Priority
 
-### 4. Dashboard Layout System
-- `DashboardLayout` — sidebar + header + main content
+### 4. Dashboard Layout
+- Sidebar + header + main content
 - Collapsible sidebar
 - Responsive (sidebar → hamburger on mobile)
-- Breadcrumb integration
 
-### 5. Sidebar + Navigation Component
-- `Sidebar` with menu items, icons, active state
-- Nested menu support
-- Collapsible sections
+### 5. Component Demo Page
+- A route like `/demo` or `/components` that shows all components
+- Interactive playground
+- Useful for development and as documentation
 
-### 6. Toast / Notification System
-- Wrapper around Skeleton Toast or custom
-- Success, error, warning, info variants
-- Auto-dismiss + manual close
-- Queued notifications
-
-### 7. Email Templates (BetterAuth)
-- Password reset email
-- Email verification
-- Welcome email
+### 6. Email Templates (BetterAuth)
+- Password reset, email verification, welcome email
 - HTML templates ready to customize
+
+### 7. Better Docs / Comments
+- JSDoc on all component Props
+- Usage examples in component files
+- AGENTS.md or CONTRIBUTING.md
 
 ---
 
 ## 🟢 Low Priority
 
-### 8. Data Table Component
-- Sortable columns
-- Filterable
-- Pagination
-- Row selection
-
-### 9. Testing Setup
+### 8. Testing Setup
 - Vitest configured with examples
 - Playwright E2E setup
 - Example tests for auth flow
 
-### 10. SEO Utilities
-- `metaTags()` helper for +page.ts
-- Open Graph / Twitter Card support
-- sitemap.xml generation
+### 9. SEO Utilities
+- `metaTags()` helper
+- Open Graph / Twitter Card
+- sitemap.xml
 
-### 11. Dockerfile
+### 10. Dockerfile
 - Multi-stage build
-- Optimized for production
+- Production-optimized
 
-### 12. rune-scroller Improvements
-- Audit and suggest improvements
-- New animations?
-- API improvements?
+### 11. CI/CD
+- GitHub Actions for lint, test, build
+- Auto-publish CLI to npm
 
 ---
 
 ## 💡 Ideas / Maybe Later
 
-- `svelteforge add <component>` CLI command for optional heavy deps (charts, rich text editor)
-- Component playground / Storybook-like docs
+- `svelteforge add <component>` CLI for optional heavy deps
 - OAuth provider examples (Google, GitHub)
 - Stripe integration example
 - Admin panel (users, roles management)
-- Multi-tenant support with BetterAuth organizations
+- Multi-tenant with BetterAuth organizations
