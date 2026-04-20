@@ -5,7 +5,7 @@ Production-ready SvelteKit boilerplate generator with BetterAuth, Drizzle ORM, a
 ## Quick Start
 
 ```bash
-bun run scaffold.ts my-project
+bunx create-svelteforge my-project
 ```
 
 ## Modes
@@ -29,7 +29,8 @@ bun run scaffold.ts my-project
 
 ```
 svelteforge/            ← this repo
-├── scaffold.ts         ← CLI generator
+├── cli.ts              ← CLI generator
+├── package.json        ← create-svelteforge package
 ├── AGENTS.md           ← AI agent instructions
 ├── template/           ← files copied to new projects
 │   ├── src/
@@ -48,11 +49,11 @@ svelteforge/            ← this repo
 ## Development
 
 ```bash
-# Test the scaffold
-bun run scaffold.ts test-project
+# Test locally
+bun run cli.ts test-project
 
 # With specific mode (interactive prompt)
-bun run scaffold.ts test-project --no-setup
+bun run cli.ts test-project --no-setup
 ```
 
 ## License

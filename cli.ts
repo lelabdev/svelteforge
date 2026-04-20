@@ -1,13 +1,13 @@
 #!/usr/bin/env bun
 /**
- * SvelteForge Scaffold
+ * create-svelteforge
  *
  * Creates a new SvelteKit project using `sv create` for the base,
  * `sv add drizzle` for the DB, then layers SvelteForge on top.
  *
  * Usage:
- *   bun run scaffold my-project
- *   bun run scaffold my-project --no-setup
+ *   bunx create-svelteforge my-project
+ *   bunx create-svelteforge my-project --no-setup
  *
  * Modes:
  *   1. Full Stack     — UI + Forms + Auth + DB

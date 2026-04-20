@@ -1,0 +1,28 @@
+{
+	"name": "create-svelteforge",
+	"version": "0.1.0",
+	"type": "module",
+	"description": "Production-ready SvelteKit boilerplate generator with BetterAuth, Drizzle ORM, and Skeleton UI",
+	"bin": {
+		"create-svelteforge": "./cli.ts"
+	},
+	"files": [
+		"cli.ts",
+		"template/"
+	],
+	"keywords": [
+		"svelte",
+		"sveltekit",
+		"boilerplate",
+		"scaffold",
+		"starter",
+		"betterauth",
+		"drizzle",
+		"skeleton-ui",
+		"tailwind"
+	],
+	"license": "MIT",
+	"engines": {
+		"bun": ">=1.0.0"
+	}
+}

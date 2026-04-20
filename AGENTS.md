@@ -6,7 +6,8 @@ AI agent instructions for the SvelteForge boilerplate generator.
 
 ```
 svelteforge/                ← this repo
-├── scaffold.ts             ← CLI generator (run this to create projects)
+├── cli.ts                  ← CLI generator (run this to create projects)
+├── package.json            ← create-svelteforge package config
 ├── AGENTS.md               ← you are here
 ├── README.md
 └── template/               ← files copied into generated projects
@@ -15,13 +16,16 @@ svelteforge/                ← this repo
     └── ...
 ```
 
-**This repo is a generator, not an app.** Do not run `bun dev` here. Use the scaffold to create a project first.
+**This repo is a generator, not an app.** Do not run `bun dev` here. Use the CLI to create a project first.
 
 ## Commands
 
 ```bash
-bun run scaffold.ts my-project            # Interactive (pick mode)
-bun run scaffold.ts my-project --no-setup # Skip setup phase
+bunx create-svelteforge my-project            # Interactive (pick mode)
+bunx create-svelteforge my-project --no-setup # Skip setup phase
+
+# Or locally:
+bun run cli.ts my-project                     # Interactive (pick mode)
 ```
 
 ## Scaffold Modes
