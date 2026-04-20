@@ -24,7 +24,7 @@ export const actions: Actions = {
 		const form = await superValidate(request, zod4(signupSchema));
 
 		logger.debug(
-			{ valid: form.valid, errors: form.errors, data: form.data },
+			{ valid: form.valid, errors: form.errors, email: form.data.email },
 			'Signup form validation result'
 		);
 

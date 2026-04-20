@@ -16,7 +16,7 @@ export const actions: Actions = {
 		const form = await superValidate(request, zod4(loginSchema));
 
 		if (!form.valid) {
-			logger.debug({ errors: form.errors, data: form.data }, 'Login form validation failed');
+			logger.debug({ errors: form.errors, email: form.data.email }, 'Login form validation failed');
 			return fail(400, { form });
 		}
 

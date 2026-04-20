@@ -72,18 +72,21 @@ if (typeof setInterval !== 'undefined') {
  * Uses IP address (from CF-Connecting-IP, X-Forwarded-For, or fallback to event.getClientAddress)
  */
 function getClientIdentifier(event: RequestEvent): string {
-	// Check for Cloudflare's connecting IP header
+	// Check for Cloudflare's connecting IP header (most trustworthy)
 	const cfIp = event.request.headers.get('CF-Connecting-IP');
 	if (cfIp) return cfIp;
 
 	// Check for X-Forwarded-For header
+	// WARNING: X-Forwarded-For can be spoofed by clients. Only trust this
+	// if your server is behind a reverse proxy that overwrites/strips this header.
+	// For direct connections, this header should be ignored.
 	const xff = event.request.headers.get('X-Forwarded-For');
 	if (xff) {
 		// Take the first IP (original client) if there are multiple
 		return xff.split(',')[0].trim();
 	}
 
-	// Fallback to SvelteKit's getClientAddress
+	// Fallback to SvelteKit's getClientAddress (most reliable for direct connections)
 	return event.getClientAddress();
 }
 
@@ -100,7 +103,8 @@ export function checkRateLimit(
 ): { limit: number; remaining: number; reset: Date } {
 	const identifier = getClientIdentifier(event);
 	const now = Date.now();
-	const key = `${identifier}:${event.url.pathname}`;
+	// Use IP + preset category as key (not pathname) to prevent bypass via path variation
+	const key = `${identifier}:${event.url.pathname.split('/').slice(0, 2).join('/')}`;
 
 	// Get or create rate limit entry
 	let entry = rateLimitStore.get(key);

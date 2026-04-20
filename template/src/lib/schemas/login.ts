@@ -4,7 +4,7 @@ import { z } from 'zod/v4';
  * Schema for user login
  */
 export const loginSchema = z.object({
-	email: z.string().email({ error: 'Invalid email' }).min(1, { error: 'Email is required' }),
+	email: z.string().min(1, { error: 'Email is required' }).email({ error: 'Invalid email' }),
 	password: z.string().min(1, { error: 'Password is required' }).default(''),
 	rememberMe: z.boolean().optional().default(true)
 });

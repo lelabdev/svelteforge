@@ -19,7 +19,7 @@ if (!building) {
 const isDev = import.meta.env.DEV;
 const CSP_HEADER = [
 	"default-src 'self'",
-	`script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''}`,
+	`script-src 'self'${isDev ? " 'unsafe-inline' 'unsafe-eval'" : ""}`,
 	"worker-src 'self' blob:",
 	"style-src 'self' 'unsafe-inline'",
 	"img-src 'self' data: https:",
@@ -29,8 +29,8 @@ const CSP_HEADER = [
 	"frame-src 'self'",
 	"base-uri 'self'",
 	"form-action 'self'",
-	'block-all-mixed-content',
-	'upgrade-insecure-requests'
+	"block-all-mixed-content",
+	"upgrade-insecure-requests"
 ].join('; ');
 
 export const handle: Handle = async ({ event, resolve }) => {

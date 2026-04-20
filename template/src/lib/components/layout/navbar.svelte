@@ -5,6 +5,7 @@
 	import { themeStore } from '$lib/utils/theme.svelte';
 	import { onMount, onDestroy } from 'svelte';
 	import MobileMenu from './mobile-menu.svelte';
+	import Icon from '$lib/components/icons/Icon.svelte';
 	let mobileMenuOpen = $state(false);
 	const session = authClient.useSession();
 
@@ -26,7 +27,7 @@
 <AppBar>
 	<AppBar.Toolbar class="grid-cols-[1fr_auto_1fr]">
 		<AppBar.Lead>
-			<a href="/" class="text-white hover:text-primary-200 transition-colors" style="font-size: var(--text-logo); font-weight: var(--weight-title)">
+			<a href="/" class="text-surface-50-950 hover:text-primary-500-300 transition-colors" style="font-size: var(--text-logo); font-weight: var(--weight-title)">
 				SvelteForge
 			</a>
 		</AppBar.Lead>
@@ -41,17 +42,13 @@
 			<!-- Mobile menu toggle -->
 			<button
 				onclick={() => (mobileMenuOpen = !mobileMenuOpen)}
-				class="md:hidden btn-icon text-white"
+				class="md:hidden btn-icon text-surface-50-950"
 				aria-label="Menu"
 			>
 				{#if mobileMenuOpen}
-					<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-						<path d="M18 6L6 18M6 6l12 12" />
-					</svg>
+					<Icon name="x" size={24} />
 				{:else}
-					<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-						<path d="M3 12h18M3 6h18M3 18h18" />
-					</svg>
+					<Icon name="menu" size={24} />
 				{/if}
 			</button>
 		</AppBar.Trail>

@@ -46,6 +46,7 @@ export const actions: Actions = {
 			// Redirect to login with success message
 			redirect(302, '/login?reset=true');
 		} catch (error) {
+			if (error && typeof error === 'object' && 'status' in error && (error as any).status >= 300 && (error as any).status < 400) throw error;
 			logger.error({ error }, 'Reset password error');
 			return fail(500, { form, message: 'Failed to reset password' });
 		}

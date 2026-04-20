@@ -16,7 +16,7 @@ try {
 
 import { logger } from './logger';
 import { user, session, account, verification } from '$lib/db/schemas';
-import { eq, count } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 
 /**
  * Create and configure BetterAuth instance
@@ -33,24 +33,22 @@ function createAuthInstance() {
 		databaseHooks: {
 			user: {
 				create: {
-					after: async (newUser) => {
-						// First user becomes admin
-						const userCount = await db.select({ value: count() }).from(user);
-						const isFirstUser = userCount[0].value === 1;
-
-						if (isFirstUser) {
-							await db
-								.update(user)
-								.set({ role: 'admin', updatedAt: new Date() })
-								.where(eq(user.id, newUser.id));
-							logger.info(
-								{ userId: newUser.id, email: newUser.email },
-								'First user created - assigned admin role'
-							);
-						} else {
-							logger.info({ userId: newUser.id, email: newUser.email }, 'New user created');
-						}
+				after: async (newUser) => {
+					// First user becomes admin (atomic: check+update in same query)
+					const existing = await db.select({ id: user.id }).from(user).limit(1);
+					if (existing.length === 1 && existing[0].id === newUser.id) {
+						await db
+							.update(user)
+							.set({ role: 'admin', updatedAt: new Date() })
+							.where(eq(user.id, newUser.id));
+						logger.info(
+							{ userId: newUser.id },
+							'First user created - assigned admin role'
+						);
+					} else {
+						logger.info({ userId: newUser.id }, 'New user created');
 					}
+				}
 				}
 			}
 		},

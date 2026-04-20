@@ -44,7 +44,13 @@ export async function initDb(config?: DatabaseConfig): Promise<any> {
 
 	const finalConfig = config || getDatabaseConfig();
 	initPromise = initializeDb(finalConfig);
-	dbSingleton = await initPromise;
+	try {
+		dbSingleton = await initPromise;
+	} catch (err) {
+		// Reset so a subsequent call can retry
+		initPromise = null;
+		throw err;
+	}
 	return dbSingleton;
 }
 

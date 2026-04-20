@@ -19,7 +19,7 @@
 	<button
 		type="button"
 		onclick={() => themeStore.toggle()}
-		class="btn-icon hover:bg-surface-950 text-white transition-colors"
+		class="btn-icon hover:bg-surface-500-300/10 text-surface-50-950 transition-colors"
 		aria-label={themeStore.isDark ? 'Switch to light mode' : 'Switch to dark mode'}
 		title={themeStore.isDark ? 'Switch to light mode' : 'Switch to dark mode'}
 	>

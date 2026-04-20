@@ -25,7 +25,7 @@
 
 <span
 	class={cn(
-		'absolute -top-1 -right-1 bg-error-500 text-white rounded-full flex items-center justify-center font-semibold leading-none select-none',
+		'absolute -top-1 -right-1 bg-error-500 text-error-contrast-500 rounded-full flex items-center justify-center font-semibold leading-none select-none',
 		sizeClasses[size],
 		className
 	)}
