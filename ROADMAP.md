@@ -62,13 +62,7 @@ layout/          Navbar, MobileMenu, AuthButtons, Footer
 - Responsive (sidebar → hamburger on mobile)
 - Currently `/dashboard` is a placeholder page
 
-### 2. Landing Page
-- The template `+page.svelte` is basic (Welcome + 2 buttons)
-- Should showcase what the boilerplate can do
-- rune-scroller integration for animations (if desired)
-- Keep it simple — this is a boilerplate, not a product page
-
-### 3. README & Documentation
+### 2. README & Documentation
 - Installation guide
 - Project structure explanation
 - Component usage examples
