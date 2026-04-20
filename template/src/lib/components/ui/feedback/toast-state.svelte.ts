@@ -5,7 +5,7 @@
  * ```svelte
  * <script>
  *   import { addToast, removeToast } from '$lib/components/ui/toast-state.svelte';
- *   import Toast from '$lib/components/ui/Toast.svelte';
+ *   import Toast from '$lib/components/ui/feedback/Toast.svelte';
  * </script>
  *
  * <Toast />

@@ -17,7 +17,7 @@
 		<h1 class="text-2xl sm:text-3xl font-black uppercase tracking-tight">
 			Hello, {data.user?.name || 'there'} 👋
 		</h1>
-		<p class="text-muted-foreground mt-1">Welcome to your dashboard</p>
+		<p class="text-surface-500 mt-1">Welcome to your dashboard</p>
 	</div>
 
 	<div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
@@ -26,11 +26,11 @@
 			<h3 class="font-bold text-base">My Information</h3>
 			<div class="space-y-2">
 				<p class="text-sm">
-					<span class="text-muted-foreground">Name:</span>
+					<span class="text-surface-500">Name:</span>
 					{data.user?.name || '—'}
 				</p>
 				<p class="text-sm">
-					<span class="text-muted-foreground">Email:</span>
+					<span class="text-surface-500">Email:</span>
 					{data.user?.email || '—'}
 				</p>
 			</div>

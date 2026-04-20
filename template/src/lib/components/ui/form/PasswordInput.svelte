@@ -5,7 +5,7 @@
 	interface Props {
 		id: string;
 		label: string;
-		value: string | undefined;
+		value?: string;
 		placeholder?: string;
 		required?: boolean;
 		disabled?: boolean;
@@ -20,7 +20,7 @@
 	let {
 		id,
 		label,
-		value = $bindable(),
+		value = $bindable(''),
 		placeholder = '••••••••',
 		required = false,
 		disabled = false,
@@ -31,15 +31,6 @@
 		name,
 		onblur
 	}: Props = $props();
-
-	// Local state for the input value
-	let initialValue = value ?? '';
-	let inputValue = $state(initialValue);
-
-	// Sync input value back to parent
-	$effect(() => {
-		value = inputValue;
-	});
 
 	let showPassword = $state(false);
 
@@ -68,12 +59,8 @@
 		return { strength: score, ...levels[Math.min(score, 4)] };
 	}
 
-	const strength = $derived(getPasswordStrength(inputValue));
+	const strength = $derived(getPasswordStrength(value));
 	const progressWidth = $derived(`${(strength.strength / 5) * 100}%`);
-
-	const togglePassword = () => {
-		showPassword = !showPassword;
-	};
 
 	const containerClass = $derived(cn('space-y-1', className));
 
@@ -129,7 +116,7 @@
 			{id}
 			{name}
 			type={showPassword ? 'text' : 'password'}
-			bind:value={inputValue}
+			bind:value
 			{placeholder}
 			{required}
 			{disabled}
@@ -139,7 +126,7 @@
 		/>
 		<button
 			type="button"
-			onclick={togglePassword}
+			onclick={() => (showPassword = !showPassword)}
 			class={toggleButtonClass}
 			style="border-radius: var(--radius-toggle)"
 			aria-label={showPassword ? 'Hide password' : 'Show password'}
@@ -153,7 +140,7 @@
 		</button>
 	</div>
 
-	{#if showStrength && inputValue}
+	{#if showStrength && value}
 		<div class="space-y-1" style="margin-top: var(--space-inline)">
 			<div class="flex items-center justify-between" style="font-size: var(--text-caption)">
 				<span class="text-surface-600-400 flex items-center" style="gap: var(--gap-xs)">

@@ -1,6 +1,7 @@
 <script lang="ts">
-	import { cn } from './utils/cn';
+	import { cn } from '../utils/cn';
 	import type { Snippet } from 'svelte';
+	import Icon from '../../icons/Icon.svelte';
 
 	type CardVariant = 'flat' | 'elevated' | 'outlined' | 'none';
 
@@ -51,12 +52,11 @@
 					{@render header()}
 				{:else if title}
 					<h3 class="card-title flex items-center">
-						{#if icon}
-							<div class="card-icon-wrap bg-primary-500/10 text-primary-500">
-								<!-- Icon component would be better here, but we use Snippet or generic for now -->
-								<!-- Assuming Icon component usage elsewhere -->
-							</div>
-						{/if}
+					{#if icon}
+						<div class="card-icon-wrap bg-primary-500/10 text-primary-500">
+							<Icon name={icon} size={18} />
+						</div>
+					{/if}
 						{title}
 					</h3>
 				{/if}

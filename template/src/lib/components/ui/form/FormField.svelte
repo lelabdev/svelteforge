@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { cn } from '../utils/cn';
+	import Input from './Input.svelte';
 
 	type InputType = 'text' | 'email' | 'password' | 'number' | 'tel' | 'url';
 
@@ -49,7 +50,7 @@
 				<span class="text-error-500 shrink-0" style="font-size: var(--text-caption); font-weight: var(--weight-label)">{error}</span>
 			{/if}
 		</span>
-		<input
+		<Input
 			{id}
 			{type}
 			{name}
@@ -57,9 +58,9 @@
 			{placeholder}
 			{required}
 			{disabled}
+			error={!!error}
 			{onblur}
 			{oninput}
-			class="input {error ? 'border-error-500' : ''}"
 		/>
 	</label>
 </div>

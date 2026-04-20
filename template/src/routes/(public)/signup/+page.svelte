@@ -2,7 +2,7 @@
 	import { superForm } from 'sveltekit-superforms';
 	import { zod4Client } from 'sveltekit-superforms/adapters';
 	import { signupSchema } from '$lib/schemas/signup';
-	import { AuthCard, ErrorAlert, FormField, PasswordInput, SuccessAlert, SubmitButton } from '$lib/components/ui';
+	import { AuthCard, Alert, FormField, PasswordInput, SubmitButton } from '$lib/components/ui';
 	import { getFormError } from '$lib/utils/form-errors';
 	import { onMount } from 'svelte';
 
@@ -56,11 +56,11 @@
 
 <AuthCard title="Sign Up" subtitle="Create your account">
 	{#if error}
-		<ErrorAlert message={error} class="mb-6" />
+		<Alert variant="error" message={error} class="mb-6" />
 	{/if}
 
 	{#if $message}
-		<SuccessAlert message={$message} class="mb-6" />
+		<Alert variant="success" message={$message} class="mb-6" />
 	{/if}
 
 	<form method="POST" use:enhance class="space-y-5">

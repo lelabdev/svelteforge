@@ -1,6 +1,6 @@
 <script lang="ts">
-	import Icon from '../icons/Icon.svelte';
-	import { cn } from './utils/cn';
+	import Icon from '../../icons/Icon.svelte';
+	import { cn } from '../utils/cn';
 
 	interface Step {
 		label: string;

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Progress } from '@skeletonlabs/skeleton-svelte';
-	import { cn } from './utils/cn';
+	import { cn } from '../utils/cn';
 
 	type ProgressSize = 'sm' | 'md' | 'lg';
 

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { AuthCard, Checkbox, ErrorAlert, FormField, PasswordInput, SubmitButton } from '$lib/components/ui';
+	import { AuthCard, Checkbox, Alert, FormField, PasswordInput, SubmitButton } from '$lib/components/ui';
 	import { loginSchema } from '$lib/schemas/login';
 	import { getFormError } from '$lib/utils/form-errors';
 	import { onMount, tick } from 'svelte';
@@ -35,7 +35,7 @@
 
 <AuthCard title="Sign In" subtitle="Access your account">
 	{#if $message}
-		<ErrorAlert title="Sign in failed" message={$message} class="mb-6" />
+		<Alert variant="error" title="Sign in failed" message={$message} class="mb-6" />
 	{/if}
 
 	<form method="POST" use:enhance class="space-y-5">

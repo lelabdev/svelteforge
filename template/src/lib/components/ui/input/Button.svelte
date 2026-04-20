@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { cn } from './utils/cn';
+	import { cn } from '../utils/cn';
 
 	type ButtonVariant =
 		| 'primary'

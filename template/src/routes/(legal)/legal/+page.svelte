@@ -95,7 +95,7 @@
 		</div>
 
 		<div class="mt-12 pt-8 border-t border-surface-200-700">
-			<p class="text-xs text-muted-foreground uppercase font-bold tracking-widest">
+			<p class="text-xs text-surface-500 uppercase font-bold tracking-widest">
 				Last updated: {currentYear}
 			</p>
 		</div>

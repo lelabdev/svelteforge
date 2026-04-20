@@ -4,8 +4,7 @@
 	import { forgotPasswordSchema } from '$lib/schemas/password';
 	import {
 		AuthCard,
-		SuccessAlert,
-		ErrorAlert,
+		Alert,
 		FormField,
 		SubmitButton,
 		Button
@@ -41,7 +40,8 @@
 		subtitle="Enter your email to receive a recovery link"
 	>
 		{#if success}
-			<SuccessAlert
+			<Alert
+				variant="success"
 				title="Email sent"
 				message="A recovery email has been sent to your address. Please check your inbox."
 				class="mb-6"
@@ -52,7 +52,7 @@
 			</div>
 		{:else}
 			{#if $message}
-				<ErrorAlert message={$message} class="mb-6" />
+				<Alert variant="error" message={$message} class="mb-6" />
 			{/if}
 
 			<form method="POST" use:enhance class="space-y-5">

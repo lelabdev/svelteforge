@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Tooltip, useTooltip } from '@skeletonlabs/skeleton-svelte';
-	import { cn } from './utils/cn';
+	import { cn } from '../utils/cn';
 	import type { Snippet } from 'svelte';
 
 	type TooltipSide = 'top' | 'right' | 'bottom' | 'left';

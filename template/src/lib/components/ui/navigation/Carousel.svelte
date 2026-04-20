@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Carousel } from '@skeletonlabs/skeleton-svelte';
 	import type { Snippet } from 'svelte';
-	import { cn } from './utils/cn';
+	import { cn } from '../utils/cn';
 
 	interface Props {
 		/** Total number of slides. Required by the underlying Carousel. */

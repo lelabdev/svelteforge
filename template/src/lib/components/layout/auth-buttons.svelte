@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import { authClient } from '$lib/auth-client';
-	import ThemeToggle from '$lib/components/ui/ThemeToggle.svelte';
+	import { ThemeToggle } from '$lib/components/ui';
 	import Icon from '$lib/components/icons/Icon.svelte';
 
 	interface Props {

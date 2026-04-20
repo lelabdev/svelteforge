@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Dialog, Portal } from '@skeletonlabs/skeleton-svelte';
 	import type { Snippet } from 'svelte';
-	import { cn } from './utils/cn';
+	import { cn } from '../utils/cn';
 
 	type Side = 'left' | 'right' | 'top' | 'bottom';
 

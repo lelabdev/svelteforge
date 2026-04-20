@@ -1,3 +1,7 @@
+<script lang="ts">
+	import { Button } from '$lib/components/ui';
+</script>
+
 <svelte:head>
 	<title>Welcome</title>
 	<meta name="description" content="Welcome" />
@@ -9,18 +13,14 @@
 			<h1 class="text-4xl sm:text-5xl font-black uppercase tracking-tight">
 				Welcome
 			</h1>
-			<p class="text-lg text-muted-foreground mt-4">
+			<p class="text-lg text-surface-500 mt-4">
 				Sign in to access your dashboard.
 			</p>
 		</div>
 
 		<div class="flex flex-col sm:flex-row gap-3 justify-center">
-			<a href="/login">
-				<button class="btn btn-lg preset-filled-primary-500">Sign In</button>
-			</a>
-			<a href="/signup">
-				<button class="btn btn-lg preset-outlined-primary-500">Create Account</button>
-			</a>
+			<Button href="/login" variant="primary" size="lg">Sign In</Button>
+			<Button href="/signup" variant="outline" size="lg">Create Account</Button>
 		</div>
 	</div>
 </main>

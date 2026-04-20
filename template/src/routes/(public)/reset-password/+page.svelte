@@ -2,7 +2,7 @@
 	import { superForm } from 'sveltekit-superforms';
 	import { zod4Client } from 'sveltekit-superforms/adapters';
 	import { resetPasswordSchema } from '$lib/schemas/password';
-	import { AuthCard, ErrorAlert, Button, PasswordInput, SubmitButton } from '$lib/components/ui';
+	import { AuthCard, Alert, Button, PasswordInput, SubmitButton } from '$lib/components/ui';
 	import { getFormError } from '$lib/utils/form-errors';
 
 	let { data } = $props();
@@ -31,7 +31,8 @@
 <div class="container mx-auto px-4 max-w-md py-8">
 	<AuthCard title="Reset password" subtitle="Enter your new password">
 		{#if !token}
-			<ErrorAlert
+			<Alert
+				variant="error"
 				title="Error"
 				message="Reset token is missing. Please use the link sent by email."
 				class="mb-6"
@@ -42,7 +43,7 @@
 			</div>
 		{:else}
 			{#if $message}
-				<ErrorAlert message={$message} class="mb-6" />
+				<Alert variant="error" message={$message} class="mb-6" />
 			{/if}
 
 			<form method="POST" use:enhance class="space-y-5">
