@@ -5,8 +5,34 @@ Production-ready SvelteKit boilerplate generator with BetterAuth, Drizzle ORM, a
 ## Quick Start
 
 ```bash
-bunx create-svelteforge my-project
+# Clone and scaffold (recommended while not on npm)
+git clone https://github.com/lelabdev/svelteforge && cd svelteforge
+bun run cli.ts my-project --full-stack --yes
+
+# Or use the CLI directly
+bun run cli.ts <project-name-or-path> [options]
 ```
+
+## CLI Options
+
+```
+bun run cli.ts <project-name-or-path> [options]
+
+Options:
+  --full-stack    Full Stack mode (UI + Auth + DB)
+  --landing       Landing Page mode (UI only)
+  --yes, -y       Accept setup automatically
+  --no-setup      Skip setup entirely
+  --help, -h      Show help
+
+Examples:
+  bun run cli.ts my-app --full-stack --yes           # Full Stack, auto setup
+  bun run cli.ts /home/dev/project --landing         # Landing Page, custom path
+  bun run cli.ts my-app --no-setup                   # Skip .env/DB setup
+  bun run cli.ts my-app                               # Interactive mode
+```
+
+> **Note:** While SvelteForge is not yet published on npm, clone the repo and use `bun run cli.ts` instead of `bunx create-svelteforge`.
 
 ## Modes
 
@@ -51,10 +77,10 @@ svelteforge/            ← this repo
 
 ```bash
 # Test locally
-bun run cli.ts test-project
+bun run cli.ts test-project --full-stack --yes
 
-# With specific mode (interactive prompt)
-bun run cli.ts test-project --no-setup
+# Interactive mode
+bun run cli.ts test-project
 ```
 
 ## License
