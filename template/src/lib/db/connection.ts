@@ -29,8 +29,19 @@ async function initializeDb(config: DatabaseConfig) {
 	const { drizzle } = await import('drizzle-orm/bun-sqlite');
 	// @ts-expect-error - bun:sqlite is only available at runtime in Bun
 	const { Database } = await import('bun:sqlite');
+
 	const sqlite = new Database(config.databaseUrl);
-	// IMPORTANT: First argument is the Database instance, second is options with schema
+
+	// Enable WAL mode for concurrent read/write access (readers don't block writers)
+	// Without WAL, SQLite uses journal mode which locks the DB during writes
+	sqlite.exec('PRAGMA journal_mode=WAL');
+	// Set busy timeout (ms) — how long to wait if DB is locked before throwing SQLITE_BUSY
+	sqlite.exec('PRAGMA busy_timeout=5000');
+	// Enable foreign keys (off by default in SQLite)
+	sqlite.exec('PRAGMA foreign_keys=ON');
+	// Normal sync mode — safe enough for WAL, faster than FULL
+	sqlite.exec('PRAGMA synchronous=NORMAL');
+
 	return drizzle(sqlite, { schema });
 }
 
