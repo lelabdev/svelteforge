@@ -1,0 +1,11 @@
+node_modules/
+.svelte-kit/
+.env
+.env.*
+!.env.example
+data/
+*.db
+*.db-journal
+build/
+.package-lock.json
+bun.lock
