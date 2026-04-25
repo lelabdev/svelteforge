@@ -5,7 +5,6 @@
  */
 
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'fs';
-import { randomBytes } from 'crypto';
 import { execSync } from 'child_process';
 
 function question(prompt: string): Promise<string> {
@@ -30,8 +29,15 @@ async function main() {
 	const currentName = JSON.parse(readFileSync('package.json', 'utf-8')).name;
 	const projectName = (await question(`? Project name (${currentName}): `)) || currentName;
 
-	// Generate auth secret
-	const authSecret = randomBytes(32).toString('hex');
+	// Generate auth secret (BetterAuth recommends: openssl rand -base64 32)
+	let authSecret: string;
+	try {
+		authSecret = execSync('openssl rand -base64 32', { encoding: 'utf-8' }).trim();
+	} catch {
+		// Fallback si openssl pas dispo
+		const { randomBytes } = await import('crypto');
+		authSecret = randomBytes(32).toString('base64');
+	}
 	const baseUrl = (await question('? Base URL (http://localhost:5173): ')) || 'http://localhost:5173';
 
 	// ── .env ──
@@ -62,7 +68,7 @@ BASE_URL="${baseUrl}"
 DATABASE_URL="data/sqlite.db"
 
 # BetterAuth
-BETTER_AUTH_SECRET="change-me-in-production"
+BETTER_AUTH_SECRET="generate-with-openssl-rand-base64-32"
 BASE_URL="http://localhost:5173"
 `
 		);

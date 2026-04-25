@@ -20,13 +20,13 @@ export const actions: Actions = {
 			return fail(400, { form });
 		}
 
-		const { email, password, rememberMe } = form.data;
+		const { email, password } = form.data;
 
-		logger.debug({ email, rememberMe }, 'Processing login request');
+		logger.debug({ email }, 'Processing login request');
 
 		try {
 			const result = await auth.api.signInEmail({
-				body: { email, password, rememberMe }
+				body: { email, password }
 			});
 
 			if (!result.user) {
