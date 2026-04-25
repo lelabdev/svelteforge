@@ -145,7 +145,9 @@ Use `withUser(userId, context, fn)` from `core.ts` for operations that fetch a u
 
 `QueryRunner = any` in `src/lib/db/types.ts` is intentional.
 
-### SQLite, NOT PostgreSQL
+### SQLite with WAL mode
+
+WAL mode enabled in `connection.ts` for concurrent read/write access (readers don't block writers).
 
 - ❌ `ILIKE` → use `LIKE`
 - ❌ `::int` cast → use Drizzle's `count()`
@@ -322,5 +324,5 @@ Lightweight JSON→HTML renderer. **No Editor instance loaded** — zero runtime
 ```bash
 DATABASE_URL="data/sqlite.db"           # SQLite database path
 BETTER_AUTH_SECRET="..."                # Auth secret (auto-generated via openssl rand -base64 32)
-BASE_URL="http://localhost:5173"        # Public URL
+BASE_URL="http://localhost:5173"        # Public URL (default Vite dev port)
 ```
