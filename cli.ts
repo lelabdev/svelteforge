@@ -128,6 +128,12 @@ const FILES_TO_REMOVE: string[] = [
 // HELPERS
 // ============================================================================
 
+// Ensure bun is in PATH for child processes
+const bunBinDir = resolve(process.execPath, '..');
+if (process.env.PATH && !process.env.PATH.includes(bunBinDir)) {
+	process.env.PATH = `${bunBinDir}:${process.env.PATH}`;
+}
+
 function run(cmd: string, cwd?: string, silent = false): boolean {
 	try {
 		execSync(cmd, { cwd, stdio: silent ? 'pipe' : 'inherit', env: { ...process.env } });
@@ -283,10 +289,15 @@ function parseArgs(argv: string[]): {
 // ============================================================================
 
 function preflightCheck() {
-	const hasBun = run('bun --version', undefined, true);
-	if (!hasBun) {
-		error('bun is not installed. Please install it first: https://bun.sh');
-		process.exit(1);
+	// Check if bun is available — use execPath as fallback since we're already running via bun
+	const bunPath = process.execPath || 'bun';
+	if (!bunPath.includes('bun')) {
+		// Extra safety: try running bun --version
+		const hasBun = run('bun --version', undefined, true);
+		if (!hasBun) {
+			error('bun is not installed. Please install it first: https://bun.sh');
+			process.exit(1);
+		}
 	}
 }
 
