@@ -81,7 +81,15 @@
 		Utensils,
 		Wine,
 		X,
-		XCircle
+		XCircle,
+		Underline,
+		Strikethrough,
+		ListOrdered,
+		Quote,
+		Code,
+		Minus,
+		Undo2,
+		Redo2
 	} from 'lucide-svelte';
 
 	interface Props {
@@ -190,7 +198,16 @@
 		loader2: Loader2,
 		eyeOff: EyeOff,
 		shieldCheck: ShieldCheck,
-		shieldX: ShieldX
+		shieldX: ShieldX,
+		underline: Underline,
+		strikethrough: Strikethrough,
+		listOrdered: ListOrdered,
+		'list-ordered': ListOrdered,
+		quote: Quote,
+		code: Code,
+		minus: Minus,
+		undo2: Undo2,
+		redo2: Redo2
 	};
 
 	const IconComponent = $derived(iconMap[name] ?? iconMap.circleCheck);

@@ -22,6 +22,7 @@ bunx create-svelteforge my-project
 - **BetterAuth** — email/password, admin plugin
 - **SQLite** (`bun:sqlite`) + **Drizzle ORM**
 - **SuperForms** + **Zod v4**
+- **Tiptap** — rich text editor & preview
 - **Pino** logging
 - **Lucide** icons
 

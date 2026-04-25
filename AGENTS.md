@@ -55,6 +55,7 @@ bun run cli.ts my-project                     # Interactive (pick mode)
 | Auth | **BetterAuth** (email/password, admin plugin) |
 | Database | **SQLite** (`bun:sqlite`) + **Drizzle ORM** |
 | Forms | **SuperForms** + **Zod v4** |
+| Rich Text | **Tiptap** (`@tiptap/core`, `starter-kit`, `underline`) |
 | Logging | **Pino** |
 | Icons | **Lucide** (via local `Icon.svelte` wrapper) |
 
@@ -71,7 +72,7 @@ src/
 │   ├── logger.ts            # Pino logger + createChildLogger()
 │   ├── types.ts             # Shared TypeScript interfaces
 │   ├── components/
-│   │   ├── ui/              # 32 theme-swapable components
+│   │   ├── ui/              # 34 theme-swapable components
 │   │   │   ├── Surfaces: Card, AuthCard, Modal, Sheet, PopOver, Carousel
 │   │   │   ├── Feedback: Toast, ErrorAlert, SuccessAlert, Loader, Progress,
 │   │   │   │          SkeletonLoader, NavigationLoader
@@ -79,6 +80,7 @@ src/
 │   │   │   ├── Data: DataTable, EmptyState, NotificationBadge, Badge, Avatar
 │   │   │   ├── Controls: Button, Switch, Divider, Accordion, Tooltip,
 │   │   │   │           RadioGroup, SearchInput, ThemeToggle, ConfirmDialog
+│   │   │   ├── Rich Text: RichTextEditor, RichTextPreview (Tiptap)
 │   │   │   └── form/ (Input, PasswordInput, TextArea, Select, Checkbox,
 │   │   │                RadioGroup, FormField, SubmitButton, SearchInput)
 │   │   ├── layout/          # Navbar, Footer, AuthButtons, MobileMenu, NavLinks
@@ -252,6 +254,46 @@ All UI text in **English**.
 1. `request.formData()` can only be called once — pass already-parsed FormData to `superValidate()`
 2. Initialize `superForm()` BEFORE any `$derived` that reads `$form`
 3. Use `message()` for business errors, `fail()` for validation errors
+
+## Rich Text Components
+
+Based on **Tiptap v3**. Two components: editor + preview.
+
+### RichTextEditor
+
+```svelte
+<script lang="ts">
+  import { RichTextEditor } from '$lib/components/ui';
+  import type { JSONContent } from '@tiptap/core';
+
+  let content = $state<JSONContent>({ type: 'doc', content: [{ type: 'paragraph' }] });
+</script>
+
+<RichTextEditor
+  content={content}
+  onUpdate={(json) => { content = json; }}
+  placeholder="Describe your product..."
+/>
+```
+
+**Props:** `content`, `onUpdate`, `onFocus`, `onBlur`, `editable` (default: true), `placeholder`, `class`
+
+**Features:** Bold, italic, underline, strikethrough, headings (H1-H3), bullet/ordered lists, blockquote, code block, horizontal rule, undo/redo.
+
+### RichTextPreview
+
+Lightweight JSON→HTML renderer. **No Editor instance loaded** — zero runtime cost.
+
+```svelte
+<script lang="ts">
+  import { RichTextPreview } from '$lib/components/ui';
+  import type { JSONContent } from '@tiptap/core';
+</script>
+
+<RichTextPreview content={data.description} />
+```
+
+**Store content as JSON** in your database (SQLite `text` column with `JSON.stringify`/`JSON.parse`).
 
 ## Adding to the Template
 

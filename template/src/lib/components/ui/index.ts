@@ -30,5 +30,8 @@ export { default as ThemeToggle } from './ThemeToggle.svelte';
 export { default as Toast } from './Toast.svelte';
 export { addToast, removeToast } from './toast-state.svelte';
 export { default as Tooltip } from './Tooltip.svelte';
+// === Rich Text ===
+export * from './rich-text';
 
+// === Form ===
 export * from './form';
