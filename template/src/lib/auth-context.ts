@@ -36,14 +36,4 @@ export function getCurrentRequestEvent(): RequestEvent | null {
 	return eventStorage.getStore() ?? null;
 }
 
-/**
- * Debug helper to log current cookies (dev only)
- */
-export function debugCookies(event: RequestEvent) {
-	const allCookies = event.cookies.getAll();
-	console.log(
-		'[auth-context] Cookies from event.cookies.getAll():',
-		allCookies.map((c) => ({ name: c.name, value: c.value?.substring(0, 20) }))
-	);
-	console.log('[auth-context] Cookie header:', event.request.headers.get('cookie'));
-}
+
