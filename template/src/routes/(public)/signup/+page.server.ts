@@ -1,6 +1,6 @@
 import { superValidate, message } from 'sveltekit-superforms';
 import { zod4 } from 'sveltekit-superforms/adapters';
-import { fail, redirect } from '@sveltejs/kit';
+import { fail, redirect, isRedirect } from '@sveltejs/kit';
 import { auth } from '$lib/auth';
 import { logger } from '$lib/logger';
 import { signupSchema } from '$lib/schemas/signup';
@@ -55,17 +55,7 @@ export const actions: Actions = {
 
 			redirect(302, '/dashboard');
 		} catch (error) {
-			// Check if it's a redirect
-			if (
-				error &&
-				typeof error === 'object' &&
-				'status' in error &&
-				'location' in error &&
-				(error as any).status >= 300 &&
-				(error as any).status < 400
-			) {
-				throw error;
-			}
+			if (isRedirect(error)) throw error;
 
 			logger.error({ email, error }, 'Signup error');
 			return message(form, 'Failed to create account', { status: 500 });
