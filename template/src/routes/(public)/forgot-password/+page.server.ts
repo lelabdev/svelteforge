@@ -1,4 +1,4 @@
-import { superValidate } from 'sveltekit-superforms';
+import { superValidate, message } from 'sveltekit-superforms';
 import { zod4 } from 'sveltekit-superforms/adapters';
 import { fail } from '@sveltejs/kit';
 import { auth } from '$lib/auth';
@@ -37,7 +37,7 @@ export const actions: Actions = {
 			return { form, success: true };
 		} catch (error) {
 			logger.error({ email, error }, 'Forgot password error');
-			return fail(500, { form, message: 'Failed to send recovery email' });
+			return message(form, 'Failed to send recovery email', { status: 500 });
 		}
 	}
 };
