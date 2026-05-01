@@ -1,4 +1,4 @@
-import { superValidate } from 'sveltekit-superforms';
+import { superValidate, message } from 'sveltekit-superforms';
 import { zod4 } from 'sveltekit-superforms/adapters';
 import { fail, redirect } from '@sveltejs/kit';
 import { auth } from '$lib/auth';
@@ -29,7 +29,7 @@ export const actions: Actions = {
 
 		if (!token) {
 			logger.warn({}, 'Reset password attempted without token');
-			return fail(400, { form, message: 'Reset token is missing' });
+			return message(form, 'Reset token is missing', { status: 400 });
 		}
 
 		logger.debug({}, 'Processing reset password request');
@@ -47,7 +47,7 @@ export const actions: Actions = {
 			redirect(302, '/login?reset=true');
 		} catch (error) {
 			logger.error({ error }, 'Reset password error');
-			return fail(500, { form, message: 'Failed to reset password' });
+			return message(form, 'Failed to reset password', { status: 500 });
 		}
 	}
 };

@@ -1,4 +1,4 @@
-import { superValidate } from 'sveltekit-superforms';
+import { superValidate, message } from 'sveltekit-superforms';
 import { zod4 } from 'sveltekit-superforms/adapters';
 import { fail, redirect } from '@sveltejs/kit';
 import { auth } from '$lib/auth';
@@ -48,7 +48,7 @@ export const actions: Actions = {
 
 			if (!authResult.user) {
 				logger.error({ email }, 'Failed to create user via BetterAuth');
-				return fail(500, { form, message: 'Failed to create account' });
+				return message(form, 'Failed to create account', { status: 500 });
 			}
 
 			logger.info({ userId: authResult.user.id, email }, 'User created successfully');
@@ -68,7 +68,7 @@ export const actions: Actions = {
 			}
 
 			logger.error({ email, error }, 'Signup error');
-			return fail(500, { form, message: 'Failed to create account' });
+			return message(form, 'Failed to create account', { status: 500 });
 		}
 	}
 };
