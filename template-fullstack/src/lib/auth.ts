@@ -5,13 +5,15 @@ import { sveltekitCookies } from 'better-auth/svelte-kit';
 import { getCurrentRequestEvent } from './auth-context';
 import { db, requireEnv } from '$lib/db';
 
-// Handle optional SvelteKit environment
-let env: any = process.env;
+// SvelteKit provides env via import.meta.env (Vite) + $env modules
+// $env/dynamic/private is loaded asynchronously for server-side secrets
+let env: Record<string, string | undefined> = {};
 try {
 	const dynamicEnv = await import('$env/dynamic/private');
-	env = { ...process.env, ...dynamicEnv.env };
-} catch (e) {
-	// Not in SvelteKit context
+	env = dynamicEnv.env;
+} catch {
+	// Not in SvelteKit context (e.g., scripts)
+	env = process.env as Record<string, string | undefined>;
 }
 
 import { logger } from './logger';
