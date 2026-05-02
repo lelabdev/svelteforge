@@ -8,7 +8,9 @@
 	},
 	"files": [
 		"cli.ts",
-		"template/"
+		"template/",
+		"README.md",
+		"AGENTS.md"
 	],
 	"keywords": [
 		"svelte",
