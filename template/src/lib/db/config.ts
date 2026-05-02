@@ -23,7 +23,7 @@ export function requireEnv(key: string): string {
 			BASE_URL: 'http://localhost:5173'
 		};
 
-		if (devDefaults[key] && import.meta.env?.DEV !== false) {
+		if (devDefaults[key] && import.meta.env?.DEV === true) {
 			return devDefaults[key];
 		}
 
