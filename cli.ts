@@ -371,11 +371,21 @@ async function main() {
 
 		success('Files copied');
 
-		// ── 5. Copy package.json + vite.config.ts from template ──
-		log('\n📦 Step 4: Installing dependencies...');
+		// ── 5. Merge deps + copy vite.config.ts ──
+		log('\n📦 Step 4: Installing SvelteForge dependencies...');
 
-		// Copy the right package.json (with all deps pre-listed)
-		copyFiles(templateDir, targetDir, ['package.json']);
+		// Read the package.json that sv created
+		const pkgPath = join(targetDir, 'package.json');
+		const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'));
+
+		// Read our template package.json for the extra deps
+		const templatePkg = JSON.parse(readFileSync(join(templateDir, 'package.json'), 'utf-8'));
+
+		// Merge dependencies (sv + SvelteForge)
+		pkg.dependencies = { ...pkg.dependencies, ...templatePkg.dependencies };
+		pkg.devDependencies = { ...pkg.devDependencies, ...templatePkg.devDependencies };
+
+		writeFileSync(pkgPath, JSON.stringify(pkg, null, '\t') + '\n');
 
 		// Copy the right vite.config.ts
 		copyFiles(templateDir, targetDir, ['vite.config.ts']);
