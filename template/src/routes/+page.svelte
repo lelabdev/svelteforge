@@ -9,7 +9,7 @@
 			<h1 class="text-4xl sm:text-5xl font-black uppercase tracking-tight">
 				Welcome
 			</h1>
-			<p class="text-lg text-muted-foreground mt-4">
+			<p class="text-lg text-surface-500 mt-4">
 				Sign in to access your dashboard.
 			</p>
 		</div>

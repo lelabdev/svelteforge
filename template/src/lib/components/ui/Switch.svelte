@@ -31,7 +31,7 @@
 		<div class="flex-1">
 			<span style="font-size: var(--text-label); font-weight: var(--weight-label)">{label}</span>
 			{#if description}
-				<p class="text-muted-foreground" style="font-size: var(--text-caption); margin-top: var(--space-nano)">{description}</p>
+				<p class="text-surface-500" style="font-size: var(--text-caption); margin-top: var(--space-nano)">{description}</p>
 			{/if}
 		</div>
 	{/if}
