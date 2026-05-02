@@ -4,7 +4,7 @@ import { z } from 'zod/v4';
  * Schema for password reset request
  */
 export const forgotPasswordSchema = z.object({
-	email: z.email({ error: 'Invalid email' })
+	email: z.string().email({ error: 'Invalid email' })
 });
 
 /**

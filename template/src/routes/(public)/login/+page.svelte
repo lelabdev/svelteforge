@@ -1,6 +1,5 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
-	import { AuthCard, Checkbox, ErrorAlert, FormField, PasswordInput, SubmitButton } from '$lib/components/ui';
+	import { AuthCard, Checkbox, ErrorAlert, SuccessAlert, FormField, PasswordInput, SubmitButton } from '$lib/components/ui';
 	import { loginSchema } from '$lib/schemas/login';
 	import { getFormError } from '$lib/utils/form-errors';
 	import { onMount, tick } from 'svelte';
@@ -9,15 +8,12 @@
 
 	let { data } = $props();
 
+	let passwordReset = $derived(data.reset === 'true');
+
 	// svelte-ignore state_referenced_locally
 	const { form, enhance, errors, submitting, message } = superForm(data.form, {
 		validators: zod4Client(loginSchema),
-		resetForm: false,
-		onUpdated: ({ form: f }) => {
-			if (f.valid) {
-				goto('/dashboard', { invalidateAll: true });
-			}
-		}
+		resetForm: false
 	});
 
 	// Clear password on error
@@ -34,6 +30,9 @@
 </script>
 
 <AuthCard title="Sign In" subtitle="Access your account">
+	{#if passwordReset}
+		<SuccessAlert title="Password Reset" message="Your password has been reset successfully." class="mb-6" />
+	{/if}
 	{#if $message}
 		<ErrorAlert title="Sign in failed" message={$message} class="mb-6" />
 	{/if}

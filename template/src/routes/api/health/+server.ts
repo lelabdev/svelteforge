@@ -1,19 +1,11 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { getDb } from '$lib/db/connection';
-import { sql } from 'drizzle-orm';
+import { checkHealth } from '$lib/services';
 
 export const GET: RequestHandler = async () => {
 	try {
-		const db = getDb();
-
-		// Simple query to confirm DB is responsive
-		await db.execute(sql`SELECT 1`);
-
-		return json({
-			status: 'ok',
-			timestamp: new Date().toISOString()
-		});
+		const result = await checkHealth();
+		return json(result);
 	} catch (error) {
 		return json(
 			{
