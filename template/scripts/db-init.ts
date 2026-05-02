@@ -24,4 +24,4 @@ console.log(`   Schema only, no data`);
 console.log(`   Location: ${dbPath}\n`);
 console.log('💡 Next steps:');
 console.log('   - Run "bun dev" to start the dev server');
-console.log('   - Open /install to create your admin account\n');
+console.log('   - Sign up to create your admin account (first user becomes admin)\n');
