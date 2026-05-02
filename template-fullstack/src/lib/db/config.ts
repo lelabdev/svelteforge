@@ -9,11 +9,12 @@ export interface DatabaseConfig {
 
 /**
  * Require an environment variable to be set
- * In development, provides sensible defaults for certain keys
+ * Uses SvelteKit $env/static/private when available, falls back to process.env
  * @throws Error if the environment variable is not defined
  */
 export function requireEnv(key: string): string {
-	const value = typeof process !== 'undefined' ? process.env?.[key] : undefined;
+	// In SvelteKit, env vars are available via import.meta.env or process.env
+	const value = import.meta.env?.[key] ?? process.env?.[key];
 
 	if (!value) {
 		// Development defaults for certain keys
@@ -45,11 +46,11 @@ export function getDatabaseConfig(): DatabaseConfig {
 		return cachedConfig;
 	}
 
-	// Try to get from environment
-	if (typeof process !== 'undefined' && process.env?.DATABASE_URL) {
-		return {
-			databaseUrl: process.env.DATABASE_URL
-		};
+	// Try to get from environment via SvelteKit's Vite env
+	const databaseUrl = import.meta.env?.DATABASE_URL || process.env?.DATABASE_URL;
+
+	if (databaseUrl) {
+		return { databaseUrl };
 	}
 
 	// Fallback for development: local SQLite file
@@ -97,8 +98,6 @@ export function validateDatabaseUrl(url: string): void {
 	}
 
 	// For SQLite, we accept file paths
-	// Could be "./sqlite.db", "/path/to/db.sqlite", "sqlite.db", etc.
-	// Just ensure it's not trying to use a postgres:// URL
 	if (url.startsWith('postgres://') || url.startsWith('postgresql://')) {
 		throw new Error(
 			'DATABASE_URL should be a SQLite file path (e.g., "./sqlite.db"), not a PostgreSQL URL. ' +
