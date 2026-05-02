@@ -67,7 +67,7 @@
 				<a href="/login" onclick={onClose} class="block px-4 py-3 rounded-xl hover:bg-surface-200-800 text-sm">
 					Sign In
 				</a>
-				<a href="/signup" onclick={onClose} class="flex items-center justify-center px-4 py-3 rounded-xl bg-primary-500 text-white hover:bg-primary-600 mt-3 text-sm">
+				<a href="/signup" onclick={onClose} class="flex items-center justify-center px-4 py-3 rounded-xl bg-primary-500 text-surface-50 hover:bg-primary-600 mt-3 text-sm">
 					Sign Up
 				</a>
 			{/if}

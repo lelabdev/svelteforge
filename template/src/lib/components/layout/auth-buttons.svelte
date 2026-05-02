@@ -23,28 +23,28 @@
 <div class="flex items-center {className}" style="gap: var(--gap-sm); {styleAttr || ''}">
 	{#if isLoggedIn}
 		{#if isAdmin}
-			<a href="/admin" class="btn-icon text-white hover:bg-white/10" aria-label="Admin">
+			<a href="/admin" class="btn-icon text-surface-50-950 hover:bg-surface-200-800" aria-label="Admin">
 				<Icon name="shield" size={16} />
 			</a>
 		{/if}
 
 		{#if !hideDashboardLink}
-			<a href="/dashboard" class="btn-icon text-white hover:bg-white/10" aria-label="Dashboard">
+			<a href="/dashboard" class="btn-icon text-surface-50-950 hover:bg-surface-200-800" aria-label="Dashboard">
 				<Icon name="user" size={16} />
 			</a>
 		{/if}
 
 		{#if showLogout}
 			<form action="/logout" method="POST" class="contents">
-				<button type="submit" class="btn-icon text-white hover:bg-white/10 hover:text-error-300" aria-label="Sign Out">
+				<button type="submit" class="btn-icon text-surface-50-950 hover:bg-surface-200-800 hover:text-error-500" aria-label="Sign Out">
 					<Icon name="logout" size={16} />
 				</button>
 			</form>
 		{/if}
 
-		<div class="w-px h-6 bg-white/10 mx-1"></div>
+		<div class="w-px h-6 bg-surface-300-700 mx-1"></div>
 	{:else}
-		<a href="/login" class="btn-icon text-white hover:bg-white/10 text-sm">Sign In</a>
+		<a href="/login" class="btn-icon text-surface-50-950 hover:bg-surface-200-800 text-sm">Sign In</a>
 		<a href="/signup" class="btn btn-sm preset-filled-primary-500">Sign Up</a>
 	{/if}
 
