@@ -3,18 +3,18 @@
  * create-svelteforge
  *
  * Creates a new SvelteKit project using `sv create` for the base,
- * `sv add drizzle` for the DB, then layers SvelteForge on top.
+ * then layers SvelteForge components, theme, and layout on top.
  *
  * Usage:
  *   bunx create-svelteforge my-project
- *   bunx create-svelteforge my-project --full-stack --yes
- *   bunx create-svelteforge /home/dev/project --landing --no-setup
+ *   bunx create-svelteforge my-project --fullstack
+ *   bunx create-svelteforge my-project --landing
  *
  * Modes:
  *   1. Full Stack     — UI + Forms + Auth + DB
  *   2. Landing Page   — UI + Forms (frontend only)
  *
- * Requirements: bun, npx (or bunx)
+ * Requirements: bun
  */
 
 import { execSync } from 'child_process';
@@ -30,48 +30,19 @@ import { resolve, join, dirname, basename } from 'path';
 import { fileURLToPath } from 'url';
 
 // ============================================================================
-// TEMPLATE DIR — Node + Bun compatible
+// TEMPLATE DIRS
 // ============================================================================
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const templateDir = resolve(__dirname, 'template');
+const fullstackDir = resolve(__dirname, 'template-fullstack');
+const landingDir = resolve(__dirname, 'template-landing');
 
 // ============================================================================
-// DEPENDENCIES — only what sv does NOT provide
+// FILES TO COPY — per mode
 // ============================================================================
 
-const CORE_DEV_DEPS: string[] = [
-	'@skeletonlabs/skeleton@latest',
-	'@skeletonlabs/skeleton-svelte@latest'
-];
-
-const CORE_DEPS: string[] = [
-	'@fontsource-variable/fira-code@latest',
-	'@fontsource-variable/inter@latest',
-	'@fontsource-variable/manrope@latest',
-	'@fontsource-variable/space-grotesk@latest',
-	'clsx@latest',
-	'lucide-svelte@latest',
-	'sveltekit-superforms@latest',
-	'tailwind-merge@latest',
-	'zod@latest'
-];
-
-const AUTH_DEPS: string[] = [
-	'better-auth@latest',
-	'@better-auth/drizzle-adapter@latest',
-	'pino@latest',
-	'pino-pretty@latest',
-	'@types/better-sqlite3@latest',
-	'@types/node@latest',
-	'better-sqlite3@latest'
-];
-
-// ============================================================================
-// FILE MANIFESTS
-// ============================================================================
-
-const CORE_FILES: string[] = [
+// Shared: always copied from fullstack template (components, styles, utils)
+const SHARED_FILES: string[] = [
 	'src/lib/components/',
 	'src/lib/styles/',
 	'src/lib/utils/',
@@ -85,7 +56,8 @@ const CORE_FILES: string[] = [
 	'src/app.html'
 ];
 
-const AUTH_FILES: string[] = [
+// Full Stack only
+const FULLSTACK_FILES: string[] = [
 	'src/lib/auth.ts',
 	'src/lib/auth-client.ts',
 	'src/lib/auth-context.ts',
@@ -101,11 +73,14 @@ const AUTH_FILES: string[] = [
 	'src/routes/(public)/',
 	'src/routes/(protected)/',
 	'src/routes/api/',
+	'src/routes/(legal)/',
 	'src/app.d.ts',
 	'scripts/',
-	'.env.example'
+	'.env.example',
+	'drizzle.config.ts'
 ];
 
+// Routes: always copied from fullstack template
 const ROUTE_FILES: string[] = [
 	'src/routes/+error.svelte',
 	'src/routes/+page.svelte',
@@ -114,6 +89,15 @@ const ROUTE_FILES: string[] = [
 	'src/routes/(legal)/'
 ];
 
+// Landing-only overrides (from template-landing)
+const LANDING_OVERRIDE_FILES: string[] = [
+	'src/lib/components/layout/navbar.svelte',
+	'src/routes/+layout.svelte',
+	'src/routes/+page.svelte',
+	'src/app.d.ts'
+];
+
+// sv defaults to remove after create
 const FILES_TO_REMOVE: string[] = [
 	'src/routes/+page.svelte',
 	'src/routes/+page.server.ts',
@@ -128,7 +112,6 @@ const FILES_TO_REMOVE: string[] = [
 // HELPERS
 // ============================================================================
 
-// Ensure bun is in PATH for child processes
 const bunBinDir = resolve(process.execPath, '..');
 if (process.env.PATH && !process.env.PATH.includes(bunBinDir)) {
 	process.env.PATH = `${bunBinDir}:${process.env.PATH}`;
@@ -178,15 +161,6 @@ function question(prompt: string): Promise<string> {
 	});
 }
 
-function hasPackage(pkgDir: string, name: string): boolean {
-	try {
-		const pkg = JSON.parse(readFileSync(join(pkgDir, 'package.json'), 'utf-8'));
-		return name in { ...pkg.dependencies, ...pkg.devDependencies };
-	} catch {
-		return false;
-	}
-}
-
 function copyFiles(src: string, dest: string, files: string[]) {
 	for (const rel of files) {
 		const from = join(src, rel);
@@ -203,16 +177,14 @@ function copyFiles(src: string, dest: string, files: string[]) {
 	}
 }
 
-function install(dir: string, pkgs: string[], dev = false) {
-	if (!pkgs.length) return;
-	const ok = run(`bun add ${dev ? '-D' : ''} ${pkgs.join(' ')}`, dir, true);
-	if (!ok) {
-		warn(`Failed to install: ${pkgs.join(', ')}`);
-	}
-}
-
 function sv(cmd: string, cwd?: string): boolean {
 	return run(`bunx sv ${cmd}`, cwd) || run(`npx sv ${cmd}`, cwd);
+}
+
+function replaceInFile(filePath: string, search: string, replace: string) {
+	if (!existsSync(filePath)) return;
+	const content = readFileSync(filePath, 'utf-8');
+	writeFileSync(filePath, content.replace(search, replace));
 }
 
 // ============================================================================
@@ -222,7 +194,7 @@ function sv(cmd: string, cwd?: string): boolean {
 function showHelp() {
 	log(`
 Usage:
-  bun run cli.ts <project-name-or-path> [options]
+  bunx create-svelteforge <project-name> [options]
 
 Options:
   --fullstack, -f  Full Stack mode (UI + Auth + DB), auto setup
@@ -231,9 +203,9 @@ Options:
   --help, -h       Show help
 
 Examples:
-  bun run cli.ts my-app -f              # Full Stack, auto setup
-  bun run cli.ts my-app --landing       # Landing Page mode
-  bun run cli.ts my-app                 # interactive mode
+  bunx create-svelteforge my-app -f       # Full Stack, auto
+  bunx create-svelteforge my-app --landing # Landing Page
+  bunx create-svelteforge my-app          # interactive
 `);
 	process.exit(0);
 }
@@ -242,7 +214,6 @@ function parseArgs(argv: string[]): {
 	projectInput: string | null;
 	fullStackFlag: boolean;
 	landingFlag: boolean;
-	yesFlag: boolean;
 	noSetup: boolean;
 } {
 	const args = argv.slice(2);
@@ -254,7 +225,6 @@ function parseArgs(argv: string[]): {
 	let projectInput: string | null = null;
 	let fullStackFlag = false;
 	let landingFlag = false;
-	let yesFlag = false;
 	let noSetup = false;
 
 	for (const arg of args) {
@@ -268,10 +238,6 @@ function parseArgs(argv: string[]): {
 			case '-l':
 				landingFlag = true;
 				break;
-			case '--yes':
-			case '-y':
-				yesFlag = true;
-				break;
 			case '--no-setup':
 				noSetup = true;
 				break;
@@ -283,24 +249,7 @@ function parseArgs(argv: string[]): {
 		}
 	}
 
-	return { projectInput, fullStackFlag, landingFlag, yesFlag, noSetup };
-}
-
-// ============================================================================
-// PRE-FLIGHT CHECKS
-// ============================================================================
-
-function preflightCheck() {
-	// Check if bun is available — use execPath as fallback since we're already running via bun
-	const bunPath = process.execPath || 'bun';
-	if (!bunPath.includes('bun')) {
-		// Extra safety: try running bun --version
-		const hasBun = run('bun --version', undefined, true);
-		if (!hasBun) {
-			error('bun is not installed. Please install it first: https://bun.sh');
-			process.exit(1);
-		}
-	}
+	return { projectInput, fullStackFlag, landingFlag, noSetup };
 }
 
 // ============================================================================
@@ -326,39 +275,25 @@ process.on('SIGINT', () => {
 // ============================================================================
 
 async function main() {
-	const { projectInput, fullStackFlag, landingFlag, yesFlag, noSetup } = parseArgs(process.argv);
+	const { projectInput, fullStackFlag, landingFlag, noSetup } = parseArgs(process.argv);
 
 	if (!projectInput) {
-		error('Usage: bun run cli.ts <project-name-or-path> [options]');
+		error('Usage: bunx create-svelteforge <project-name> [options]');
 		log('Use --help for more information.');
 		process.exit(1);
 	}
 
-	preflightCheck();
-
-	// Extract project name from path (handle absolute & relative paths)
 	const projectName = basename(resolve(projectInput));
 	const targetDir = resolve(process.cwd(), projectInput);
 	createdTargetDir = targetDir;
 
 	log('\n🔨 SvelteForge Scaffold\n');
 
-	if (!existsSync(templateDir)) {
-		error(`Template not found: ${templateDir}`);
-		process.exit(1);
-	}
-	if (existsSync(targetDir)) {
-		error(`"${projectInput}" already exists.`);
-		process.exit(1);
-	}
-
 	// ── 1. Select mode ──
 	let fullStack: boolean;
 
-	// If mode flag provided, auto-accept setup (--yes implied)
 	if (fullStackFlag) {
 		fullStack = true;
-		yesFlag = true;
 	} else if (landingFlag) {
 		fullStack = false;
 	} else {
@@ -370,15 +305,33 @@ async function main() {
 		fullStack = mode === '1' || mode === '';
 	}
 
+	const templateDir = fullStack ? fullstackDir : landingDir;
+
 	log(`\n  → Mode: ${fullStack ? 'Full Stack' : 'Landing Page'}\n`);
+
+	if (!existsSync(fullstackDir)) {
+		error(`Full Stack template not found: ${fullstackDir}`);
+		process.exit(1);
+	}
+
+	if (existsSync(targetDir)) {
+		error(`"${projectInput}" already exists.`);
+		process.exit(1);
+	}
 
 	try {
 		// ── 2. sv create ──
 		log('📦 Step 1: sv create (base project)...\n');
 
+		let svAddons = `tailwindcss="plugins:typography,forms" prettier eslint vitest="usages:unit,component"`;
+
+		if (fullStack) {
+			svAddons += ` drizzle="database:sqlite" better-auth="demo:password"`;
+		}
+
 		const createOk = sv(
 			`create --template minimal --types ts ` +
-			`--add tailwindcss="plugins:typography,forms" prettier eslint vitest="usages:unit,component" ` +
+			`--add ${svAddons} ` +
 			`--install bun ${projectName}`
 		);
 
@@ -389,224 +342,69 @@ async function main() {
 		}
 		success('Base project created');
 
-
-		// ── 3. DB deps (Full Stack only) ──
-		if (fullStack) {
-			log('\n📦 Step 2: Installing DB dependencies...');
-			install(targetDir, ['drizzle-orm@latest'], false);
-			install(targetDir, ['drizzle-kit@latest', '@types/node@latest'], true);
-			success('DB dependencies installed');
-		} else {
-			log('\n📦 Step 2: Skipping (Landing Page mode)\n');
-		}
-
-		// ── 4. Clean sv defaults ──
-		log('\n🧹 Step 3: Cleaning defaults...');
+		// ── 3. Clean sv defaults ──
+		log('\n🧹 Step 2: Cleaning defaults...');
 		for (const f of FILES_TO_REMOVE) {
 			const p = join(targetDir, f);
 			if (existsSync(p)) rmSync(p, { recursive: true, force: true });
 		}
+		// Remove sv demo routes
 		const routesDir = join(targetDir, 'src/routes');
 		if (existsSync(routesDir)) rmSync(routesDir, { recursive: true, force: true });
 		success('Cleaned');
 
-		// ── 5. Copy SvelteForge files ──
-		log('\n📋 Step 4: Copying SvelteForge files...');
+		// ── 4. Copy SvelteForge files ──
+		log('\n📋 Step 3: Copying SvelteForge files...');
 
-		copyFiles(templateDir, targetDir, CORE_FILES);
-		copyFiles(templateDir, targetDir, ROUTE_FILES);
+		// Shared components, styles, utils — always from fullstack template
+		copyFiles(fullstackDir, targetDir, SHARED_FILES);
 
 		if (fullStack) {
-			copyFiles(templateDir, targetDir, AUTH_FILES);
-			copyFiles(templateDir, targetDir, ['drizzle.config.ts']);
-		}
-
-		if (!fullStack) {
-			// ── Simple Navbar (no auth imports) ──
-			writeFileSync(join(targetDir, 'src/lib/components/layout/navbar.svelte'),
-				`<script lang="ts">
-	import { AppBar } from '@skeletonlabs/skeleton-svelte';
-	import ThemeToggle from '$lib/components/ui/ThemeToggle.svelte';
-	import { themeStore } from '$lib/utils/theme.svelte';
-	import { onMount, onDestroy } from 'svelte';
-
-	let mobileMenuOpen = $state(false);
-
-	onMount(() => { themeStore.init(); });
-	onDestroy(() => { themeStore.destroy(); });
-</script>
-
-{#if mobileMenuOpen}
-	<div
-		class="md:hidden fixed inset-0 top-16 bg-surface-50-900 z-40"
-		onclick={() => (mobileMenuOpen = false)}
-		onkeydown={(e) => e.key === 'Escape' && (mobileMenuOpen = false)}
-		role="dialog"
-		aria-modal="true"
-		tabindex="-1"
-	>
-		<div class="flex flex-col p-6">
-			<button
-				type="button"
-				onclick={() => { themeStore.toggle(); mobileMenuOpen = false; }}
-				class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-surface-200-800 text-sm"
-			>
-				{themeStore.isDark ? 'Light Mode' : 'Dark Mode'}
-			</button>
-		</div>
-	</div>
-{/if}
-
-<AppBar>
-	<AppBar.Toolbar class="grid-cols-[1fr_auto_1fr]">
-		<AppBar.Lead>
-			<a href="/" class="text-xl font-bold text-surface-50-950 hover:text-primary-400-500 transition-colors">
-				${projectName}
-			</a>
-		</AppBar.Lead>
-
-		<AppBar.Headline />
-
-		<AppBar.Trail>
-			<div class="hidden md:flex items-center gap-2">
-				<ThemeToggle />
-			</div>
-
-			<button
-				onclick={() => (mobileMenuOpen = !mobileMenuOpen)}
-				class="md:hidden btn-icon text-surface-50-950"
-				aria-label="Menu"
-			>
-				{#if mobileMenuOpen}
-					<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-						<path d="M18 6L6 18M6 6l12 12" />
-					</svg>
-				{:else}
-					<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-						<path d="M3 12h18M3 6h18M3 18h18" />
-					</svg>
-				{/if}
-			</button>
-		</AppBar.Trail>
-	</AppBar.Toolbar>
-</AppBar>
-`
-			);
-
-			// ── Simplified layout ──
-			writeFileSync(join(targetDir, 'src/routes/+layout.svelte'),
-				`<script lang="ts">
-	import { onMount } from 'svelte';
-	import { Footer, Navbar } from '$lib/components';
-	import { themeStore } from '$lib/utils/theme.svelte';
-	import '../app.css';
-	let { children } = $props();
-	onMount(() => { themeStore.init(); });
-</script>
-
-<div class="flex flex-col min-h-screen">
-	<Navbar />
-	<main class="flex-1 pt-16">{@render children()}</main>
-	<Footer />
-</div>
-`
-			);
-
-			// ── Simple home page ──
-			writeFileSync(join(targetDir, 'src/routes/+page.svelte'),
-				`<svelte:head>
-	<title>Welcome</title>
-</svelte:head>
-
-<main class="min-h-screen flex items-center justify-center bg-surface-50-950">
-	<div class="max-w-lg mx-auto px-4 text-center space-y-8">
-		<h1 class="text-4xl sm:text-5xl font-black uppercase tracking-tight">Welcome</h1>
-		<p class="text-lg text-surface-500 mt-4">Your SvelteKit project is ready.</p>
-	</div>
-</main>
-`
-			);
-
-			// ── Minimal app.d.ts ──
-			writeFileSync(join(targetDir, 'src/app.d.ts'),
-				`declare global {
-	namespace App {
-		interface Locals {}
-	}
-}
-export {};
-`
-			);
+			// Full Stack: copy everything from fullstack template
+			copyFiles(fullstackDir, targetDir, FULLSTACK_FILES);
+			copyFiles(fullstackDir, targetDir, ROUTE_FILES);
+		} else {
+			// Landing: copy landing-specific overrides
+			copyFiles(fullstackDir, targetDir, ROUTE_FILES);
+			copyFiles(landingDir, targetDir, LANDING_OVERRIDE_FILES);
 		}
 
 		success('Files copied');
 
-		// ── 6. Install deps ──
-		log('\n📦 Step 5: Installing SvelteForge dependencies...');
+		// ── 5. Copy package.json + vite.config.ts from template ──
+		log('\n📦 Step 4: Installing dependencies...');
 
-		install(targetDir, CORE_DEV_DEPS, true);
-		install(targetDir, CORE_DEPS, false);
+		// Copy the right package.json (with all deps pre-listed)
+		copyFiles(templateDir, targetDir, ['package.json']);
 
-		if (fullStack) {
-			install(targetDir, AUTH_DEPS, false);
-			if (!hasPackage(targetDir, 'drizzle-kit')) {
-				install(targetDir, ['drizzle-kit@latest'], true);
-			}
+		// Copy the right vite.config.ts
+		copyFiles(templateDir, targetDir, ['vite.config.ts']);
+
+		// One-shot install
+		const installOk = run('bun install', targetDir);
+		if (!installOk) {
+			warn('bun install failed — you may need to run it manually.');
 		}
-
-		if (!hasPackage(targetDir, 'pino')) {
-			install(targetDir, ['pino@latest'], false);
-		}
-
 		success('Dependencies installed');
 
-		// ── 7. Configure vite.config.ts ──
-		log('\n⚙️  Step 6: Configuring vite.config.ts...');
+		// ── 6. Post-processing ──
+		log('\n⚙️  Step 5: Finalizing...');
 
-		const vite = fullStack
-			? `import tailwindcss from '@tailwindcss/vite';
-import { sveltekit } from '@sveltejs/kit/vite';
-import { defineConfig } from 'vitest/config';
-
-export default defineConfig({
-	plugins: [tailwindcss(), sveltekit()],
-	optimizeDeps: { exclude: ['better-auth'] },
-	ssr: { noExternal: ['better-auth'], external: ['bun:sqlite'] },
-	resolve: { conditions: ['browser'] },
-	test: {
-		environment: 'jsdom',
-		include: ['src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,svelte}']
-	}
-});
-`
-			: `import tailwindcss from '@tailwindcss/vite';
-import { sveltekit } from '@sveltejs/kit/vite';
-import { defineConfig } from 'vitest/config';
-
-export default defineConfig({
-	plugins: [tailwindcss(), sveltekit()],
-	resolve: { conditions: ['browser'] },
-	test: {
-		environment: 'jsdom',
-		include: ['src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,svelte}']
-	}
-});
-`;
-		writeFileSync(join(targetDir, 'vite.config.ts'), vite);
-		success('vite.config.ts configured');
-
-		// ── 8. Data dir (Full Stack only) ──
-		if (fullStack) {
-			mkdirSync(join(targetDir, 'data'), { recursive: true });
-			success('data/ created');
+		// Replace __PROJECT_NAME__ in landing navbar
+		if (!fullStack) {
+			replaceInFile(
+				join(targetDir, 'src/lib/components/layout/navbar.svelte'),
+				'__PROJECT_NAME__',
+				projectName
+			);
 		}
 
-		// ── 9. Update scripts ──
-		log('\n📝 Step 7: Updating scripts...');
+		// Update package.json scripts
 		try {
 			const pkgPath = join(targetDir, 'package.json');
 			const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'));
 
+			pkg.name = projectName;
 			pkg.type = 'module';
 			pkg.scripts = {
 				...pkg.scripts,
@@ -615,28 +413,24 @@ export default defineConfig({
 				preview: 'bun --bun vite preview'
 			};
 
-			if (fullStack) {
-				Object.assign(pkg.scripts, {
-					'db:push': 'drizzle-kit push',
-					'db:generate': 'drizzle-kit generate',
-					'db:migrate': 'drizzle-kit migrate',
-					'db:studio': 'drizzle-kit studio',
-					'db:init': 'bun run scripts/db-init.ts',
-					setup: 'bun run scripts/setup.ts'
-				});
-			}
-
 			writeFileSync(pkgPath, JSON.stringify(pkg, null, '\t') + '\n');
-			success('Scripts updated');
 		} catch (e) {
 			warn(`package.json: ${(e as Error).message}`);
 		}
 
-		// ── 10. Setup (optional) ──
+		// Create data dir (Full Stack only)
+		if (fullStack) {
+			mkdirSync(join(targetDir, 'data'), { recursive: true });
+		}
+
+		success('Finalized');
+
+		// ── 7. Setup (Full Stack only, optional) ──
 		if (fullStack && !noSetup) {
-			log('\n🛠️  Step 8: Setup (.env, DB, admin user)\n');
+			log('\n🛠️  Step 6: Setup (.env, DB, admin user)\n');
 			let runSetup = true;
-			if (!yesFlag) {
+			if (!fullStackFlag) {
+				// Only ask if not auto mode
 				const ans = await question('  Run setup now? (Y/n): ');
 				runSetup = ans.toLowerCase() !== 'n';
 			}

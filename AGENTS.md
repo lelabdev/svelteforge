@@ -10,10 +10,15 @@ svelteforge/                ← this repo
 ├── package.json            ← create-svelteforge package config
 ├── AGENTS.md               ← you are here
 ├── README.md
-└── template/               ← files copied into generated projects
-    ├── src/                ← SvelteKit app (Full Stack mode)
-    ├── scripts/            ← setup.ts, db-init.ts, db-reset.ts
-    └── ...
+├── template-fullstack/     ← Full Stack mode files (UI + Auth + DB)
+│   ├── package.json        ← all deps pre-listed (one-shot bun install)
+│   ├── vite.config.ts      ← with better-auth SSR config
+│   ├── src/                ← SvelteKit app
+│   └── scripts/            ← setup.ts, db-init.ts, db-reset.ts
+└── template-landing/       ← Landing Page mode files (UI only)
+    ├── package.json        ← frontend-only deps
+    ├── vite.config.ts      ← minimal config
+    └── src/                ← simplified navbar, layout, page
 ```
 
 **This repo is a generator, not an app.** Do not run `bun dev` here. Use the CLI to create a project first.
@@ -51,12 +56,12 @@ bunx create-svelteforge my-project
 
 ### Scaffold Flow
 
-1. `sv create` — base SvelteKit + Tailwind + ESLint + Prettier
-2. `sv add vitest` — testing (unit + component)
-3. `bun add drizzle-orm` — DB deps (Full Stack only)
-4. Copy SvelteForge template files (components, auth, schemas, etc.)
-5. Install SvelteForge-only deps (Skeleton, BetterAuth, SuperForms, fonts, etc.)
-6. Generate `vite.config.ts` based on mode
+1. `sv create` — base SvelteKit + Tailwind + ESLint + Prettier + Vitest (+ Drizzle + BetterAuth si Full Stack)
+2. Clean sv defaults (routes, app.css, etc.)
+3. Copy SvelteForge template files from `template-fullstack/` or `template-landing/`
+4. Copy `package.json` (deps pre-listed) + `vite.config.ts` from the right template
+5. One-shot `bun install`
+6. Merge scripts + project name in `package.json`
 7. Optional: run `setup.ts` (creates .env, DB, admin user)
 
 ## Stack (Full Stack mode)
