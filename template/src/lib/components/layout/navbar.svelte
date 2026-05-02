@@ -27,7 +27,7 @@
 <AppBar>
 	<AppBar.Toolbar class="grid-cols-[1fr_auto_1fr]">
 		<AppBar.Lead>
-			<a href="/" class="text-white hover:text-primary-200 transition-colors" style="font-size: var(--text-logo); font-weight: var(--weight-title)">
+			<a href="/" class="text-surface-50-950 hover:text-primary-400-500 transition-colors" style="font-size: var(--text-logo); font-weight: var(--weight-title)">
 				SvelteForge
 			</a>
 		</AppBar.Lead>
@@ -42,7 +42,7 @@
 			<!-- Mobile menu toggle -->
 			<button
 				onclick={() => (mobileMenuOpen = !mobileMenuOpen)}
-				class="md:hidden btn-icon text-white"
+				class="md:hidden btn-icon text-surface-50-950"
 				aria-label="Menu"
 			>
 				{#if mobileMenuOpen}

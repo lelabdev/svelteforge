@@ -167,7 +167,7 @@
 					Strength: {strength.label}
 				</span>
 			</div>
-			<div class="w-full bg-surface-300 dark:bg-surface-600 rounded-full overflow-hidden" style="height: var(--strength-bar-h)">
+			<div class="w-full bg-surface-300-600 rounded-full overflow-hidden" style="height: var(--strength-bar-h)">
 				<div
 					class="h-full transition-all duration-300 ease-out {strength.color}"
 					style="width: {progressWidth}"
