@@ -6,7 +6,7 @@ export const load: PageServerLoad = async ({ parent }) => {
 
 	// Si connecté, on envoie directement au dashboard
 	if (parentData.session?.user) {
-		const user = parentData.session.user as any;
+		const user = parentData.session.user;
 		if (user.role === 'admin') {
 			redirect(302, '/admin');
 		}
