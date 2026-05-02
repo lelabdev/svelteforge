@@ -6,9 +6,9 @@ import { logger } from '$lib/logger';
 import { loginSchema } from '$lib/schemas/login';
 import type { Actions, PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async () => {
+export const load: PageServerLoad = async ({ url }) => {
 	const form = await superValidate(zod4(loginSchema));
-	return { form };
+	return { form, reset: url.searchParams.get('reset') };
 };
 
 export const actions: Actions = {

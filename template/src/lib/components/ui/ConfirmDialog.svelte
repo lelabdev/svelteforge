@@ -38,7 +38,7 @@
 				<Dialog.Title style="font-size: var(--text-dialog-title); font-weight: var(--weight-subtitle); margin-bottom: var(--space-element)">{title}</Dialog.Title>
 				<p class="text-surface-600-400" style="margin-bottom: var(--space-group)">{message}</p>
 				<div class="flex justify-end" style="gap: var(--gap-md)">
-					<button class="btn preset-outlined-surface-500" onclick={onCancel}>{cancelLabel}</button>
+					<button class="btn preset-outlined-secondary-500" onclick={onCancel}>{cancelLabel}</button>
 					<button class="btn {variantClasses[variant]}" onclick={onConfirm}>{confirmLabel}</button>
 				</div>
 			</Dialog.Content>
