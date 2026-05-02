@@ -44,7 +44,7 @@
 			{#if isLoggedIn}
 				<div class="mb-6 p-4 rounded-xl bg-surface-100-800">
 					<p class="font-medium text-sm">{$session.data?.user?.name ?? ''}</p>
-					<p class="text-xs text-muted-foreground">{$session.data?.user?.email ?? ''}</p>
+					<p class="text-xs text-surface-500">{$session.data?.user?.email ?? ''}</p>
 				</div>
 
 				{#if isAdmin}

@@ -74,7 +74,7 @@
 			<tr class="border-b border-surface-300-700">
 				{#each columns as col (col.key)}
 					<th
-						class="text-left text-muted-foreground uppercase tracking-wider {col.width ?? ''}"
+						class="text-left text-surface-500 uppercase tracking-wider {col.width ?? ''}"
 						style="padding: var(--table-cell-py) var(--table-cell-px); font-size: var(--text-caption); font-weight: var(--weight-subtitle)"
 					>
 						{#if col.sortable}
@@ -108,7 +108,7 @@
 				{/each}
 			{:else if data.length === 0}
 				<tr>
-					<td colspan={columns.length} class="text-center text-muted-foreground" style="padding: var(--table-empty-py) var(--table-cell-px)">
+					<td colspan={columns.length} class="text-center text-surface-500" style="padding: var(--table-empty-py) var(--table-cell-px)">
 						{emptyMessage}
 					</td>
 				</tr>
