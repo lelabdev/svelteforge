@@ -212,7 +212,7 @@ function install(dir: string, pkgs: string[], dev = false) {
 }
 
 function sv(cmd: string, cwd?: string): boolean {
-	return run(`npx sv ${cmd}`, cwd) || run(`bunx sv ${cmd}`, cwd);
+	return run(`bunx sv ${cmd}`, cwd) || run(`npx sv ${cmd}`, cwd);
 }
 
 // ============================================================================
@@ -225,16 +225,15 @@ Usage:
   bun run cli.ts <project-name-or-path> [options]
 
 Options:
-  --full-stack    Full Stack mode (UI + Auth + DB)
-  --landing       Landing Page mode (UI only)
-  --yes, -y       Accept setup automatically
-  --no-setup      Skip setup entirely
-  --help, -h      Show help
+  --fullstack, -f  Full Stack mode (UI + Auth + DB), auto setup
+  --landing, -l    Landing Page mode (UI only)
+  --no-setup       Skip setup entirely
+  --help, -h       Show help
 
 Examples:
-  bun run cli.ts my-app --full-stack --yes
-  bun run cli.ts /home/dev/project --landing --no-setup
-  bun run cli.ts my-app                # interactive mode
+  bun run cli.ts my-app -f              # Full Stack, auto setup
+  bun run cli.ts my-app --landing       # Landing Page mode
+  bun run cli.ts my-app                 # interactive mode
 `);
 	process.exit(0);
 }
@@ -261,9 +260,12 @@ function parseArgs(argv: string[]): {
 	for (const arg of args) {
 		switch (arg) {
 			case '--full-stack':
+			case '-f':
+			case '--fullstack':
 				fullStackFlag = true;
 				break;
 			case '--landing':
+			case '-l':
 				landingFlag = true;
 				break;
 			case '--yes':
@@ -353,8 +355,10 @@ async function main() {
 	// ── 1. Select mode ──
 	let fullStack: boolean;
 
+	// If mode flag provided, auto-accept setup (--yes implied)
 	if (fullStackFlag) {
 		fullStack = true;
+		yesFlag = true;
 	} else if (landingFlag) {
 		fullStack = false;
 	} else {
@@ -374,7 +378,7 @@ async function main() {
 
 		const createOk = sv(
 			`create --template minimal --types ts ` +
-			`--add tailwindcss="plugins:typography,forms" prettier eslint ` +
+			`--add tailwindcss="plugins:typography,forms" prettier eslint vitest="usages:unit,component" ` +
 			`--install bun ${projectName}`
 		);
 
@@ -385,10 +389,6 @@ async function main() {
 		}
 		success('Base project created');
 
-		// ── 2b. sv add vitest ──
-		log('\n📦 Step 1b: sv add vitest...');
-		sv('add vitest="usages:unit,component" --install bun', targetDir);
-		success('Vitest added');
 
 		// ── 3. DB deps (Full Stack only) ──
 		if (fullStack) {
@@ -460,7 +460,7 @@ async function main() {
 <AppBar>
 	<AppBar.Toolbar class="grid-cols-[1fr_auto_1fr]">
 		<AppBar.Lead>
-			<a href="/" class="text-xl font-bold text-white hover:text-primary-200 transition-colors">
+			<a href="/" class="text-xl font-bold text-surface-50-950 hover:text-primary-400-500 transition-colors">
 				${projectName}
 			</a>
 		</AppBar.Lead>
@@ -474,7 +474,7 @@ async function main() {
 
 			<button
 				onclick={() => (mobileMenuOpen = !mobileMenuOpen)}
-				class="md:hidden btn-icon text-white"
+				class="md:hidden btn-icon text-surface-50-950"
 				aria-label="Menu"
 			>
 				{#if mobileMenuOpen}
@@ -521,7 +521,7 @@ async function main() {
 <main class="min-h-screen flex items-center justify-center bg-surface-50-950">
 	<div class="max-w-lg mx-auto px-4 text-center space-y-8">
 		<h1 class="text-4xl sm:text-5xl font-black uppercase tracking-tight">Welcome</h1>
-		<p class="text-lg text-muted-foreground mt-4">Your SvelteKit project is ready.</p>
+		<p class="text-lg text-surface-500 mt-4">Your SvelteKit project is ready.</p>
 	</div>
 </main>
 `
