@@ -1,7 +1,6 @@
 <script lang="ts">
+	import { type InputType } from './form-shared';
 	import { cn } from '../utils/cn';
-
-	type InputType = 'text' | 'email' | 'password' | 'number' | 'tel' | 'url';
 
 	interface Props {
 		label: string;

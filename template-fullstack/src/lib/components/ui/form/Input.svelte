@@ -1,7 +1,6 @@
 <script lang="ts">
+	import { type InputType } from './form-shared';
 	import { cn } from '../utils/cn';
-
-	type InputType = 'text' | 'email' | 'password' | 'number' | 'tel' | 'url';
 
 	interface Props {
 		id?: string;
@@ -39,8 +38,7 @@
 		oninput
 	}: Props = $props();
 
-	const normalClass =
-		'input';
+	const normalClass = 'input';
 
 	const errorClass =
 		'input border-error-500 text-error-900-100 placeholder:text-error-400-500';
