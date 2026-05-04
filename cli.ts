@@ -370,6 +370,11 @@ async function main() {
 			warn('pnpm install failed — you may need to run it manually.');
 		}
 
+		// Rebuild native modules (second pnpm install can break compiled bindings)
+		if (fullStack) {
+			run('pnpm rebuild better-sqlite3', targetDir, true);
+		}
+
 		success('Dependencies installed');
 
 		// ── 6. Post-processing ──
