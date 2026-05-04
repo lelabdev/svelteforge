@@ -1,21 +1,20 @@
 <script lang="ts">
 	import { page } from '$app/stores';
-	import { authClient } from '$lib/auth-client';
 	import { themeStore } from '$lib/utils/theme.svelte';
 
 	interface Props {
-		session: ReturnType<typeof authClient.useSession>;
+		user?: { id: string; name?: string; email: string; role?: string; image?: string } | null;
 		onClose: () => void;
 		open: boolean;
 	}
 
-	let { session, onClose, open }: Props = $props();
+	let { user = null, onClose, open }: Props = $props();
 
 	const showLogout = $derived(
 		$page.url.pathname === '/dashboard' || $page.url.pathname.startsWith('/admin')
 	);
-	const isLoggedIn = $derived(!$session.isPending && $session.data);
-	const isAdmin = $derived($session.data?.user?.role === 'admin');
+	const isLoggedIn = $derived(!!user);
+	const isAdmin = $derived(user?.role === 'admin');
 
 	function handleThemeToggle() {
 		themeStore.toggle();
@@ -43,8 +42,8 @@
 		<div class="flex flex-col p-6">
 			{#if isLoggedIn}
 				<div class="mb-6 p-4 rounded-xl bg-surface-100-800">
-					<p class="font-medium text-sm">{$session.data?.user?.name ?? ''}</p>
-					<p class="text-xs text-surface-500">{$session.data?.user?.email ?? ''}</p>
+					<p class="font-medium text-sm">{user?.name ?? ''}</p>
+					<p class="text-xs text-surface-500">{user?.email ?? ''}</p>
 				</div>
 
 				{#if isAdmin}

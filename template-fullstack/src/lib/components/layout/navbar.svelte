@@ -1,13 +1,17 @@
 <script lang="ts">
 	import { AppBar } from '@skeletonlabs/skeleton-svelte';
-	import { authClient } from '$lib/auth-client';
 	import AuthButtons from './auth-buttons.svelte';
 	import { themeStore } from '$lib/utils/theme.svelte';
 	import { onMount, onDestroy } from 'svelte';
 	import MobileMenu from './mobile-menu.svelte';
 	import Icon from '$lib/components/icons/Icon.svelte';
+
+	interface Props {
+		user?: { id: string; name?: string; email: string; role?: string; image?: string } | null;
+	}
+
+	let { user = null }: Props = $props();
 	let mobileMenuOpen = $state(false);
-	const session = authClient.useSession();
 
 	onMount(() => {
 		themeStore.init();
@@ -22,7 +26,7 @@
 	}
 </script>
 
-<MobileMenu {session} onClose={closeMobileMenu} open={mobileMenuOpen} />
+<MobileMenu {user} onClose={closeMobileMenu} open={mobileMenuOpen} />
 
 <AppBar>
 	<AppBar.Toolbar class="grid-cols-[1fr_auto_1fr]">
@@ -37,7 +41,7 @@
 		</AppBar.Headline>
 
 		<AppBar.Trail>
-			<AuthButtons {session} class="hidden md:flex items-center" />
+			<AuthButtons {user} class="hidden md:flex items-center" />
 
 			<!-- Mobile menu toggle -->
 			<button

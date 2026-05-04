@@ -1,19 +1,18 @@
 <script lang="ts">
 	import { page } from '$app/stores';
-	import { authClient } from '$lib/auth-client';
 	import ThemeToggle from '$lib/components/ui/ThemeToggle.svelte';
 	import Icon from '$lib/components/icons/Icon.svelte';
 
 	interface Props {
 		class?: string;
 		style?: string;
-		session: ReturnType<typeof authClient.useSession>;
+		user?: { id: string; name?: string; email: string; role?: string; image?: string } | null;
 	}
 
-	let { class: className = '', style: styleAttr, session }: Props = $props();
+	let { class: className = '', style: styleAttr, user = null }: Props = $props();
 
-	const isLoggedIn = $derived(!$session.isPending && $session.data);
-	const isAdmin = $derived($session.data?.user?.role === 'admin');
+	const isLoggedIn = $derived(!!user);
+	const isAdmin = $derived(user?.role === 'admin');
 	const showLogout = $derived(
 		$page.url.pathname === '/dashboard' || $page.url.pathname.startsWith('/admin')
 	);

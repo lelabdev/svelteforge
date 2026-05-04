@@ -4,7 +4,12 @@
 	import { Footer, Navbar } from '$lib/components';
 	import { themeStore } from '$lib/utils/theme.svelte';
 	import '../app.css';
-	let { children } = $props();
+
+	interface LayoutData {
+		user?: { id: string; name?: string; email: string; role?: string; image?: string } | null;
+	}
+
+	let { children, data }: { children: any; data: LayoutData } = $props();
 
 	onMount(() => {
 		themeStore.init();
@@ -15,7 +20,7 @@
 
 <div class="flex flex-col min-h-screen">
 	{#if !isAdminPage}
-		<Navbar />
+		<Navbar user={data.user} />
 	{/if}
 
 	<main class="flex-1 {!isAdminPage ? 'pt-16' : 'h-screen'}">

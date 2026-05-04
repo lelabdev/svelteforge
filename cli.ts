@@ -77,7 +77,7 @@ const LANDING_OVERRIDE_FILES: string[] = [
 	'src/app.d.ts'
 ];
 
-// sv defaults to remove after create
+// sv files we replace with our own versions
 const FILES_TO_REMOVE: string[] = [
 	'src/routes/+page.svelte',
 	'src/routes/+page.server.ts',
@@ -85,10 +85,7 @@ const FILES_TO_REMOVE: string[] = [
 	'src/routes/+error.svelte',
 	'src/app.css',
 	'src/app.html',
-	'src/app.d.ts',
-	'src/lib/server/',        // sv creates auth.ts + db/ here, we use src/lib/
-	'src/routes/demo/',       // sv better-auth demo pages
-	'src/routes/layout.css'   // sv tailwind layout styles
+	'src/app.d.ts'
 ];
 
 // ============================================================================
@@ -325,9 +322,6 @@ async function main() {
 			const p = join(targetDir, f);
 			if (existsSync(p)) rmSync(p, { recursive: true, force: true });
 		}
-		// Remove sv demo routes
-		const routesDir = join(targetDir, 'src/routes');
-		if (existsSync(routesDir)) rmSync(routesDir, { recursive: true, force: true });
 		success('Cleaned');
 
 		// ── 4. Copy SvelteForge files ──

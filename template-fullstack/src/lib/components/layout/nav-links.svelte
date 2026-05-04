@@ -1,16 +1,14 @@
 <script lang="ts">
-	import { authClient } from '$lib/auth-client';
-
 	interface Props {
 		class?: string;
-		session: ReturnType<typeof authClient.useSession>;
+		user?: { id: string; name?: string; email: string; role?: string; image?: string } | null;
 		onMobileItemClick?: () => void;
 	}
 
-	let { class: className = '', session, onMobileItemClick }: Props = $props();
+	let { class: className = '', user = null, onMobileItemClick }: Props = $props();
 
-	const isLoggedIn = $derived(!$session.isPending && $session.data);
-	const isAdmin = $derived(!$session.isPending && $session.data?.user?.role === 'admin');
+	const isLoggedIn = $derived(!!user);
+	const isAdmin = $derived(user?.role === 'admin');
 
 	function handleNavClick() {
 		onMobileItemClick?.();
