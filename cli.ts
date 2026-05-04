@@ -300,7 +300,7 @@ async function main() {
 		let svAddons = `tailwindcss="plugins:typography,forms" prettier eslint vitest="usages:unit,component"`;
 
 		if (fullStack) {
-			svAddons += ` drizzle="database:sqlite" better-auth="demo:password"`;
+			svAddons += ` drizzle="database:sqlite+client:libsql" better-auth="demo:password"`;
 		}
 
 		const createOk = sv(
