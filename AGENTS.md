@@ -2,6 +2,18 @@
 
 AI agent instructions for the SvelteForge boilerplate generator.
 
+## Architecture
+
+**SvelteForge is a UI/UX layer on top of `sv create`.** Auth (better-auth) and database (Drizzle + SQLite) are handled entirely by `sv` add-ons. SvelteForge provides:
+
+- 34 theme-aware UI components (Skeleton UI v4)
+- 3-layer theme system (colors, spacing, fonts)
+- Layout primitives (Navbar, Footer, MobileMenu, AuthButtons)
+- Zod v4 validation schemas
+- Utils (cn, formatters, theme store, focus-trap)
+
+SvelteForge does **NOT** provide: auth config, DB connection, Drizzle schemas, service layer, middleware, or setup scripts. Those come from `sv`.
+
 ## Repo Structure
 
 ```
@@ -10,11 +22,10 @@ svelteforge/                ← this repo
 ├── package.json            ← create-svelteforge package config
 ├── AGENTS.md               ← you are here
 ├── README.md
-├── template-fullstack/     ← Full Stack mode files (UI + Auth + DB)
+├── template-fullstack/     ← Full Stack mode files (UI + routes + schemas)
 │   ├── package.json        ← all deps pre-listed (one-shot bun install)
-│   ├── vite.config.ts      ← with better-auth SSR config
-│   ├── src/                ← SvelteKit app
-│   └── scripts/            ← setup.ts, db-init.ts, db-reset.ts
+│   ├── vite.config.ts      ← SSR config
+│   └── src/                ← SvelteKit app (components, layout, schemas, styles, utils)
 └── template-landing/       ← Landing Page mode files (UI only)
     ├── package.json        ← frontend-only deps
     ├── vite.config.ts      ← minimal config
@@ -26,12 +37,12 @@ svelteforge/                ← this repo
 ## Commands
 
 ```bash
-# From cloned repo (recommended while not on npm)
-bun run cli.ts my-project                       # Interactive (pick mode)
-bun run cli.ts my-project --full-stack --yes    # Full Stack, auto setup
-bun run cli.ts my-project --landing --no-setup  # Landing Page, no setup
-bun run cli.ts /home/dev/my-app --full-stack    # Absolute path
-bun run cli.ts --help                           # Show help
+# From cloned repo
+bun run cli.ts my-project --fullstack       # Full Stack mode
+bun run cli.ts my-project --landing         # Landing Page mode
+bun run cli.ts my-project                   # Interactive (pick mode)
+bun run cli.ts /home/dev/my-app --fullstack # Absolute path
+bun run cli.ts --help                       # Show help
 
 # Once published on npm:
 bunx create-svelteforge my-project
@@ -39,30 +50,28 @@ bunx create-svelteforge my-project
 
 ### CLI Flags
 
-| Flag | Description |
-|------|-------------|
-| `--full-stack` | Full Stack mode (skip interactive prompt) |
-| `--landing` | Landing Page mode (skip interactive prompt) |
-| `--yes`, `-y` | Accept setup automatically |
-| `--no-setup` | Skip setup entirely |
-| `--help`, `-h` | Show help |
+| Flag | Short | Description |
+|------|-------|-------------|
+| `--fullstack` | `-f` | Full Stack mode (skip interactive prompt) |
+| `--landing` | `-l` | Landing Page mode (skip interactive prompt) |
+| `--help` | `-h` | Show help |
 
 ## Scaffold Modes
 
 | Mode | UI + Forms | Auth + DB |
 |------|:----------:|:---------:|
-| **Full Stack** (default) | ✓ | ✓ |
+| **Full Stack** (default) | ✓ | ✓ (via sv add-ons) |
 | **Landing Page** | ✓ | ✗ |
 
 ### Scaffold Flow
 
-1. `sv create` — base SvelteKit + Tailwind + ESLint + Prettier + Vitest (+ Drizzle + BetterAuth si Full Stack)
+1. `sv create` — base SvelteKit + Tailwind + ESLint + Prettier + Vitest (+ better-auth + Drizzle if Full Stack)
 2. Clean sv defaults (routes, app.css, etc.)
 3. Copy SvelteForge template files from `template-fullstack/` or `template-landing/`
 4. Copy `package.json` (deps pre-listed) + `vite.config.ts` from the right template
 5. One-shot `bun install`
 6. Merge scripts + project name in `package.json`
-7. Optional: run `setup.ts` (creates .env, DB, admin user)
+7. Done — `sv` has already generated `.env` and DB config
 
 ## Stack (Full Stack mode)
 
@@ -71,27 +80,20 @@ bunx create-svelteforge my-project
 | Runtime | **Bun** (`bun:sqlite`, `bun run`) |
 | Framework | **SvelteKit 2** + **Svelte 5** (runes: `$state`, `$props`, `$derived`, `$effect`) |
 | Styling | **Tailwind CSS v4** + **Skeleton UI v4** |
-| Auth | **BetterAuth** (email/password, admin plugin) |
-| Database | **SQLite** (`bun:sqlite`) + **Drizzle ORM** |
+| Auth | via **sv add-on** (better-auth — email/password, admin plugin) |
+| Database | via **sv add-on** (SQLite `bun:sqlite` + Drizzle ORM) |
 | Forms | **SuperForms** + **Zod v4** |
 | Rich Text | **Tiptap** (`@tiptap/core`, `starter-kit`, `underline`) |
 | Logging | **Pino** |
 | Icons | **Lucide** (via local `Icon.svelte` wrapper) |
 
-## Template Structure (inside `template/`)
+## Template Structure (SvelteForge adds)
 
 ```
 src/
 ├── lib/
-│   ├── auth.ts              # BetterAuth server config (lazy Proxy singleton)
-│   ├── auth-client.ts       # BetterAuth client-side hook
-│   ├── auth-context.ts      # AsyncLocalStorage for per-request context
-│   ├── auth-utils.ts        # requireAuth(), requireAdmin()
-│   ├── errors.ts            # AppError hierarchy
-│   ├── logger.ts            # Pino logger + createChildLogger()
-│   ├── types.ts             # Shared TypeScript interfaces
 │   ├── components/
-│   │   ├── ui/              # 34 theme-swapable components
+│   │   ├── ui/              # 34 theme-swappable components
 │   │   │   ├── Surfaces: Card, AuthCard, Modal, Sheet, PopOver, Carousel
 │   │   │   ├── Feedback: Toast, ErrorAlert, SuccessAlert, Loader, Progress,
 │   │   │   │          SkeletonLoader, NavigationLoader
@@ -104,14 +106,7 @@ src/
 │   │   │                RadioGroup, FormField, SubmitButton, SearchInput)
 │   │   ├── layout/          # Navbar, Footer, AuthButtons, MobileMenu, NavLinks
 │   │   └── icons/           # Lucide wrapper (Icon.svelte) — new icons need import + iconMap entry
-│   ├── db/
-│   │   ├── connection.ts    # Lazy SQLite connection (bun:sqlite)
-│   │   ├── config.ts        # getDatabaseConfig(), requireEnv()
-│   │   └── schemas/         # Drizzle tables (user, session, account, verification)
-│   ├── services/            # Service layer — ALL DB access goes here
-│   │   └── account/         # core.ts (withUser helper), management.ts, roles.ts, updates.ts
 │   ├── schemas/             # Zod v4 validation (signup, login, password, account, profile)
-│   ├── middleware/           # rate-limit.ts
 │   ├── styles/
 │   │   ├── svelteForge.css  # Skeleton theme colors (oklch, 7 domains × 10 shades)
 │   │   ├── tokens.css       # Design tokens (60+ semantic CSS custom properties)
@@ -122,51 +117,15 @@ src/
 │   ├── (protected)/         # /dashboard, /admin, /logout (/admin hides navbar/footer)
 │   ├── (legal)/             # /privacy, /legal
 │   └── api/                 # /api/auth/[...all], /api/health
-├── hooks.server.ts          # Auth session, rate limiting, CSP + security headers
+├── hooks.server.ts          # Auth session, CSP + security headers
 ├── app.html                 # HTML shell (data-theme="svelteForge")
 ├── app.css                  # Tailwind + Skeleton + theme + tokens + fonts
 └── app.d.ts                 # TypeScript declarations
 ```
 
+Auth config (`auth.ts`, `auth-client.ts`), DB connection (`db/`), and Drizzle schemas are provided by `sv` and live in their standard locations. SvelteForge does not override them.
+
 ## Critical Rules
-
-### Service Layer is Mandatory
-
-Routes must **NEVER** import `db` directly. All DB access goes through `src/lib/services/`.
-
-```typescript
-// ❌ NEVER
-import { db } from '$lib/db';
-
-// ✅ ALWAYS
-import { getUserById } from '$lib/services';
-```
-
-Use `withUser(userId, context, fn)` from `core.ts` for operations that fetch a user then act on it. It handles NotFoundError + try/catch + logging automatically.
-
-### DB & Auth are Lazy-Loaded Proxies
-
-`db` and `auth` are lazy-loaded via Proxy. They initialize on first access at runtime. **Do not restructure.**
-
-`QueryRunner = any` in `src/lib/db/types.ts` is intentional.
-
-### SQLite, NOT PostgreSQL
-
-- ❌ `ILIKE` → use `LIKE`
-- ❌ `::int` cast → use Drizzle's `count()`
-- ❌ `sql.raw(userInput)` for sort → use column whitelist
-
-### SQLite Timestamps Trap
-
-`.defaultNow()` causes the **year 58226 bug** with `bun:sqlite`.
-
-```typescript
-// ❌ WRONG
-createdAt: integer('created_at', { mode: 'timestamp' }).notNull().defaultNow()
-
-// ✅ CORRECT — always pass new Date() explicitly
-.insert({ createdAt: new Date(), updatedAt: new Date() });
-```
 
 ### Zod v4, Not v3
 
@@ -268,7 +227,7 @@ New icons need both an import AND an entry in `iconMap` in `Icon.svelte`.
 
 All UI text in **English**.
 
-## Superforms Gotchas
+## SuperForms Gotchas
 
 1. `request.formData()` can only be called once — pass already-parsed FormData to `superValidate()`
 2. Initialize `superForm()` BEFORE any `$derived` that reads `$form`
@@ -276,7 +235,7 @@ All UI text in **English**.
 
 ## Rich Text Components
 
-Based on **Tiptap v3**. Two components: editor + preview.
+Based on **Tiptap**. Two components: editor + preview.
 
 ### RichTextEditor
 
@@ -316,16 +275,7 @@ Lightweight JSON→HTML renderer. **No Editor instance loaded** — zero runtime
 
 ## Adding to the Template
 
-- **New DB table:** schema in `db/schemas/` → service in `services/` → `bun run db:push` in generated project
-- **New page:** route in `routes/` → use service layer → use Skeleton components
+- **New page:** route in `routes/` → use Skeleton components → use SvelteForge schemas
 - **New UI component:** in `components/ui/` → wrap Skeleton → use tokens → export from `index.ts`
 - **New theme:** copy `svelteForge.css` + `tokens.css` → change `[data-theme]` name and values
-- **OAuth provider:** add `socialProviders` block in `auth.ts`
-
-## Environment Variables (Full Stack mode)
-
-```bash
-DATABASE_URL="data/sqlite.db"           # SQLite database path
-BETTER_AUTH_SECRET="..."                # Auth secret (auto-generated via openssl rand -base64 32)
-BASE_URL="http://localhost:5173"        # Public URL
-```
+- **New DB table / auth config:** handled by `sv` add-ons, not SvelteForge

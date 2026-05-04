@@ -20,7 +20,6 @@
 import { execSync } from 'child_process';
 import {
 	cpSync,
-	mkdirSync,
 	writeFileSync,
 	readFileSync,
 	existsSync,
@@ -56,28 +55,9 @@ const SHARED_FILES: string[] = [
 	'src/app.html'
 ];
 
-// Full Stack only
+// Full Stack only (auth/DB handled by sv create add-ons)
 const FULLSTACK_FILES: string[] = [
-	'src/lib/auth.ts',
-	'src/lib/auth-client.ts',
-	'src/lib/auth-context.ts',
-	'src/lib/auth-utils.ts',
-	'src/lib/db/',
-	'src/lib/services/',
-	'src/lib/middleware/',
-	'src/lib/schemas/signup.ts',
-	'src/lib/schemas/login.ts',
-	'src/lib/schemas/password.ts',
-	'src/lib/schemas/account.ts',
-	'src/hooks.server.ts',
-	'src/routes/(public)/',
-	'src/routes/(protected)/',
-	'src/routes/api/',
-	'src/routes/(legal)/',
-	'src/app.d.ts',
-	'scripts/',
-	'.env.example',
-	'drizzle.config.ts'
+	'src/app.d.ts'
 ];
 
 // Routes: always copied from fullstack template
@@ -200,13 +180,12 @@ Usage:
   bunx create-svelteforge <project-name> [options]
 
 Options:
-  --fullstack, -f  Full Stack mode (UI + Auth + DB), auto setup
+  --fullstack, -f  Full Stack mode (UI + Auth + DB via sv add-ons)
   --landing, -l    Landing Page mode (UI only)
-  --no-setup       Skip setup entirely
   --help, -h       Show help
 
 Examples:
-  bunx create-svelteforge my-app -f       # Full Stack, auto
+  bunx create-svelteforge my-app -f       # Full Stack
   bunx create-svelteforge my-app --landing # Landing Page
   bunx create-svelteforge my-app          # interactive
 `);
@@ -217,7 +196,6 @@ function parseArgs(argv: string[]): {
 	projectInput: string | null;
 	fullStackFlag: boolean;
 	landingFlag: boolean;
-	noSetup: boolean;
 } {
 	const args = argv.slice(2);
 
@@ -228,7 +206,6 @@ function parseArgs(argv: string[]): {
 	let projectInput: string | null = null;
 	let fullStackFlag = false;
 	let landingFlag = false;
-	let noSetup = false;
 
 	for (const arg of args) {
 		switch (arg) {
@@ -241,9 +218,6 @@ function parseArgs(argv: string[]): {
 			case '-l':
 				landingFlag = true;
 				break;
-			case '--no-setup':
-				noSetup = true;
-				break;
 			default:
 				if (!arg.startsWith('-')) {
 					projectInput = arg;
@@ -252,7 +226,7 @@ function parseArgs(argv: string[]): {
 		}
 	}
 
-	return { projectInput, fullStackFlag, landingFlag, noSetup };
+	return { projectInput, fullStackFlag, landingFlag };
 }
 
 // ============================================================================
@@ -278,7 +252,7 @@ process.on('SIGINT', () => {
 // ============================================================================
 
 async function main() {
-	const { projectInput, fullStackFlag, landingFlag, noSetup } = parseArgs(process.argv);
+	const { projectInput, fullStackFlag, landingFlag } = parseArgs(process.argv);
 
 	if (!projectInput) {
 		error('Usage: bunx create-svelteforge <project-name> [options]');
@@ -434,28 +408,7 @@ async function main() {
 			warn(`package.json: ${(e as Error).message}`);
 		}
 
-		// Create data dir (Full Stack only)
-		if (fullStack) {
-			mkdirSync(join(targetDir, 'data'), { recursive: true });
-		}
-
 		success('Finalized');
-
-		// ── 7. Setup (Full Stack only, optional) ──
-		if (fullStack && !noSetup) {
-			log('\n🛠️  Step 6: Setup (.env, DB, admin user)\n');
-			let runSetup = true;
-			if (!fullStackFlag) {
-				// Only ask if not auto mode
-				const ans = await question('  Run setup now? (Y/n): ');
-				runSetup = ans.toLowerCase() !== 'n';
-			}
-			if (runSetup) {
-				run('bun run setup', targetDir);
-			} else {
-				log('  Skipped. Run later: bun run setup');
-			}
-		}
 
 		// Mark as successful — don't cleanup
 		createdTargetDir = null;

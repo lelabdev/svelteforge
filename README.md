@@ -1,6 +1,6 @@
 # SvelteForge
 
-Production-ready SvelteKit boilerplate generator. Auth, DB, UI — everything wired up, ready to deploy.
+UI/UX layer on top of `sv create`. SvelteForge adds 34 production-ready components, a three-layer theme system, layout primitives, and Zod schemas — while `sv` handles SvelteKit, Tailwind, auth (better-auth), and database (Drizzle + SQLite).
 
 ## Quick Start
 
@@ -8,23 +8,20 @@ Production-ready SvelteKit boilerplate generator. Auth, DB, UI — everything wi
 # Clone and scaffold
 git clone https://github.com/lelabdev/svelteforge
 cd svelteforge
-bun run cli.ts my-project --full-stack --yes
+bun run cli.ts my-project --fullstack
 
 # Or once published on npm:
 bunx create-svelteforge my-project
 ```
 
-That's it. You get a running SvelteKit app with auth, database, 34 UI components, and a theme system.
-
 ## Post-Install
 
 ```bash
 cd my-project
-bun run setup          # Creates .env (auth secret, DB path), initializes SQLite
-bun dev                # Start dev server → http://localhost:5173
+bun dev                # → http://localhost:5173
 ```
 
-**First user to sign up becomes admin automatically.**
+`sv create` handles `.env` generation (auth secret, DB path). No extra setup step needed.
 
 ## CLI Options
 
@@ -32,16 +29,14 @@ bun dev                # Start dev server → http://localhost:5173
 bun run cli.ts <project-name-or-path> [options]
 
 Options:
-  --full-stack    Full Stack mode (UI + Auth + DB)
-  --landing       Landing Page mode (UI only, no auth/DB)
-  --yes, -y       Accept setup automatically
-  --no-setup      Skip setup entirely
-  --help, -h      Show help
+  --fullstack, -f   Full Stack mode (UI + Auth + DB via sv)
+  --landing, -l     Landing Page mode (UI only, no auth/DB)
+  --help, -h        Show help
 
 Examples:
-  bun run cli.ts my-app --full-stack --yes     # Full Stack, auto setup
-  bun run cli.ts my-app --landing --no-setup   # Landing Page, skip setup
-  bun run cli.ts my-app                        # Interactive mode
+  bun run cli.ts my-app --fullstack      # Full Stack
+  bun run cli.ts my-app --landing        # Landing Page
+  bun run cli.ts my-app                  # Interactive mode
 ```
 
 ## What's Included
@@ -52,8 +47,8 @@ Examples:
 |-------|-----------|
 | Framework | **SvelteKit 2** + **Svelte 5** (runes) |
 | Styling | **Tailwind CSS v4** + **Skeleton UI v4** |
-| Auth | **BetterAuth** — email/password, admin plugin, session management |
-| Database | **SQLite** (`bun:sqlite`) + **Drizzle ORM** |
+| Auth | via **sv add-on** (better-auth — email/password, admin plugin, sessions) |
+| Database | via **sv add-on** (SQLite `bun:sqlite` + Drizzle ORM) |
 | Forms | **SuperForms v2** + **Zod v4** |
 | Rich Text | **Tiptap** — editor & preview |
 | Icons | **Lucide** (via Icon wrapper component) |
@@ -84,31 +79,29 @@ Three-layer theming — change the look without touching components:
 
 **To create a theme:** copy `svelteForge.css` + `tokens.css`, change the `[data-theme]` name and values. Done. Every component adapts automatically.
 
-### Auth Routes
+### What SvelteForge Adds vs. `sv create`
 
-Ready to go:
-
-- `/login` — email/password with SuperForms validation
-- `/signup` — with password strength meter
-- `/forgot-password` — reset request
-- `/reset-password` — token-based reset
-- `/logout` — POST endpoint
-- `/dashboard` — protected, shows user info
-- `/admin` — admin-only, separate layout without navbar/footer
+| | `sv create` | + SvelteForge |
+|--|:-----------:|:-------------:|
+| SvelteKit + Tailwind + ESLint + Prettier | ✓ | ✓ |
+| Auth (better-auth) | ✓ (add-on) | ✓ |
+| Database (Drizzle + SQLite) | ✓ (add-on) | ✓ |
+| 34 UI components | — | ✓ |
+| 3-layer theme system | — | ✓ |
+| Layout (Navbar, Footer, MobileMenu, AuthButtons) | — | ✓ |
+| Zod validation schemas | — | ✓ |
+| Utils (cn, formatters, theme store) | — | ✓ |
+| Auth routes (login, signup, forgot/reset, dashboard, admin) | — | ✓ |
 
 ### Project Structure (Generated)
 
 ```
 src/
 ├── lib/
-│   ├── auth.ts              # BetterAuth server (lazy Proxy singleton)
-│   ├── auth-client.ts       # Client-side auth hook
 │   ├── components/
 │   │   ├── ui/              # 34 components
 │   │   ├── layout/          # Navbar, Footer, AuthButtons, MobileMenu
 │   │   └── icons/           # Lucide wrapper
-│   ├── db/                  # SQLite + Drizzle schemas
-│   ├── services/            # Business logic (routes NEVER access DB directly)
 │   ├── schemas/             # Zod v4 validation
 │   ├── styles/              # Theme + tokens + fonts
 │   └── utils/               # cn, formatters, theme store
@@ -116,29 +109,30 @@ src/
 │   ├── (public)/            # login, signup, forgot/reset-password
 │   ├── (protected)/         # dashboard, admin
 │   └── api/                 # auth, health
-└── hooks.server.ts          # Auth session, rate limiting, CSP
+└── hooks.server.ts          # Auth session, CSP
 ```
+
+Auth config, DB connection, and Drizzle schemas live in the standard `sv` locations — SvelteForge doesn't override them.
 
 ## Modes
 
 | Mode | UI + Forms | Auth + DB |
 |------|:----------:|:---------:|
-| **Full Stack** (default) | ✓ | ✓ |
+| **Full Stack** (default) | ✓ | ✓ (via sv) |
 | **Landing Page** | ✓ | ✗ |
 
 ## Scaffold Flow
 
-1. `sv create` — base SvelteKit + Tailwind + ESLint + Prettier
-2. `sv add vitest` — testing framework
-3. SvelteForge copies template — components, auth, schemas, services, theme
-4. `bun install` — all dependencies
-5. Optional `setup.ts` — generates `.env`, creates DB
+1. `sv create` — base SvelteKit + Tailwind + ESLint + Prettier (+ better-auth + Drizzle if Full Stack)
+2. SvelteForge copies template — components, layouts, schemas, theme, routes
+3. `bun install` — all dependencies
+4. Done — `bun dev` to start
 
 ## Development
 
 ```bash
 # Test the CLI locally
-bun run cli.ts test-project --full-stack --yes
+bun run cli.ts test-project --fullstack
 
 # Interactive mode
 bun run cli.ts test-project
