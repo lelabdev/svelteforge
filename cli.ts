@@ -300,7 +300,7 @@ async function main() {
 		let svAddons = `tailwindcss="plugins:typography,forms" prettier eslint vitest="usages:unit,component"`;
 
 		if (fullStack) {
-			svAddons += ` drizzle="database:sqlite+client:better-sqlite3" better-auth="demo:password"`;
+			svAddons += ` drizzle="database:sqlite" better-auth="demo:password"`;
 		}
 
 		const createOk = sv(
@@ -368,11 +368,6 @@ async function main() {
 		const installOk = run('bun install', targetDir);
 		if (!installOk) {
 			warn('bun install failed — you may need to run it manually.');
-		}
-
-		// Rebuild native modules (bun install over sv's install can break compiled bindings)
-		if (fullStack) {
-			run('bun rebuild better-sqlite3', targetDir, true);
 		}
 
 		success('Dependencies installed');
