@@ -385,6 +385,9 @@ async function main() {
 		pkg.dependencies = { ...pkg.dependencies, ...templatePkg.dependencies };
 		pkg.devDependencies = { ...pkg.devDependencies, ...templatePkg.devDependencies };
 
+		// Merge scripts (setup, db:* from template)
+		pkg.scripts = { ...pkg.scripts, ...templatePkg.scripts };
+
 		writeFileSync(pkgPath, JSON.stringify(pkg, null, '\t') + '\n');
 
 		// Copy the right vite.config.ts
