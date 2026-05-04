@@ -398,9 +398,9 @@ async function main() {
 			pkg.type = 'module';
 			pkg.scripts = {
 				...pkg.scripts,
-				dev: 'bun --bun vite dev --host',
-				build: 'bun --bun vite build',
-				preview: 'bun --bun vite preview'
+				dev: 'vite dev --host',
+				build: 'vite build',
+				preview: 'vite preview'
 			};
 
 			writeFileSync(pkgPath, JSON.stringify(pkg, null, '\t') + '\n');
