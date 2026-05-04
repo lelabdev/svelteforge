@@ -369,6 +369,12 @@ async function main() {
 		if (!installOk) {
 			warn('bun install failed — you may need to run it manually.');
 		}
+
+		// Rebuild native modules (better-sqlite3 needs compiled bindings)
+		if (fullStack) {
+			run('bun rebuild better-sqlite3', targetDir, true);
+		}
+
 		success('Dependencies installed');
 
 		// ── 6. Post-processing ──
