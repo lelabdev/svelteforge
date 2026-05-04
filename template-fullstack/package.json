@@ -23,20 +23,15 @@
 	"devDependencies": {
 		"@skeletonlabs/skeleton": "latest",
 		"@skeletonlabs/skeleton-svelte": "latest",
-		"@types/better-sqlite3": "latest",
 		"@types/node": "latest",
-		"better-sqlite3": "latest",
 		"drizzle-kit": "latest"
 	},
 	"dependencies": {
-		"@better-auth/drizzle-adapter": "latest",
 		"@fontsource-variable/fira-code": "latest",
 		"@fontsource-variable/inter": "latest",
 		"@fontsource-variable/manrope": "latest",
 		"@fontsource-variable/space-grotesk": "latest",
-		"better-auth": "latest",
 		"clsx": "latest",
-		"drizzle-orm": "latest",
 		"lucide-svelte": "latest",
 		"pino": "latest",
 		"pino-pretty": "latest",
