@@ -1,44 +1,43 @@
-     1|{
-     2|	"name": "svelteforge-app",
-     3|	"version": "0.0.1",
-     4|	"private": true,
-     5|	"type": "module",
-     6|	"scripts": {
-     7|		"dev": "bun --bun vite dev --host",
-     8|		"build": "bun --bun vite build",
-     9|		"preview": "bun --bun vite preview",
-    10|		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
-    11|		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
-    12|		"lint": "eslint .",
-    13|		"format": "prettier --write .",
-    14|		"test": "vitest run",
-    15|		"test:watch": "vitest",
-    16|		"db:push": "drizzle-kit push",
-    17|		"db:generate": "drizzle-kit generate",
-    18|		"db:migrate": "drizzle-kit migrate",
-    19|		"db:studio": "drizzle-kit studio"
-    20|	},
-    21|	"devDependencies": {
-    22|		"@skeletonlabs/skeleton": "latest",
-    23|		"@skeletonlabs/skeleton-svelte": "latest",
-    24|		"@types/node": "latest",
-    25|		"drizzle-kit": "latest"
-    26|	},
-    27|	"dependencies": {
-    28|		"@fontsource-variable/fira-code": "latest",
-    29|		"@fontsource-variable/inter": "latest",
-    30|		"@fontsource-variable/manrope": "latest",
-    31|		"@fontsource-variable/space-grotesk": "latest",
-    32|		"@tiptap/core": "latest",
-    33|		"@tiptap/extension-underline": "latest",
-    34|		"@tiptap/starter-kit": "latest",
-    35|		"clsx": "latest",
-    36|		"lucide-svelte": "latest",
-    37|		"pino": "latest",
-    38|		"pino-pretty": "latest",
-    39|		"sveltekit-superforms": "latest",
-    40|		"tailwind-merge": "latest",
-    41|		"zod": "latest"
-    42|	}
-    43|}
-    44|
+{
+	"name": "svelteforge-app",
+	"version": "0.0.1",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"dev": "bun --bun vite dev --host",
+		"build": "bun --bun vite build",
+		"preview": "bun --bun vite preview",
+		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+		"lint": "eslint .",
+		"format": "prettier --write .",
+		"test": "vitest run",
+		"test:watch": "vitest",
+		"db:push": "drizzle-kit push",
+		"db:generate": "drizzle-kit generate",
+		"db:migrate": "drizzle-kit migrate",
+		"db:studio": "drizzle-kit studio"
+	},
+	"devDependencies": {
+		"@skeletonlabs/skeleton": "latest",
+		"@skeletonlabs/skeleton-svelte": "latest",
+		"@types/node": "latest",
+		"drizzle-kit": "latest"
+	},
+	"dependencies": {
+		"@fontsource-variable/fira-code": "latest",
+		"@fontsource-variable/inter": "latest",
+		"@fontsource-variable/manrope": "latest",
+		"@fontsource-variable/space-grotesk": "latest",
+		"@tiptap/core": "latest",
+		"@tiptap/extension-underline": "latest",
+		"@tiptap/starter-kit": "latest",
+		"clsx": "latest",
+		"lucide-svelte": "latest",
+		"pino": "latest",
+		"pino-pretty": "latest",
+		"sveltekit-superforms": "latest",
+		"tailwind-merge": "latest",
+		"zod": "latest"
+	}
+}
