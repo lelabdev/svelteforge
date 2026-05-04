@@ -105,7 +105,10 @@ const FILES_TO_REMOVE: string[] = [
 	'src/routes/+error.svelte',
 	'src/app.css',
 	'src/app.html',
-	'src/app.d.ts'
+	'src/app.d.ts',
+	'src/lib/server/',        // sv creates auth.ts + db/ here, we use src/lib/
+	'src/routes/demo/',       // sv better-auth demo pages
+	'src/routes/layout.css'   // sv tailwind layout styles
 ];
 
 // ============================================================================
