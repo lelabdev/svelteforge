@@ -306,7 +306,7 @@ async function main() {
 		const createOk = sv(
 			`create --template minimal --types ts ` +
 			`--add ${svAddons} ` +
-			`--install pnpm ${projectName}`
+			`--install bun ${projectName}`
 		);
 
 		if (!createOk) {
@@ -365,14 +365,14 @@ async function main() {
 		copyFiles(templateDir, targetDir, ['vite.config.ts']);
 
 		// One-shot install
-		const installOk = run('pnpm install', targetDir);
+		const installOk = run('bun install', targetDir);
 		if (!installOk) {
-			warn('pnpm install failed — you may need to run it manually.');
+			warn('bun install failed — you may need to run it manually.');
 		}
 
-		// Rebuild native modules (second pnpm install can break compiled bindings)
+		// Rebuild native modules (bun install over sv's install can break compiled bindings)
 		if (fullStack) {
-			run('pnpm rebuild better-sqlite3', targetDir, true);
+			run('bun rebuild better-sqlite3', targetDir, true);
 		}
 
 		success('Dependencies installed');
@@ -398,9 +398,9 @@ async function main() {
 			pkg.type = 'module';
 			pkg.scripts = {
 				...pkg.scripts,
-				dev: 'vite dev --host',
-				build: 'vite build',
-				preview: 'vite preview'
+				dev: 'bun --bun vite dev --host',
+				build: 'bun --bun vite build',
+				preview: 'bun --bun vite preview'
 			};
 
 			writeFileSync(pkgPath, JSON.stringify(pkg, null, '\t') + '\n');
@@ -418,7 +418,7 @@ async function main() {
 		log(`  ✨ ${projectName} ready! (${fullStack ? 'Full Stack' : 'Landing Page'})`);
 		log('═'.repeat(50));
 		log(`\n  cd ${projectInput}`);
-		log('  pnpm dev\n');
+		log('  bun dev\n');
 
 	} catch (e) {
 		error(`Scaffold failed: ${(e as Error).message}`);
