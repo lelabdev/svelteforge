@@ -6,15 +6,15 @@
  * then layers SvelteForge components, theme, and layout on top.
  *
  * Usage:
- *   bunx create-svelteforge my-project
- *   bunx create-svelteforge my-project --fullstack
- *   bunx create-svelteforge my-project --landing
+ *   pnpm dlx create-svelteforge my-project
+ *   pnpm dlx create-svelteforge my-project --fullstack
+ *   pnpm dlx create-svelteforge my-project --landing
  *
  * Modes:
  *   1. Full Stack     — UI + Forms + Auth + DB
  *   2. Landing Page   — UI + Forms (frontend only)
  *
- * Requirements: bun
+ * Requirements: pnpm
  */
 
 import { execSync } from 'child_process';
@@ -174,7 +174,7 @@ function replaceInFile(filePath: string, search: string, replace: string) {
 function showHelp() {
 	log(`
 Usage:
-  bunx create-svelteforge <project-name> [options]
+  pnpm dlx create-svelteforge <project-name> [options]
 
 Options:
   --fullstack, -f  Full Stack mode (UI + Auth + DB via sv add-ons)
@@ -182,9 +182,9 @@ Options:
   --help, -h       Show help
 
 Examples:
-  bunx create-svelteforge my-app -f       # Full Stack
-  bunx create-svelteforge my-app --landing # Landing Page
-  bunx create-svelteforge my-app          # interactive
+  pnpm dlx create-svelteforge my-app -f       # Full Stack
+  pnpm dlx create-svelteforge my-app --landing # Landing Page
+  pnpm dlx create-svelteforge my-app          # interactive
 `);
 	process.exit(0);
 }
@@ -252,7 +252,7 @@ async function main() {
 	const { projectInput, fullStackFlag, landingFlag } = parseArgs(process.argv);
 
 	if (!projectInput) {
-		error('Usage: bunx create-svelteforge <project-name> [options]');
+		error('Usage: pnpm dlx create-svelteforge <project-name> [options]');
 		log('Use --help for more information.');
 		process.exit(1);
 	}
@@ -306,7 +306,7 @@ async function main() {
 		const createOk = sv(
 			`create --template minimal --types ts ` +
 			`--add ${svAddons} ` +
-			`--install bun ${projectName}`
+			`--install pnpm ${projectName}`
 		);
 
 		if (!createOk) {
@@ -365,14 +365,9 @@ async function main() {
 		copyFiles(templateDir, targetDir, ['vite.config.ts']);
 
 		// One-shot install
-		const installOk = run('bun install', targetDir);
+		const installOk = run('pnpm install', targetDir);
 		if (!installOk) {
-			warn('bun install failed — you may need to run it manually.');
-		}
-
-		// Rebuild native modules (better-sqlite3 needs compiled bindings)
-		if (fullStack) {
-			run('bun rebuild better-sqlite3', targetDir, true);
+			warn('pnpm install failed — you may need to run it manually.');
 		}
 
 		success('Dependencies installed');
@@ -398,9 +393,9 @@ async function main() {
 			pkg.type = 'module';
 			pkg.scripts = {
 				...pkg.scripts,
-				dev: 'bun --bun vite dev --host',
-				build: 'bun --bun vite build',
-				preview: 'bun --bun vite preview'
+				dev: 'vite dev --host',
+				build: 'vite build',
+				preview: 'vite preview'
 			};
 
 			writeFileSync(pkgPath, JSON.stringify(pkg, null, '\t') + '\n');
@@ -418,7 +413,7 @@ async function main() {
 		log(`  ✨ ${projectName} ready! (${fullStack ? 'Full Stack' : 'Landing Page'})`);
 		log('═'.repeat(50));
 		log(`\n  cd ${projectInput}`);
-		log('  bun dev\n');
+		log('  pnpm dev\n');
 
 	} catch (e) {
 		error(`Scaffold failed: ${(e as Error).message}`);

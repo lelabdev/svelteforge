@@ -52,3 +52,4 @@ coverage/
 test-output.txt
 template/data/sqlite.db
 test-svelteforge-landing/
+machin/
