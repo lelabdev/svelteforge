@@ -77,11 +77,11 @@
     77|    77|
     78|    78|| Layer | Technology |
     79|    79||-------|-----------|
-    80|    80|| Runtime | **Bun** (`bun:sqlite`, `bun run`) |
-    81|    81|| Framework | **SvelteKit 2** + **Svelte 5** (runes: `$state`, `$props`, `$derived`, `$effect`) |
-    82|    82|| Styling | **Tailwind CSS v4** + **Skeleton UI v4** |
-    83|    83|| Auth | via **sv add-on** (better-auth — email/password, admin plugin) |
-    84|    84|| Database | via **sv add-on** (SQLite `better-sqlite3` + Drizzle ORM) |
+| Runtime | **Bun** (`bun install`) + **Node** (`vite dev/build`) |
+| Framework | **SvelteKit 2** + **Svelte 5** (runes: `$state`, `$props`, `$derived`, `$effect`) |
+| Styling | **Tailwind CSS v4** + **Skeleton UI v4** |
+| Auth | via **sv add-on** (better-auth — email/password, admin plugin) |
+| Database | via **sv add-on** (SQLite `libsql` + Drizzle ORM) |
     85|    85|| Forms | **SuperForms** + **Zod v4** |
     86|    86|| Rich Text | **Tiptap** (`@tiptap/core`, `starter-kit`, `underline`) |
     87|    87|| Logging | **Pino** |
