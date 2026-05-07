@@ -1,0 +1,84 @@
+# SvelteForge
+
+> UI/UX layer on top of `sv create`. Adds 34 production-ready components, a 3-layer theme system, admin dashboard, notification system, and Zod schemas to SvelteKit projects. Auth (better-auth) and database (Drizzle + SQLite) come from `sv` add-ons.
+
+SvelteForge is a boilerplate generator — not an app. Run `bunx create-svelteforge my-project --fullstack` to scaffold a new project. It runs `sv create` first, then copies its template files on top.
+
+## Stack
+
+- SvelteKit 2 + Svelte 5 (runes: $state, $props, $derived, $effect)
+- Tailwind CSS v4 + Skeleton UI v4
+- Auth: better-auth (via sv add-on)
+- Database: SQLite libsql + Drizzle ORM (via sv add-on)
+- Forms: SuperForms v2 + Zod v4
+- Icons: Phosphor (phosphor-svelte) via centralized Icon.svelte wrapper
+- Rich Text: Tiptap
+- Logging: Pino
+- Testing: Vitest + @testing-library/svelte
+
+## Key Conventions
+
+- Color pairings mandatory: `text-surface-50-950` NOT `dark:` variants
+- Raw colors forbidden: no `text-neutral-*`, `bg-white`, `text-red-*`
+- Design tokens via `var(--token)` for spacing/radius/sizing, never hardcode
+- Zod v4: `import { z } from 'zod/v4'`, adapters: `zod4` / `zod4Client`
+- Svelte 5: `{@render children()}` not `<slot>`, `onclick={}` not `on:click`
+- Skeleton UI components always used — never raw HTML for what Skeleton provides
+
+## Theme System
+
+3 layers, all overridable without touching components:
+- `svelteForge.css` — 7 color domains × 10 shades (oklch)
+- `tokens.css` — 60+ semantic tokens (padding, radius, sizing, typography)
+- `fonts.css` — Inter, Space Grotesk, Manrope, Fira Code
+- To create a theme: copy CSS files, change `[data-theme]` name + values
+
+## Template Structure
+
+```
+src/lib/
+├── components/ui/       # 34 components (Card, DataTable, Toast, Modal, etc.)
+├── components/layout/   # Navbar, Footer, AdminSidebar, AuthButtons, MobileMenu
+├── components/icons/    # Icon.svelte (Phosphor wrapper, name→component map)
+├── schemas/             # Zod v4 (signup, login, password, account, profile)
+├── stores/              # notification-store.svelte.ts (Svelte 5 runes)
+├── styles/              # svelteForge.css, tokens.css, fonts.css
+└── utils/               # cn.ts, formatters.ts, slugify.ts, theme.svelte.ts, focus-trap.ts
+src/routes/
+├── (public)/            # /login, /signup
+├── (protected)/         # /dashboard
+│   └── admin/           # /admin (sidebar), /admin/users, /admin/settings, /admin/notifications
+└── (legal)/             # /privacy, /legal
+```
+
+Auth config, DB, hooks.server.ts, and API routes are provided by `sv` — SvelteForge does not override them.
+
+## CLI
+
+```bash
+bunx create-svelteforge my-project --fullstack   # Full Stack (default)
+bunx create-svelteforge my-project --landing      # Landing Page only
+bunx create-svelteforge my-project                # Interactive
+```
+
+## Admin Dashboard
+
+Collapsible sidebar layout with:
+- User management (DataTable, search, role filter, pagination)
+- Settings (tabbed: General, Auth, Notifications)
+- Notification system (create + manage, user bell + panel)
+
+## Tests
+
+83 tests across 11 files covering utils, schemas, stores, admin guard. Run with `npx vitest run`.
+
+## Documentation
+
+- [README.md](https://github.com/lelabdev/svelteforge/blob/main/README.md): Quick start, stack, structure
+- [AGENTS.md](https://github.com/lelabdev/svelteforge/blob/main/AGENTS.md): Full conventions, rules, gotchas for AI agents
+
+## Optional
+
+- [SvelteForge website](https://svelteforge.dev): Landing page and documentation
+- [Skeleton UI docs](https://skeleton.docs.get-skeleton.dev): Component library reference
+- [Phosphor Icons](https://phosphoricons.com): Icon set used in Icon.svelte wrapper
