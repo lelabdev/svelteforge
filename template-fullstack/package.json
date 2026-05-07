@@ -33,7 +33,7 @@
 		"@tiptap/extension-underline": "latest",
 		"@tiptap/starter-kit": "latest",
 		"clsx": "latest",
-		"lucide-svelte": "latest",
+		"phosphor-svelte": "^3.1.0",
 		"pino": "latest",
 		"pino-pretty": "latest",
 		"sveltekit-superforms": "latest",
