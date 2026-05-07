@@ -16,18 +16,22 @@
 	});
 
 	let isAdminPage = $derived($page.url.pathname.startsWith('/admin'));
+	let isAuthPage = $derived(
+		$page.url.pathname.startsWith('/login') || $page.url.pathname.startsWith('/signup')
+	);
+	let hideChrome = $derived(isAdminPage || isAuthPage);
 </script>
 
 <div class="flex flex-col min-h-screen">
-	{#if !isAdminPage}
+	{#if !hideChrome}
 		<Navbar user={data.user} />
 	{/if}
 
-	<main class="flex-1 {!isAdminPage ? 'pt-16' : 'h-screen'}">
+	<main class="flex-1 {!hideChrome ? 'pt-16' : ''}">
 		{@render children()}
 	</main>
 
-	{#if !isAdminPage}
+	{#if !hideChrome}
 		<Footer />
 	{/if}
 </div>

@@ -48,7 +48,7 @@
     48|    48|| Framework | **SvelteKit 2** + **Svelte 5** (runes) |
     49|    49|| Styling | **Tailwind CSS v4** + **Skeleton UI v4** |
     50|    50|| Auth | via **sv add-on** (better-auth — email/password, admin plugin, sessions) |
-    51|    51|| Database | via **sv add-on** (SQLite `better-sqlite3` + Drizzle ORM) |
+    51|    51|| Database | via **sv add-on** (SQLite `libsql` + Drizzle ORM) |
     52|    52|| Forms | **SuperForms v2** + **Zod v4** |
     53|    53|| Rich Text | **Tiptap** — editor & preview |
     54|    54|| Icons | **Lucide** (via Icon wrapper component) |
@@ -91,7 +91,7 @@
     91|    91|| Layout (Navbar, Footer, MobileMenu, AuthButtons) | — | ✓ |
     92|    92|| Zod validation schemas | — | ✓ |
     93|    93|| Utils (cn, formatters, theme store) | — | ✓ |
-    94|    94|| Auth routes (login, signup, forgot/reset, dashboard, admin) | — | ✓ |
+    94|    94|| Auth routes (login, signup, forgot/reset, dashboard, admin) | — | ✓ (with SuperForms + Zod validation) |
     95|    95|
     96|    96|### Project Structure (Generated)
     97|    97|
@@ -140,7 +140,7 @@
    140|   140|
    141|   141|## Requirements
    142|   142|
-   143|   143|- [pnpm](https://pnpm.io) >= 1.0.0
+   143|   143|- [Bun](https://bun.sh) >= 1.0.0
    144|   144|
    145|   145|## License
    146|   146|
