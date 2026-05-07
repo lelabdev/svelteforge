@@ -84,8 +84,9 @@
 | Database | via **sv add-on** (SQLite `libsql` + Drizzle ORM) |
     85|    85|| Forms | **SuperForms** + **Zod v4** |
     86|    86|| Rich Text | **Tiptap** (`@tiptap/core`, `starter-kit`, `underline`) |
-    87|    87|| Logging | **Pino** |
-    88|    88|| Icons | **Lucide** (via local `Icon.svelte` wrapper) |
+| Logging | **Pino** |
+| Icons | **Phosphor** (via local `Icon.svelte` wrapper, `phosphor-svelte`) |
+| Testing | **Vitest** + `@testing-library/svelte` |
     89|    89|
     90|    90|## Template Structure (SvelteForge adds)
     91|    91|
@@ -105,25 +106,25 @@
    105|   105|│   │   │   └── form/ (Input, PasswordInput, TextArea, Select, Checkbox,
    106|   106|│   │   │                RadioGroup, FormField, SubmitButton, SearchInput)
    107|   107|│   │   ├── layout/          # Navbar, Footer, AuthButtons, MobileMenu, NavLinks
-   108|   108|│   │   └── icons/           # Lucide wrapper (Icon.svelte) — new icons need import + iconMap entry
+   108|   108|│   │   └── icons/           # Phosphor wrapper (Icon.svelte) — new icons need import + iconMap entry
    109|   109|│   ├── schemas/             # Zod v4 validation (signup, login, password, account, profile)
    110|   110|│   ├── styles/
    111|   111|│   │   ├── svelteForge.css  # Skeleton theme colors (oklch, 7 domains × 10 shades)
    112|   112|│   │   ├── tokens.css       # Design tokens (60+ semantic CSS custom properties)
    113|   113|│   │   └── fonts.css        # Fontsource declarations
-   114|   114|│   └── utils/               # cn.ts, form-errors.ts, formatters.ts, slugify.ts, focus-trap.ts, theme.svelte.ts
-   115|   115|├── routes/
-   116|   116|│   ├── (public)/            # /login, /signup, /forgot-password, /reset-password
-   117|   117|│   ├── (protected)/         # /dashboard, /admin, /logout (/admin hides navbar/footer)
-   118|   118|│   ├── (legal)/             # /privacy, /legal
-   119|   119|│   └── api/                 # /api/auth/[...all], /api/health
-   120|   120|├── hooks.server.ts          # Auth session, CSP + security headers
-   121|   121|├── app.html                 # HTML shell (data-theme="svelteForge")
-   122|   122|├── app.css                  # Tailwind + Skeleton + theme + tokens + fonts
-   123|   123|└── app.d.ts                 # TypeScript declarations
-   124|   124|```
-   125|   125|
-   126|   126|Auth config (`auth.ts`, `auth-client.ts`), DB connection (`db/`), and Drizzle schemas are provided by `sv` and live in their standard locations. SvelteForge does not override them.
+│   ├── stores/              # notification-store.svelte.ts (Svelte 5 runes)
+│   └── utils/               # cn.ts, form-errors.ts, formatters.ts, slugify.ts, focus-trap.ts, theme.svelte.ts
+├── routes/
+│   ├── (public)/            # /login, /signup
+│   ├── (protected)/         # /dashboard
+│   │   └── admin/           # /admin (sidebar layout), /admin/users, /admin/settings, /admin/notifications
+│   └── (legal)/             # /privacy, /legal
+├── app.html                 # HTML shell (data-theme="svelteForge")
+├── app.css                  # Tailwind + Skeleton + theme + tokens + fonts
+└── app.d.ts                 # TypeScript declarations
+```
+
+Auth config (`auth.ts`, `auth-client.ts`), DB connection (`db/`), Drizzle schemas, `hooks.server.ts`, and API routes (`/api/auth/[...all]`, `/api/health`) are provided by `sv` and live in their standard locations. SvelteForge does not override them.
    127|   127|
    128|   128|## Critical Rules
    129|   129|
@@ -215,7 +216,7 @@
    215|   215|
    216|   216|### Icons
    217|   217|
-   218|   218|Always use local wrapper, **NEVER** import from `lucide-svelte` directly:
+   218|   218|Always use local wrapper, **NEVER** import from `phosphor-svelte` directly:
    219|   219|
    220|   220|```svelte
    221|   221|<Icon name="alertCircle" size={20} class="text-error-500" />
