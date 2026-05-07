@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { enhance } from '$app/forms';
 	import { page } from '$app/stores';
 	import { themeStore } from '$lib/utils/theme.svelte';
 
@@ -56,7 +57,7 @@
 				</a>
 
 				{#if showLogout}
-					<form action="/logout" method="POST" class="contents">
+					<form action="/logout" method="POST" use:enhance class="contents">
 						<button type="submit" class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-error-500/10 text-sm text-error-500 border-t border-surface-300-700 pt-6 w-full text-left">
 							Sign Out
 						</button>

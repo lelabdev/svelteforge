@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { enhance } from '$app/forms';
 	import { page } from '$app/stores';
 	import ThemeToggle from '$lib/components/ui/ThemeToggle.svelte';
 	import Icon from '$lib/components/icons/Icon.svelte';
@@ -34,7 +35,7 @@
 		{/if}
 
 		{#if showLogout}
-			<form action="/logout" method="POST" class="contents">
+			<form action="/logout" method="POST" use:enhance class="contents">
 				<button type="submit" class="btn-icon text-surface-50-950 hover:bg-surface-200-800 hover:text-error-500" aria-label="Sign Out">
 					<Icon name="logout" size={16} />
 				</button>

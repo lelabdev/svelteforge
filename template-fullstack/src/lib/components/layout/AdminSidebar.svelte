@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { enhance } from '$app/forms';
 	import { page } from '$app/state';
 	import Icon from '$lib/components/icons/Icon.svelte';
 	import Avatar from '$lib/components/ui/Avatar.svelte';
@@ -99,13 +100,15 @@
 					<span class="text-xs text-surface-500 truncate">{user.email}</span>
 				</div>
 			</div>
-			<a
-				href="/api/auth/sign-out"
+		<form method="POST" action="/logout" use:enhance class="contents">
+			<button
+				type="submit"
 				class="mt-3 flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-error-500 hover:bg-error-500/10 transition-colors"
 			>
 				<Icon name="logout" size={16} />
 				<span>Sign out</span>
-			</a>
+			</button>
+		</form>
 		</div>
 	</Sheet>
 </div>
@@ -177,14 +180,16 @@
 				<Tooltip content={displayName} side="right">
 					<Avatar src={user.image} alt={displayName} size="sm" />
 				</Tooltip>
-				<Tooltip content="Sign out" side="right">
-					<a
-						href="/api/auth/sign-out"
+			<Tooltip content="Sign out" side="right">
+				<form method="POST" action="/logout" use:enhance class="contents">
+					<button
+						type="submit"
 						class="flex items-center justify-center rounded-lg p-2 text-error-500 hover:bg-error-500/10 transition-colors"
 					>
 						<Icon name="logout" size={16} />
-					</a>
-				</Tooltip>
+					</button>
+				</form>
+			</Tooltip>
 			</div>
 		{:else}
 			<div class="flex items-center gap-3">
@@ -194,13 +199,15 @@
 					<span class="text-xs text-surface-500 truncate">{user.email}</span>
 				</div>
 			</div>
-			<a
-				href="/api/auth/sign-out"
+		<form method="POST" action="/logout" use:enhance class="contents">
+			<button
+				type="submit"
 				class="mt-2 flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-error-500 hover:bg-error-500/10 transition-colors"
 			>
 				<Icon name="logout" size={16} />
 				<span>Sign out</span>
-			</a>
+			</button>
+		</form>
 		{/if}
 	</div>
 </aside>
