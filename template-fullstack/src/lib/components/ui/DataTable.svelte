@@ -8,6 +8,8 @@
 		label: string;
 		/** Optional custom cell renderer */
 		cell?: Snippet<[T]>;
+		/** Optional custom header cell renderer (overrides label) */
+		headerCell?: Snippet<[]>;
 		/** Header alignment */
 		align?: 'left' | 'center' | 'right';
 		/** Column width class */
@@ -73,26 +75,28 @@
 		<thead>
 			<tr class="border-b border-surface-300-700">
 				{#each columns as col (col.key)}
-					<th
-						class="text-left text-surface-500 uppercase tracking-wider {col.width ?? ''}"
-						style="padding: var(--table-cell-py) var(--table-cell-px); font-size: var(--text-caption); font-weight: var(--weight-subtitle)"
-					>
-						{#if col.sortable}
-							<button
-								type="button"
-								class="inline-flex items-center hover:text-surface-900-100 transition-colors"
-								style="gap: var(--gap-xs)"
-								onclick={() => handleSort(col.key)}
-							>
-								{col.label}
-								{#if sortKey === col.key}
-									<span class="text-primary-500">{sortDir === 'asc' ? '↑' : '↓'}</span>
-								{/if}
-							</button>
-						{:else}
+				<th
+					class="text-left text-surface-500 uppercase tracking-wider {col.width ?? ''}"
+					style="padding: var(--table-cell-py) var(--table-cell-px); font-size: var(--text-caption); font-weight: var(--weight-subtitle)"
+				>
+					{#if col.headerCell}
+						{@render col.headerCell()}
+					{:else if col.sortable}
+						<button
+							type="button"
+							class="inline-flex items-center hover:text-surface-900-100 transition-colors"
+							style="gap: var(--gap-xs)"
+							onclick={() => handleSort(col.key)}
+						>
 							{col.label}
-						{/if}
-					</th>
+							{#if sortKey === col.key}
+								<span class="text-primary-500">{sortDir === 'asc' ? '↑' : '↓'}</span>
+							{/if}
+						</button>
+					{:else}
+						{col.label}
+					{/if}
+				</th>
 				{/each}
 			</tr>
 		</thead>

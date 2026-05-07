@@ -9,6 +9,7 @@
 	import Select from '$lib/components/ui/form/Select.svelte';
 	import Icon from '$lib/components/icons/Icon.svelte';
 	import { addToast } from '$lib/components/ui/toast-state.svelte';
+	import { exportToCSV, type ExportColumn } from '$lib/utils/export';
 
 	type UserRow = { id: string; name: string; email: string; role: 'admin' | 'user'; createdAt: string; [key: string]: unknown };
 
@@ -21,10 +22,14 @@
 	const perPage = 20;
 
 	let confirmOpen = $state(false);
-	let confirmAction = $state<'role' | 'delete' | null>(null);
+	let confirmAction = $state<'role' | 'delete' | 'bulkRole' | 'bulkDelete' | null>(null);
 	let selectedUser = $state<UserRow | null>(null);
 
 	let users = $state<UserRow[]>(data.users as UserRow[]);
+
+	// --- Bulk selection state ---
+	let selectedIds = $state<Set<string>>(new Set());
+	let bulkRole = $state<'admin' | 'user'>('user');
 
 	// --- Derived ---
 	let filtered = $derived(() => {
@@ -52,10 +57,24 @@
 
 	let totalPages = $derived(Math.max(1, Math.ceil(filtered().length / perPage)));
 
+	let allOnPageSelected = $derived(() => {
+		const rows = paged();
+		return rows.length > 0 && rows.every((u) => selectedIds.has(u.id));
+	});
+
+	let selectedCount = $derived(selectedIds.size);
+
 	$effect(() => {
 		search;
 		roleFilter;
 		page = 1;
+	});
+
+	// Clear selections when filters change
+	$effect(() => {
+		search;
+		roleFilter;
+		selectedIds = new Set();
 	});
 
 	function formatDate(iso: string): string {
@@ -66,16 +85,51 @@
 		});
 	}
 
+	// --- Selection helpers ---
+	function toggleRow(id: string) {
+		const next = new Set(selectedIds);
+		if (next.has(id)) {
+			next.delete(id);
+		} else {
+			next.add(id);
+		}
+		selectedIds = next;
+	}
+
+	function toggleAllOnPage() {
+		const rows = paged();
+		if (allOnPageSelected()) {
+			// Deselect all on current page
+			const next = new Set(selectedIds);
+			for (const u of rows) next.delete(u.id);
+			selectedIds = next;
+		} else {
+			// Select all on current page
+			const next = new Set(selectedIds);
+			for (const u of rows) next.add(u.id);
+			selectedIds = next;
+		}
+	}
+
+	function clearSelection() {
+		selectedIds = new Set();
+	}
+
+	// --- Single-user confirm ---
 	function openConfirm(user: UserRow, action: 'role' | 'delete') {
 		selectedUser = user;
 		confirmAction = action;
 		confirmOpen = true;
 	}
 
-	function handleConfirm() {
-		if (!selectedUser || !confirmAction) return;
+	// --- Bulk confirm ---
+	function openBulkConfirm(action: 'bulkRole' | 'bulkDelete') {
+		confirmAction = action;
+		confirmOpen = true;
+	}
 
-		if (confirmAction === 'role') {
+	function handleConfirm() {
+		if (confirmAction === 'role' && selectedUser) {
 			const newRole = selectedUser.role === 'admin' ? 'user' : 'admin';
 			users = users.map((u) =>
 				u.id === selectedUser!.id ? { ...u, role: newRole } : u
@@ -85,17 +139,39 @@
 				title: 'Role updated',
 				description: `${selectedUser.name} is now ${newRole === 'admin' ? 'an admin' : 'a user'}.`
 			});
-		} else if (confirmAction === 'delete') {
+		} else if (confirmAction === 'delete' && selectedUser) {
 			addToast({
 				kind: 'info',
 				title: 'Feature coming in API integration',
 				description: 'User deletion will be available once the API is connected.'
+			});
+		} else if (confirmAction === 'bulkRole') {
+			let count = 0;
+			users = users.map((u) => {
+				if (selectedIds.has(u.id) && u.role !== bulkRole) {
+					count++;
+					return { ...u, role: bulkRole };
+				}
+				return u;
+			});
+			addToast({
+				kind: 'success',
+				title: 'Bulk role update',
+				description: `${count} user${count !== 1 ? 's' : ''} updated to "${bulkRole}".`
+			});
+		} else if (confirmAction === 'bulkDelete') {
+			const count = selectedIds.size;
+			addToast({
+				kind: 'info',
+				title: 'Feature coming in API integration',
+				description: `Bulk deletion of ${count} user${count !== 1 ? 's' : ''} will be available once the API is connected.`
 			});
 		}
 
 		confirmOpen = false;
 		selectedUser = null;
 		confirmAction = null;
+		selectedIds = new Set();
 	}
 
 	function handleCancel() {
@@ -104,12 +180,62 @@
 		confirmAction = null;
 	}
 
+	// --- CSV export ---
+	const exportColumns: ExportColumn<UserRow>[] = [
+		{ key: 'name', label: 'Name' },
+		{ key: 'email', label: 'Email' },
+		{ key: 'role', label: 'Role' },
+		{
+			key: 'createdAt',
+			label: 'Created',
+			format: (_v, row) => formatDate(row.createdAt)
+		}
+	];
+
+	function handleExportCSV() {
+		const dataToExport = selectedCount > 0
+			? filtered().filter((u) => selectedIds.has(u.id))
+			: filtered();
+		if (dataToExport.length === 0) {
+			addToast({ kind: 'warning', title: 'No data to export', description: 'Adjust your filters or selection.' });
+			return;
+		}
+		const timestamp = new Date().toISOString().slice(0, 10);
+		exportToCSV(dataToExport, `users-export-${timestamp}`, exportColumns);
+		addToast({
+			kind: 'success',
+			title: 'CSV exported',
+			description: `Exported ${dataToExport.length} user${dataToExport.length !== 1 ? 's' : ''}.`
+		});
+	}
+
 	const roleOptions = [
 		{ value: '', label: 'All Roles' },
 		{ value: 'admin', label: 'Admin' },
 		{ value: 'user', label: 'User' }
 	];
 </script>
+
+{#snippet checkboxHeaderCell()}
+	<input
+		type="checkbox"
+		class="checkbox size-4"
+		checked={allOnPageSelected()}
+		indeterminate={selectedCount > 0 && !allOnPageSelected()}
+		onchange={toggleAllOnPage}
+		aria-label="Select all users on this page"
+	/>
+{/snippet}
+
+{#snippet checkboxCell(row: UserRow)}
+	<input
+		type="checkbox"
+		class="checkbox size-4"
+		checked={selectedIds.has(row.id)}
+		onchange={() => toggleRow(row.id)}
+		aria-label="Select {row.name}"
+	/>
+{/snippet}
 
 {#snippet avatarCell(row: UserRow)}
 	<Avatar alt={row.name} size="sm" />
@@ -178,7 +304,56 @@
 				options={roleOptions}
 			/>
 		</div>
+		<button
+			class="btn preset-outlined-secondary-500 whitespace-nowrap"
+			onclick={handleExportCSV}
+		>
+			<Icon name="fileText" size={16} />
+			Export CSV
+		</button>
 	</section>
+
+	<!-- Bulk Action Bar -->
+	{#if selectedCount > 0}
+		<section class="flex flex-col sm:flex-row items-start sm:items-center gap-3 p-3 rounded-lg bg-surface-100-800 border border-surface-200-700">
+			<span class="text-sm text-surface-600-400 font-medium">
+				{selectedCount} user{selectedCount !== 1 ? 's' : ''} selected
+			</span>
+			<div class="flex items-center gap-2 flex-wrap">
+				<div class="flex items-center gap-2">
+					<select
+						class="select-input text-sm py-1"
+						bind:value={bulkRole}
+						aria-label="Bulk role selection"
+					>
+						<option value="user">User</option>
+						<option value="admin">Admin</option>
+					</select>
+					<button
+						class="btn preset-tonal-primary-500 text-xs"
+						onclick={() => openBulkConfirm('bulkRole')}
+					>
+						<Icon name="shield" size={14} />
+						Change Role
+					</button>
+				</div>
+				<button
+					class="btn preset-tonal-error-500 text-xs"
+					onclick={() => openBulkConfirm('bulkDelete')}
+				>
+					<Icon name="trash" size={14} />
+					Delete
+				</button>
+				<button
+					class="btn preset-outlined-surface-500 text-xs ml-auto"
+					onclick={clearSelection}
+				>
+					<Icon name="x" size={14} />
+					Clear
+				</button>
+			</div>
+		</section>
+	{/if}
 
 	<!-- Content -->
 	{#if filtered().length === 0}
@@ -193,6 +368,7 @@
 		<div class="card bg-surface-50-800 border border-surface-200-700 overflow-hidden" style="border-radius: var(--radius-card)">
 			<DataTable
 				columns={[
+					{ key: '_checkbox', label: '', width: 'w-12', cell: checkboxCell, headerCell: checkboxHeaderCell },
 					{ key: 'avatar', label: '', width: 'w-12', cell: avatarCell },
 					{ key: 'name', label: 'Name', sortable: true },
 					{ key: 'email', label: 'Email', sortable: true },
@@ -236,15 +412,29 @@
 </div>
 
 <!-- Confirm Dialog -->
-{#if selectedUser}
+{#if confirmOpen}
 	<ConfirmDialog
 		bind:open={confirmOpen}
-		title={confirmAction === 'role' ? 'Change User Role' : 'Delete User'}
-		message={confirmAction === 'role'
-			? `Are you sure you want to change ${selectedUser.name}'s role from "${selectedUser.role}" to "${selectedUser.role === 'admin' ? 'user' : 'admin'}"?`
-			: `Are you sure you want to delete ${selectedUser.name}? This action cannot be undone.`}
-		confirmLabel={confirmAction === 'role' ? 'Change Role' : 'Delete'}
-		variant={confirmAction === 'delete' ? 'danger' : 'primary'}
+		title={
+			confirmAction === 'bulkDelete' ? `Delete ${selectedCount} User${selectedCount !== 1 ? 's' : ''}?`
+			: confirmAction === 'bulkRole' ? `Change Role for ${selectedCount} User${selectedCount !== 1 ? 's' : ''}?`
+			: confirmAction === 'role' && selectedUser ? 'Change User Role'
+			: 'Delete User'
+		}
+		message={
+			confirmAction === 'bulkDelete' ? `Are you sure you want to delete ${selectedCount} user${selectedCount !== 1 ? 's' : ''}? This action cannot be undone.`
+			: confirmAction === 'bulkRole' ? `Are you sure you want to change the role to "${bulkRole}" for ${selectedCount} user${selectedCount !== 1 ? 's' : ''}?`
+			: confirmAction === 'role' && selectedUser ? `Are you sure you want to change ${selectedUser.name}'s role from "${selectedUser.role}" to "${selectedUser.role === 'admin' ? 'user' : 'admin'}"?`
+			: selectedUser ? `Are you sure you want to delete ${selectedUser.name}? This action cannot be undone.`
+			: ''
+		}
+		confirmLabel={
+			confirmAction === 'bulkDelete' ? `Delete ${selectedCount} User${selectedCount !== 1 ? 's' : ''}`
+			: confirmAction === 'bulkRole' ? 'Change Role'
+			: confirmAction === 'role' ? 'Change Role'
+			: 'Delete'
+		}
+		variant={confirmAction === 'delete' || confirmAction === 'bulkDelete' ? 'danger' : 'primary'}
 		onConfirm={handleConfirm}
 		onCancel={handleCancel}
 	/>

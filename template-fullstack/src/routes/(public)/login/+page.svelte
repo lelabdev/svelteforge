@@ -37,6 +37,12 @@
 			error={$errors.password}
 		/>
 
+		<div class="flex justify-end">
+			<Button variant="ghost" size="sm" href="/forgot-password" class="text-primary-600-400 hover:text-primary-700-300">
+				Forgot password?
+			</Button>
+		</div>
+
 		<Button
 			type="submit"
 			variant="primary"

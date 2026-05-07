@@ -6,6 +6,7 @@
 	import Button from '$lib/components/ui/Button.svelte';
 	import Divider from '$lib/components/ui/Divider.svelte';
 	import Sheet from '$lib/components/ui/Sheet.svelte';
+	import ThemeToggle from '$lib/components/ui/ThemeToggle.svelte';
 	import Tooltip from '$lib/components/ui/Tooltip.svelte';
 	import { cn } from '$lib/components/ui/utils/cn';
 
@@ -32,6 +33,7 @@
 	const navItems: NavItem[] = [
 		{ label: 'Dashboard', href: '/admin', icon: 'layoutDashboard' },
 		{ label: 'Users', href: '/admin/users', icon: 'users' },
+		{ label: 'Activity', href: '/admin/activity', icon: 'clock' },
 		{ label: 'Notifications', href: '/admin/notifications', icon: 'bellRinging' },
 		{ label: 'Settings', href: '/admin/settings', icon: 'settings' }
 	];
@@ -100,15 +102,19 @@
 					<span class="text-xs text-surface-500 truncate">{user.email}</span>
 				</div>
 			</div>
+		<div class="mt-3 flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-surface-600-400 hover:bg-surface-200-800 transition-colors">
+				<ThemeToggle />
+				<span>Theme</span>
+			</div>
 		<form method="POST" action="/logout" use:enhance class="contents">
-			<button
-				type="submit"
-				class="mt-3 flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-error-500 hover:bg-error-500/10 transition-colors"
-			>
-				<Icon name="logout" size={16} />
-				<span>Sign out</span>
-			</button>
-		</form>
+				<button
+					type="submit"
+					class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-error-500 hover:bg-error-500/10 transition-colors"
+				>
+					<Icon name="logout" size={16} />
+					<span>Sign out</span>
+				</button>
+			</form>
 		</div>
 	</Sheet>
 </div>
@@ -180,6 +186,9 @@
 				<Tooltip content={displayName} side="right">
 					<Avatar src={user.image} alt={displayName} size="sm" />
 				</Tooltip>
+			<Tooltip content="Toggle theme" side="right">
+					<ThemeToggle />
+				</Tooltip>
 			<Tooltip content="Sign out" side="right">
 				<form method="POST" action="/logout" use:enhance class="contents">
 					<button
@@ -199,10 +208,14 @@
 					<span class="text-xs text-surface-500 truncate">{user.email}</span>
 				</div>
 			</div>
+		<div class="mt-2 flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-surface-600-400 hover:bg-surface-200-800 transition-colors">
+				<ThemeToggle />
+				<span>Theme</span>
+			</div>
 		<form method="POST" action="/logout" use:enhance class="contents">
 			<button
 				type="submit"
-				class="mt-2 flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-error-500 hover:bg-error-500/10 transition-colors"
+				class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-error-500 hover:bg-error-500/10 transition-colors"
 			>
 				<Icon name="logout" size={16} />
 				<span>Sign out</span>
