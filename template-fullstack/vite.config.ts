@@ -9,6 +9,7 @@ export default defineConfig({
 	resolve: { conditions: ['browser'] },
 	test: {
 		environment: 'jsdom',
-		include: ['src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,svelte}']
+		include: ['src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,svelte}', 'tests/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts}'],
+		setupFiles: ['src/tests-setup.ts']
 	}
 });
