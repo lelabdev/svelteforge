@@ -7,6 +7,8 @@
 		ArrowSquareOut,
 		ArrowsClockwise,
 		ArrowsDownUp,
+		Bell,
+		BellRinging,
 		Briefcase,
 		Calendar,
 		Car,
@@ -204,7 +206,9 @@
 		code: Code,
 		minus: Minus,
 		undo2: ArrowCounterClockwise,
-		redo2: ArrowClockwise
+		redo2: ArrowClockwise,
+		bell: Bell,
+		bellRinging: BellRinging
 	};
 
 	const IconComponent = $derived(iconMap[name] ?? iconMap.circleCheck);

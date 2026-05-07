@@ -31,6 +31,7 @@
 	const navItems: NavItem[] = [
 		{ label: 'Dashboard', href: '/admin', icon: 'layoutDashboard' },
 		{ label: 'Users', href: '/admin/users', icon: 'users' },
+		{ label: 'Notifications', href: '/admin/notifications', icon: 'bellRinging' },
 		{ label: 'Settings', href: '/admin/settings', icon: 'settings' }
 	];
 
