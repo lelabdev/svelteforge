@@ -1,4 +1,7 @@
 import { defineAddon, defineAddonOptions } from 'sv';
+import { landingFiles, fullstackFiles } from './templates';
+import { applyLandingMode } from './modes/landing';
+import { applyFullstackMode } from './modes/fullstack';
 
 export default defineAddon({
 	id: 'svelteforge',
@@ -22,7 +25,7 @@ export default defineAddon({
 		dependsOn('tailwindcss');
 	},
 
-	run: ({ sv, options }) => {
+	run: ({ sv, options, file, directory }) => {
 		const template = options.template as 'landing' | 'fullstack';
 
 		// ── Shared dependencies (both templates) ──
@@ -44,16 +47,14 @@ export default defineAddon({
 		sv.devDependency('@skeletonlabs/skeleton', 'latest');
 		sv.devDependency('@skeletonlabs/skeleton-svelte', 'latest');
 
-		// ── Template-specific deps ──
-		if (template === 'fullstack') {
-			sv.devDependency('@testing-library/jest-dom', '^6.9.1');
-			sv.devDependency('@testing-library/svelte', '^5.3.1');
-			sv.devDependency('jsdom', '^29.1.1');
-			sv.devDependency('vitest', '^4.1.5');
+		// ── Apply mode-specific files ──
+		if (template === 'landing') {
+			// Derive project name from directory for __PROJECT_NAME__ replacement
+			const projectName = directory.src.split('/').slice(-2, -1)[0] || 'My App';
+			applyLandingMode(sv, landingFiles, projectName);
+		} else {
+			applyFullstackMode(sv, fullstackFiles);
 		}
-
-		// TODO: file copying via sv.file() — issues #66 and #67
-		console.log(`SvelteForge: ${template} template selected — file copying coming next`);
 	},
 
 	nextSteps: ({ options }) => [
