@@ -40,9 +40,10 @@ const landingDir = resolve(__dirname, 'template-landing');
 // FILES TO COPY — per mode
 // ============================================================================
 
-// Shared: always copied from fullstack template (components, styles, utils)
+// Shared: always copied from fullstack template (components, styles, utils, stores)
 const SHARED_FILES: string[] = [
 	'src/lib/components/',
+	'src/lib/stores/',
 	'src/lib/styles/',
 	'src/lib/utils/',
 	'src/lib/errors.ts',
