@@ -1,0 +1,63 @@
+import { defineAddon, defineAddonOptions } from 'sv';
+
+export default defineAddon({
+	id: 'svelteforge',
+	alias: 'forge',
+	shortDescription: 'SvelteForge — themed UI kit + layouts for SvelteKit',
+	homepage: 'https://github.com/lelabdev/svelteforge',
+
+	options: defineAddonOptions()
+		.add('template', {
+			question: 'Which SvelteForge template?',
+			type: 'select',
+			options: [
+				{ value: 'landing', label: 'Landing Page — UI only' },
+				{ value: 'fullstack', label: 'Full Stack — dashboard + auth + DB' }
+			]
+		})
+		.build(),
+
+	setup: ({ dependsOn, unsupported, isKit }) => {
+		if (!isKit) unsupported('SvelteForge requires SvelteKit');
+		dependsOn('tailwindcss');
+	},
+
+	run: ({ sv, options }) => {
+		const template = options.template as 'landing' | 'fullstack';
+
+		// ── Shared dependencies (both templates) ──
+		sv.dependency('@fontsource-variable/fira-code', 'latest');
+		sv.dependency('@fontsource-variable/inter', 'latest');
+		sv.dependency('@fontsource-variable/manrope', 'latest');
+		sv.dependency('@fontsource-variable/space-grotesk', 'latest');
+		sv.dependency('@tiptap/core', 'latest');
+		sv.dependency('@tiptap/extension-underline', 'latest');
+		sv.dependency('@tiptap/starter-kit', 'latest');
+		sv.dependency('clsx', 'latest');
+		sv.dependency('phosphor-svelte', '^3.1.0');
+		sv.dependency('pino', 'latest');
+		sv.dependency('pino-pretty', 'latest');
+		sv.dependency('sveltekit-superforms', 'latest');
+		sv.dependency('tailwind-merge', 'latest');
+		sv.dependency('zod', 'latest');
+
+		sv.devDependency('@skeletonlabs/skeleton', 'latest');
+		sv.devDependency('@skeletonlabs/skeleton-svelte', 'latest');
+
+		// ── Template-specific deps ──
+		if (template === 'fullstack') {
+			sv.devDependency('@testing-library/jest-dom', '^6.9.1');
+			sv.devDependency('@testing-library/svelte', '^5.3.1');
+			sv.devDependency('jsdom', '^29.1.1');
+			sv.devDependency('vitest', '^4.1.5');
+		}
+
+		// TODO: file copying via sv.file() — issues #66 and #67
+		console.log(`SvelteForge: ${template} template selected — file copying coming next`);
+	},
+
+	nextSteps: ({ options }) => [
+		`SvelteForge ${(options.template as string)} template applied!`,
+		'Run `bun dev` to start developing.'
+	]
+});
