@@ -20,9 +20,12 @@ export default defineAddon({
 		})
 		.build(),
 
-	setup: ({ dependsOn, unsupported, isKit }) => {
+	setup: ({ unsupported, isKit }) => {
 		if (!isKit) unsupported('SvelteForge requires SvelteKit');
-		dependsOn('tailwindcss');
+		// NOTE: We intentionally do NOT use dependsOn('tailwindcss').
+		// dependsOn is a hard dependency that re-prompts the user even if
+		// tailwindcss is already installed. Since SvelteForge requires tailwind,
+		// we trust the user to have it installed (sv create adds it by default).
 	},
 
 	run: ({ sv, options, file, directory }) => {
