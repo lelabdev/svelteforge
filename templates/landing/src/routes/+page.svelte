@@ -1,10 +1,31 @@
+<script lang="ts">
+	import Hero from '$lib/sections/Hero.svelte';
+	import Stats from '$lib/sections/Stats.svelte';
+	import Why from '$lib/sections/Why.svelte';
+	import Stack from '$lib/sections/Stack.svelte';
+	import UseCase from '$lib/sections/UseCase.svelte';
+	import Include from '$lib/sections/Include.svelte';
+	import CTA from '$lib/sections/CTA.svelte';
+	import QuickStart from '$lib/sections/QuickStart.svelte';
+</script>
+
 <svelte:head>
-	<title>Welcome</title>
+	<title>SvelteForge — Production-Ready SvelteKit Starter Kit</title>
+	<meta
+		name="description"
+		content="Complete, reusable SvelteKit boilerplate with authentication, database, and 30+ UI components. Save 20+ hours on every new project."
+	/>
 </svelte:head>
 
-<main class="min-h-screen flex items-center justify-center bg-surface-50-950">
-	<div class="max-w-lg mx-auto px-4 text-center space-y-8">
-		<h1 class="text-4xl sm:text-5xl font-black uppercase tracking-tight">Welcome</h1>
-		<p class="text-lg text-surface-500 mt-4">Your SvelteKit project is ready.</p>
-	</div>
-</main>
+<div class="relative min-h-screen">
+	<main>
+		<Hero />
+		<Stats />
+		<Why />
+		<Stack />
+		<UseCase />
+		<Include />
+		<CTA />
+		<QuickStart />
+	</main>
+</div>
