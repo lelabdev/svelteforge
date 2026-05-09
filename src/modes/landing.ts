@@ -1,39 +1,37 @@
+import type { landingFiles, fullstackFiles } from '../templates';
+
 /**
  * Apply Landing mode files via sv.file()
  * Landing = UI base kit for building a landing page
- *
- * Copies:
- * - Base UI components (Button, Card, Badge, Toast, ThemeToggle, etc.)
- * - All styles (svelteForge.css, tokens.css, fonts.css)
- * - All utils (cn, formatters, theme store, etc.)
- * - Schemas, errors, logger, types, index
- * - Landing-specific overrides (simplified navbar, layout, page)
  */
 export function applyLandingMode(
 	sv: any,
-	fullstackFiles: Record<string, string>,
 	landingFiles: Record<string, string>,
+	fullstackFiles: Record<string, string>,
 	projectName: string
 ): void {
-	// ── Shared files from fullstack template ──
-	// Components: all UI base components + icons + layout (footer, nav-links, etc.)
-	// Styles, utils, schemas, stores, errors, logger, types, index
+	// ── Shared base components from fullstack template ──
 	const sharedPaths = Object.entries(fullstackFiles).filter(([path]) => {
 		// UI components (base ones for landing)
 		if (path.startsWith('/lib/components/ui/')) {
-			// Skip auth/admin-only components
 			const name = path.split('/').pop() || '';
-			const skip = ['AuthCard', 'DataTable', 'NavigationLoader', 'NotificationBadge', 'SearchInput'];
-			if (skip.some(s => name.startsWith(s))) return false;
-			// Skip tests
-			if (name.endsWith('.test.ts')) return false;
+			// Skip auth/admin-only components and tests
+			const skip = [
+				'AuthCard',
+				'DataTable',
+				'NavigationLoader',
+				'NotificationBadge',
+				'SearchInput',
+				'.test.ts'
+			];
+			if (skip.some((s) => name.startsWith(s) || name.endsWith(s))) return false;
 			return true;
 		}
 		// Layout components (footer, nav-links, mobile-menu — but NOT auth-buttons, AdminSidebar)
 		if (path.startsWith('/lib/components/layout/')) {
 			const name = path.split('/').pop() || '';
-			const skip = ['auth-buttons', 'AdminSidebar', 'nav-links'];
-			if (skip.some(s => name.startsWith(s))) return false;
+			const skip = ['auth-buttons', 'AdminSidebar'];
+			if (skip.some((s) => name.startsWith(s))) return false;
 			return true;
 		}
 		// Icons
@@ -53,7 +51,8 @@ export function applyLandingMode(
 			return true;
 		}
 		// Core files
-		if (['/lib/errors.ts', '/lib/logger.ts', '/lib/types.ts', '/lib/index.ts'].includes(path)) return true;
+		if (['/lib/errors.ts', '/lib/logger.ts', '/lib/types.ts', '/lib/index.ts'].includes(path))
+			return true;
 		// Schemas
 		if (path.startsWith('/lib/schemas/')) return true;
 		// Shared config files
