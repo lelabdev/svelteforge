@@ -30,7 +30,7 @@
 	},
 	"scripts": {
 		"prebuild": "bun scripts/prebuild.ts",
-		"build": "tsdown",
+		"build": "bun run prebuild && tsdown",
 		"prepublishOnly": "bun run build"
 	}
 }
