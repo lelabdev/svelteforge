@@ -29,6 +29,7 @@
 		"typescript": "^6.0.3"
 	},
 	"scripts": {
+		"prebuild": "bun scripts/prebuild.ts",
 		"build": "tsdown",
 		"prepublishOnly": "bun run build"
 	}
