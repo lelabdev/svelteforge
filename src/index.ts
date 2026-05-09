@@ -54,7 +54,7 @@ export default defineAddon({
 		if (template === 'landing') {
 			// Derive project name from directory for __PROJECT_NAME__ replacement
 			const projectName = directory.src.split('/').slice(-2, -1)[0] || 'My App';
-			applyLandingMode(sv, landingFiles, projectName);
+			applyLandingMode(sv, landingFiles, fullstackFiles, projectName);
 		} else {
 			applyFullstackMode(sv, fullstackFiles);
 		}
