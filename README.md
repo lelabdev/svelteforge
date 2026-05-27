@@ -1,43 +1,31 @@
 # SvelteForge
 
-UI/UX layer on top of `sv create`. SvelteForge adds 34 production-ready components, a three-layer theme system, layout primitives, admin dashboard, and Zod schemas — while `sv` handles SvelteKit, Tailwind, auth (better-auth), and database (Drizzle + SQLite).
+**sv community addon** — UI/UX layer on top of `sv create`. Adds 34 production-ready components, a 3-layer theme system, admin dashboard, notification system, and Zod schemas to SvelteKit projects. Auth (better-auth) and database (Drizzle + SQLite) come from `sv` add-ons.
 
-## Quick Start
+## Install
 
 ```bash
-# Clone and scaffold
-git clone https://github.com/lelabdev/svelteforge
-cd svelteforge
-bunx create-svelteforge my-project --fullstack
+# Full stack (UI + auth + DB)
+sv create my-app --template minimal --types ts --add tailwindcss @lelabdev/svelteforge
 
-# Or once published on npm:
-bunx create-svelteforge my-project
+# Or add to an existing project
+cd my-app
+sv add @lelabdev/svelteforge
 ```
+
+The addon prompts for a template mode:
+
+- **Landing Page** — UI components + theme + landing page (no auth/DB)
+- **Full Stack** — UI + dashboard + auth + DB (via sv add-ons)
 
 ## Post-Install
 
 ```bash
-cd my-project
-bun dev                # → http://localhost:5173
+cd my-app
+bun dev   # → http://localhost:5173
 ```
 
 `sv create` handles `.env` generation (auth secret, DB path). No extra setup step needed.
-
-## CLI Options
-
-```bash
-bunx create-svelteforge <project-name-or-path> [options]
-
-Options:
-  --fullstack, -f   Full Stack mode (UI + Auth + DB via sv)
-  --landing, -l     Landing Page mode (UI only, no auth/DB)
-  --help, -h        Show help
-
-Examples:
-  bunx create-svelteforge my-app --fullstack      # Full Stack
-  bunx create-svelteforge my-app --landing        # Landing Page
-  bunx create-svelteforge my-app                  # Interactive mode
-```
 
 ## What's Included
 
@@ -67,7 +55,7 @@ All theme-aware, built on Skeleton UI v4:
 **Forms** — Input, PasswordInput (with strength meter), TextArea, Select, Checkbox, FormField, SubmitButton
 **Rich Text** — RichTextEditor, RichTextPreview
 
-### Admin Dashboard
+### Admin Dashboard (Full Stack only)
 
 Full admin area with collapsible sidebar:
 
@@ -75,12 +63,6 @@ Full admin area with collapsible sidebar:
 - **Settings** — Tabbed config (General, Auth, Notifications)
 - **Notifications** — Create + manage notifications for users
 - **Role Guard** — Admin-only access enforced at layout level
-
-### Notification System
-
-- Admin creates notifications (target: all users, admins, or specific user)
-- Users see unread count badge in navbar
-- Notification panel (Sheet) with mark as read, mark all, dismiss
 
 ### Theme System
 
@@ -130,7 +112,7 @@ src/
 └── tests-setup.ts           # Vitest + jest-dom setup
 ```
 
-Auth config, DB connection, Drizzle schemas, `hooks.server.ts`, and API routes are provided by `sv` — SvelteForge doesn't override them.
+Auth config, DB connection, Drizzle schemas, `hooks.server.ts`, and API routes are provided by `sv` — SvelteForge does not override them.
 
 ## Modes
 
@@ -139,26 +121,53 @@ Auth config, DB connection, Drizzle schemas, `hooks.server.ts`, and API routes a
 | **Full Stack** (default) | ✓ | ✓ (via sv) |
 | **Landing Page** | ✓ | ✗ |
 
-## Scaffold Flow
+## Architecture
 
-1. `sv create` — base SvelteKit + Tailwind + ESLint + Prettier (+ better-auth + Drizzle if Full Stack)
-2. SvelteForge copies template — components, layouts, schemas, theme, routes
-3. `bun install` — all dependencies
-4. Done — `bun dev` to start
+SvelteForge is an **sv community addon**. It uses the `sv` addon API (`defineAddon`, `sv.dependency()`, `sv.file()`) to inject files and dependencies into the user's project.
+
+```
+svelteforge/                  ← this repo (addon package)
+├── src/
+│   ├── index.ts              ← defineAddon() entry point
+│   ├── templates.ts          ← auto-generated (file contents as JSON)
+│   └── modes/
+│       ├── fullstack.ts      ← fullstack file injection logic
+│       └── landing.ts        ← landing file injection + filtering
+├── templates/
+│   ├── fullstack/            ← fullstack mode source files
+│   └── landing/              ← landing mode source files
+├── scripts/
+│   └── prebuild.ts           ← reads templates/ → generates src/templates.ts
+├── tsdown.config.ts          ← bundler (bundles everything into dist/index.js)
+├── package.json              ← @lelabdev/svelteforge
+├── AGENTS.md
+└── README.md
+```
+
+### Build pipeline
+
+1. `bun run prebuild` — reads `templates/` directories, inlines all file contents into `src/templates.ts`
+2. `tsdown` — bundles `src/index.ts` + modes + templates into a single `dist/index.js`
+3. Published on npm as `@lelabdev/svelteforge`
 
 ## Development
 
 ```bash
-# Test the CLI locally
-bunx create-svelteforge test-project --fullstack
+# Build the addon
+bun run build
 
-# Interactive mode
-bunx create-svelteforge test-project
+# Test locally with bun link
+bun link
+mkdir /tmp/test-app && cd /tmp/test-app
+sv create my-app --template minimal --types ts --add tailwindcss @lelabdev/svelteforge
+cd my-app
+bun dev
 ```
 
 ## Requirements
 
 - [Bun](https://bun.sh) >= 1.0.0
+- [sv](https://github.com/sveltejs/cli) >= 0.13.0
 
 ## License
 
