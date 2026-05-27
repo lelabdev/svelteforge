@@ -1,8 +1,16 @@
 # SvelteForge
 
-> UI/UX layer on top of `sv create`. Adds 34 production-ready components, a 3-layer theme system, admin dashboard, notification system, and Zod schemas to SvelteKit projects. Auth (better-auth) and database (Drizzle + SQLite) come from `sv` add-ons.
+> **sv community addon** — UI/UX layer on top of `sv create`. Adds 34 production-ready components, a 3-layer theme system, admin dashboard, notification system, and Zod schemas to SvelteKit projects. Auth (better-auth) and database (Drizzle + SQLite) come from `sv` add-ons.
 
-SvelteForge is a boilerplate generator — not an app. Run `bunx create-svelteforge my-project --fullstack` to scaffold a new project. It runs `sv create` first, then copies its template files on top.
+## Install
+
+```bash
+sv create my-app --template minimal --types ts --add tailwindcss @lelabdev/svelteforge
+# or add to existing project:
+sv add @lelabdev/svelteforge
+```
+
+Prompts for template mode: **Landing Page** (UI only) or **Full Stack** (UI + dashboard + auth + DB).
 
 ## Stack
 
@@ -33,6 +41,28 @@ SvelteForge is a boilerplate generator — not an app. Run `bunx create-sveltefo
 - `fonts.css` — Inter, Space Grotesk, Manrope, Fira Code
 - To create a theme: copy CSS files, change `[data-theme]` name + values
 
+## Architecture
+
+SvelteForge is an sv community addon using `defineAddon()` from the `sv` package.
+
+```
+svelteforge/
+├── src/
+│   ├── index.ts          ← defineAddon() entry (options, deps, file injection)
+│   ├── templates.ts      ← AUTO-GENERATED (file contents as JSON strings)
+│   └── modes/
+│       ├── fullstack.ts  ← writes all fullstack files via sv.file()
+│       └── landing.ts    ← filters fullstack + landing overrides
+├── templates/
+│   ├── fullstack/        ← fullstack mode source files
+│   └── landing/          ← landing mode overrides
+├── scripts/prebuild.ts   ← reads templates/ → generates src/templates.ts
+├── tsdown.config.ts      ← bundles into dist/index.js
+└── package.json          ← @lelabdev/svelteforge
+```
+
+Build: `prebuild` reads template files → inlines into `templates.ts` → `tsdown` bundles everything into `dist/index.js`.
+
 ## Template Structure
 
 ```
@@ -53,15 +83,7 @@ src/routes/
 
 Auth config, DB, hooks.server.ts, and API routes are provided by `sv` — SvelteForge does not override them.
 
-## CLI
-
-```bash
-bunx create-svelteforge my-project --fullstack   # Full Stack (default)
-bunx create-svelteforge my-project --landing      # Landing Page only
-bunx create-svelteforge my-project                # Interactive
-```
-
-## Admin Dashboard
+## Admin Dashboard (Full Stack)
 
 Collapsible sidebar layout with:
 - User management (DataTable, search, role filter, pagination)
