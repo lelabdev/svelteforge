@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Badge, Button } from '$lib/components/ui';
-	import { Icon } from '$lib/components/icons/Icon';
+	import Icon from '$lib/components/icons/Icon.svelte';
 	import Logo from '$lib/components/Logo.svelte';
 	import links from '$lib/data/links';
 </script>

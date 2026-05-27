@@ -1,6 +1,6 @@
 <script>
 	import { Button } from '$lib/components/ui';
-	import { Icon } from '$lib/components/icons/Icon';
+	import Icon from '$lib/components/icons/Icon.svelte';
 	import links from '$lib/data/links';
 </script>
 
