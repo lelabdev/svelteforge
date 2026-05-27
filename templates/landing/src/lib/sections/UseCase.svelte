@@ -1,6 +1,6 @@
 <script>
 	import { Card } from '$lib/components/ui';
-	import { Icon } from '$lib/components/icons/Icon';
+	import Icon from '$lib/components/icons/Icon.svelte';
 
 	const points = [
 		{
