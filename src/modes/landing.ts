@@ -199,6 +199,18 @@ export function applyLandingMode(
 		return generateBarrel(layoutFiles, '/lib/components/layout/');
 	});
 
+	// Top-level components barrel — re-exports layout + ui
+	sv.file('src/lib/components/index.ts', () => {
+		return `// Layout components\nexport * from './layout';\n\n// UI components\nexport * from './ui';\n`;
+	});
+
+	// Rich-text barrel
+	if (uiRichTextFiles.size > 0) {
+		sv.file('src/lib/components/ui/rich-text/index.ts', () => {
+			return generateBarrel(uiRichTextFiles, '/lib/components/ui/rich-text/');
+		});
+	}
+
 	// ── Landing-specific overrides (replace fullstack versions) ──
 	for (const [path, content] of Object.entries(landingFiles)) {
 		const finalContent = content.replace(/__PROJECT_NAME__/g, projectName);

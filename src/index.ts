@@ -22,10 +22,6 @@ export default defineAddon({
 
 	setup: ({ unsupported, isKit }) => {
 		if (!isKit) unsupported('SvelteForge requires SvelteKit');
-		// NOTE: We intentionally do NOT use dependsOn('tailwindcss').
-		// dependsOn is a hard dependency that re-prompts the user even if
-		// tailwindcss is already installed. Since SvelteForge requires tailwind,
-		// we trust the user to have it installed (sv create adds it by default).
 	},
 
 	run: ({ sv, options, file, directory }) => {
@@ -49,6 +45,8 @@ export default defineAddon({
 
 		sv.devDependency('@skeletonlabs/skeleton', 'latest');
 		sv.devDependency('@skeletonlabs/skeleton-svelte', 'latest');
+		sv.devDependency('@tailwindcss/vite', '^4.0.0');
+		sv.devDependency('tailwindcss', '^4.0.0');
 
 		// ── Apply mode-specific files ──
 		if (template === 'landing') {
@@ -62,6 +60,6 @@ export default defineAddon({
 
 	nextSteps: ({ options }) => [
 		`SvelteForge ${(options.template as string)} template applied!`,
-		'Run `bun dev` to start developing.'
+		'Run `npm run dev` (or `bun dev`) to start developing.'
 	]
 });
