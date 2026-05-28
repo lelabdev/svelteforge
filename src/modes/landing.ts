@@ -84,12 +84,15 @@ export function applyLandingMode(
 
 			includedFiles.set(path, content);
 
-			// Categorize for barrel generation
-			if (path.startsWith('/lib/components/ui/form/') && !path.endsWith('index.ts')) {
-				uiFormFiles.set(path, content);
-			} else if (path.startsWith('/lib/components/ui/rich-text/') && !path.endsWith('index.ts')) {
-				uiRichTextFiles.set(path, content);
-			} else if (!path.endsWith('index.ts')) {
+		// Categorize for barrel generation — only direct children, not subdirectories
+			if (path.startsWith('/lib/components/ui/form/')) {
+				if (!path.endsWith('index.ts')) uiFormFiles.set(path, content);
+			} else if (path.startsWith('/lib/components/ui/rich-text/')) {
+				if (!path.endsWith('index.ts')) uiRichTextFiles.set(path, content);
+			} else if (path.startsWith('/lib/components/ui/utils/')) {
+				// utils subfolder — include files but don't put in uiFiles barrel
+			} else if (!path.endsWith('index.ts') && !path.endsWith('.test.ts')) {
+				// Direct children of ui/ only (components + toast-state.svelte.ts)
 				uiFiles.set(path, content);
 			}
 			continue;

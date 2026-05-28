@@ -45,6 +45,8 @@ export default defineAddon({
 
 		sv.devDependency('@skeletonlabs/skeleton', 'latest');
 		sv.devDependency('@skeletonlabs/skeleton-svelte', 'latest');
+		sv.devDependency('@tailwindcss/forms', '^0.5.0');
+		sv.devDependency('@tailwindcss/typography', '^0.5.0');
 		sv.devDependency('@tailwindcss/vite', '^4.0.0');
 		sv.devDependency('tailwindcss', '^4.0.0');
 
