@@ -5,9 +5,9 @@
 ## Install
 
 ```bash
-sv create my-app --template minimal --types ts --add tailwindcss @lelabdev/svelteforge
+sv create my-app --template minimal --types ts --add tailwindcss @ludoloops/svelteforge
 # or add to existing project:
-sv add @lelabdev/svelteforge
+sv add @ludoloops/svelteforge
 ```
 
 Prompts for template mode: **Landing Page** (UI only) or **Full Stack** (UI + dashboard + auth + DB).
@@ -58,7 +58,7 @@ svelteforge/
 │   └── landing/          ← landing mode overrides
 ├── scripts/prebuild.ts   ← reads templates/ → generates src/templates.ts
 ├── tsdown.config.ts      ← bundles into dist/index.js
-└── package.json          ← @lelabdev/svelteforge
+└── package.json          ← @ludoloops/svelteforge
 ```
 
 Build: `prebuild` reads template files → inlines into `templates.ts` → `tsdown` bundles everything into `dist/index.js`.

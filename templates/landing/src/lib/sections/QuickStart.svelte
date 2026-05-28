@@ -26,7 +26,7 @@
 	const commands = [
 		'bunx sv create my-project --template minimal --types ts --add tailwindcss',
 		'cd my-project',
-		'bunx sv add @lelabdev/svelteforge=template:landing',
+		'bunx sv add @ludoloops/svelteforge=template:landing',
 		'bun run dev'
 	];
 </script>

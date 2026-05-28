@@ -37,7 +37,7 @@ svelteforge/                ← this repo (the addon package)
 │   └── prebuild.ts         ← reads templates/ → generates src/templates.ts
 ├── dist/                   ← build output (single index.js + .d.ts)
 ├── tsdown.config.ts        ← bundler config
-├── package.json            ← @lelabdev/svelteforge
+├── package.json            ← @ludoloops/svelteforge
 ├── AGENTS.md               ← you are here
 ├── README.md
 └── llms.txt
@@ -54,7 +54,7 @@ bun run build
 # Test locally
 bun link
 # Then in a separate directory:
-sv create test-app --template minimal --types ts --add tailwindcss @lelabdev/svelteforge
+sv create test-app --template minimal --types ts --add tailwindcss @ludoloops/svelteforge
 cd test-app
 bun dev
 

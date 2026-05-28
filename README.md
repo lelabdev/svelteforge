@@ -6,11 +6,11 @@
 
 ```bash
 # Full stack (UI + auth + DB)
-sv create my-app --template minimal --types ts --add tailwindcss @lelabdev/svelteforge
+sv create my-app --template minimal --types ts --add tailwindcss @ludoloops/svelteforge
 
 # Or add to an existing project
 cd my-app
-sv add @lelabdev/svelteforge
+sv add @ludoloops/svelteforge
 ```
 
 The addon prompts for a template mode:
@@ -139,7 +139,7 @@ svelteforge/                  ← this repo (addon package)
 ├── scripts/
 │   └── prebuild.ts           ← reads templates/ → generates src/templates.ts
 ├── tsdown.config.ts          ← bundler (bundles everything into dist/index.js)
-├── package.json              ← @lelabdev/svelteforge
+├── package.json              ← @ludoloops/svelteforge
 ├── AGENTS.md
 └── README.md
 ```
@@ -148,7 +148,7 @@ svelteforge/                  ← this repo (addon package)
 
 1. `bun run prebuild` — reads `templates/` directories, inlines all file contents into `src/templates.ts`
 2. `tsdown` — bundles `src/index.ts` + modes + templates into a single `dist/index.js`
-3. Published on npm as `@lelabdev/svelteforge`
+3. Published on npm as `@ludoloops/svelteforge`
 
 ## Development
 
@@ -159,7 +159,7 @@ bun run build
 # Test locally with bun link
 bun link
 mkdir /tmp/test-app && cd /tmp/test-app
-sv create my-app --template minimal --types ts --add tailwindcss @lelabdev/svelteforge
+sv create my-app --template minimal --types ts --add tailwindcss @ludoloops/svelteforge
 cd my-app
 bun dev
 ```

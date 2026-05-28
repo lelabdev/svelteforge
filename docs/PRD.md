@@ -2,7 +2,7 @@
 
 ## Summary
 
-Refactor SvelteForge from a custom CLI (`cli.ts` + file copy lists) to a native **sv community addon** (`sv add @lelabdev/svelteforge`). This eliminates manual file tracking, leverages sv's dependency/file management, and enables future template modes.
+Refactor SvelteForge from a custom CLI (`cli.ts` + file copy lists) to a native **sv community addon** (`sv add @ludoloops/svelteforge`). This eliminates manual file tracking, leverages sv's dependency/file management, and enables future template modes.
 
 ## Problem
 
@@ -18,11 +18,11 @@ The current CLI (`create-svelteforge`) wraps `sv create` then copies template fi
 Publish SvelteForge as an **sv community addon** on npm. Users install it via the standard sv workflow:
 
 ```bash
-sv create my-app --template minimal --types ts --add tailwindcss @lelabdev/svelteforge
+sv create my-app --template minimal --types ts --add tailwindcss @ludoloops/svelteforge
 # or
 sv create my-app --template minimal
 cd my-app
-sv add @lelabdev/svelteforge
+sv add @ludoloops/svelteforge
 ```
 
 ## Architecture
@@ -37,7 +37,7 @@ svelteforge/                  ← this repo (becomes the addon package)
 │   ├── landing/              ← Landing mode files (UI only)
 │   └── fullstack/            ← Fullstack mode files (UI + dashboard + auth)
 ├── tsdown.config.ts          ← bundler config
-├── package.json              ← @lelabdev/svelteforge
+├── package.json              ← @ludoloops/svelteforge
 ├── AGENTS.md
 └── README.md
 ```
@@ -113,7 +113,7 @@ export default defineAddon({
 1. Create `src/index.ts` with `defineAddon()` skeleton
 2. Create `tsdown.config.ts` for bundling
 3. Update `package.json`:
-   - `name`: `@lelabdev/svelteforge`
+   - `name`: `@ludoloops/svelteforge`
    - `peerDependencies`: `sv: ^0.13.0`
    - `keywords`: `["sv-add", "svelte", "sveltekit"]`
    - `exports`: `{ ".": { "default": "./dist/index.mjs" } }`
@@ -128,7 +128,7 @@ export default defineAddon({
 
 ### Phase 3 — Publish & cleanup
 
-1. Publish `@lelabdev/svelteforge` to npm
+1. Publish `@ludoloops/svelteforge` to npm
 2. Remove old `cli.ts` and `create-svelteforge` package
 3. Update README with new install flow
 4. Close #64
@@ -148,7 +148,7 @@ export default defineAddon({
 
 ## Success criteria
 
-- [ ] `sv create app && cd app && sv add @lelabdev/svelteforge` works without errors
+- [ ] `sv create app && cd app && sv add @ludoloops/svelteforge` works without errors
 - [ ] Both Landing and Fullstack modes produce working dev servers
 - [ ] No ENOENT errors — all referenced files are present
 - [ ] Dependencies installed automatically by sv
