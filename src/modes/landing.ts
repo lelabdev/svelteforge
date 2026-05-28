@@ -25,12 +25,22 @@ function shouldSkipLayout(name: string): boolean {
 }
 
 /**
+ * Convert a kebab-case filename to PascalCase component name
+ * e.g. "mobile-menu" → "MobileMenu", "nav-links" → "NavLinks"
+ */
+function toPascalCase(str: string): string {
+	return str
+		.split('-')
+		.map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+		.join('');
+}
+
+/**
  * Generate a barrel index.ts that only exports files present in the filtered set
  */
 function generateBarrel(
 	files: Map<string, string>,
-	directory: string,
-	stripExtension: boolean = true
+	directory: string
 ): string {
 	const lines: string[] = [];
 	// Sort for deterministic output
@@ -40,11 +50,10 @@ function generateBarrel(
 		const name = path.split('/').pop() || '';
 		if (name === 'index.ts' || name.endsWith('.test.ts')) continue;
 
-		const baseName = stripExtension ? name.replace(/\.\w+$/, '') : name;
-		// Svelte files use `export { default as Name }`
 		if (name.endsWith('.svelte')) {
-			const componentName = baseName;
-			lines.push(`export { default as ${componentName} } from './${name}';`);
+			const baseName = name.replace(/\.svelte$/, '');
+			const exportName = baseName.includes('-') ? toPascalCase(baseName) : baseName;
+			lines.push(`export { default as ${exportName} } from './${name}';`);
 		} else if (name.endsWith('.ts')) {
 			// TS files — re-export all named exports
 			lines.push(`export * from './${name}';`);
