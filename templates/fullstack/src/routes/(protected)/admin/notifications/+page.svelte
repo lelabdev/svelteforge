@@ -114,20 +114,20 @@
 	</section>
 
 	<!-- Content -->
+	{#snippet createAction()}
+		<Button variant="primary" size="sm" onclick={openCreate}>
+			<Icon name="plus" size={16} />
+			Create Notification
+		</Button>
+	{/snippet}
+
 	{#if adminNotifs.length === 0}
 		<Card variant="flat" noPadding>
 			<EmptyState
 				icon="bell"
 				title="No notifications yet"
 				description="Create your first notification to send to users."
-				action={
-					{#snippet}()
-						<Button variant="primary" size="sm" onclick={openCreate}>
-							<Icon name="plus" size={16} />
-							Create Notification
-						</Button>
-					{/snippet}
-				}
+			action={createAction}
 			/>
 		</Card>
 	{:else}
