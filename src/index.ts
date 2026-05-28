@@ -44,6 +44,7 @@ export default defineAddon({
 		sv.dependency('zod', 'latest');
 
 		sv.devDependency('@skeletonlabs/skeleton', 'latest');
+		sv.devDependency('@skeletonlabs/skeleton-common', 'latest');
 		sv.devDependency('@skeletonlabs/skeleton-svelte', 'latest');
 		sv.devDependency('@tailwindcss/forms', '^0.5.0');
 		sv.devDependency('@tailwindcss/typography', '^0.5.0');

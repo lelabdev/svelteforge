@@ -1,7 +1,7 @@
 @import './lib/styles/fonts.css';
 @import 'tailwindcss';
 @import '@skeletonlabs/skeleton';
-@import '@skeletonlabs/skeleton-svelte';
+@import '@skeletonlabs/skeleton-common';
 @import './lib/styles/svelteForge.css';
 @import './lib/styles/tokens.css';
 
