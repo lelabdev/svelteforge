@@ -174,18 +174,25 @@ export function applyLandingMode(
 	});
 
 	sv.file('src/lib/components/ui/form/index.ts', () => {
-		// Keep the original style (import + named export) for form components
-		const formComponents: string[] = [];
+		const svelteComponents: string[] = [];
+		const tsFiles: string[] = [];
 		for (const path of [...uiFormFiles.keys()].sort()) {
 			const name = path.split('/').pop() || '';
-			const baseName = name.replace('.svelte', '');
-			formComponents.push(baseName);
+			if (name.endsWith('.svelte')) {
+				svelteComponents.push(name.replace('.svelte', ''));
+			} else if (name.endsWith('.ts') && name !== 'index.ts') {
+				tsFiles.push(name);
+			}
 		}
-		const imports = formComponents
+		const imports = svelteComponents
 			.map((c) => `import ${c} from './${c}.svelte';`)
 			.join('\n');
-		const exports = formComponents.join(', ');
-		return `${imports}\n\nexport { ${exports} };\n`;
+		const exports = svelteComponents.join(', ');
+		let result = `${imports}\n\nexport { ${exports} };\n`;
+		for (const ts of tsFiles) {
+			result += `export * from './${ts}';\n`;
+		}
+		return result;
 	});
 
 	sv.file('src/lib/components/layout/index.ts', () => {
