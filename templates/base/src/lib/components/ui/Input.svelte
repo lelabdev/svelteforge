@@ -8,9 +8,10 @@
 		type?: string;
 		placeholder?: string;
 		value?: string;
+		required?: boolean;
+		name?: string;
 		class?: string;
 	}
-
 	let { label, error, class: className, value = $bindable(''), ...rest }: Props = $props();
 </script>
 

@@ -9,6 +9,7 @@
 		placeholder?: string;
 		value?: string;
 		required?: boolean;
+		name?: string;
 		class?: string;
 	}
 

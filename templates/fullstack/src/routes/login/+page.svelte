@@ -36,7 +36,8 @@
 				return async ({ update }) => {
 					const result = await update({ reset: false });
 					loading = false;
-					if (result.type === 'success') {
+					// eslint-disable-next-line @typescript-eslint/no-explicit-any
+					if ((result as any)?.type === 'success') {
 						const callbackURL = new URLSearchParams(window.location.search).get('callbackURL');
 						goto(callbackURL || '/admin');
 					}

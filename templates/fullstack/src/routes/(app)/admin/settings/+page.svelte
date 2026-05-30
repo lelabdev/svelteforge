@@ -50,7 +50,7 @@
 		{/snippet}
 
 		{#if form?.message}
-			<Feedback type={form.type === 'success' ? 'success' : 'error'} message={form.message} class="mb-4" />
+			<Feedback type={form.success ? 'success' : 'error'} message={form.message} class="mb-4" />
 		{/if}
 		{#if validationError}
 			<div class="mb-4 p-3 rounded-card text-sm bg-error-100 dark:bg-error-900 text-error-700 dark:text-error-300">
