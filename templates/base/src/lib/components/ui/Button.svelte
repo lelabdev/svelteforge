@@ -40,7 +40,7 @@
 		lg: 'px-6 py-3 text-lg'
 	};
 
-	const classes = cn('btn', variants[variant], `variant-${color}`, sizes[size], className);
+	let classes = $derived(cn('btn', variants[variant], `variant-${color}`, sizes[size], className));
 </script>
 
 {#if href}

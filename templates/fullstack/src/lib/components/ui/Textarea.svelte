@@ -12,15 +12,17 @@
 	}
 
 	let { label, error, class: className, value = $bindable(''), ...rest }: Props = $props();
+	let inputId = $derived(rest.id ?? `textarea-${Math.random().toString(36).slice(2, 9)}`);
 </script>
 
 <div class="w-full">
 	{#if label}
-		<label class="label">
+		<label class="label" for={inputId}>
 			{label}
 		</label>
 	{/if}
 	<textarea
+		id={inputId}
 		class={cn('textarea', error && 'textarea-error', className)}
 		bind:value
 		{...rest}
