@@ -13,6 +13,7 @@ export default defineAddon({
 		.add('template', {
 			question: 'Which SvelteForge template?',
 			type: 'select',
+			default: 'base',
 			options: [
 				{ value: 'base', label: 'Base — UI kit + layouts + forms (landing, portfolio, marketing…)' },
 				{ value: 'fullstack', label: 'Full Stack — base + admin dashboard + auth + DB' }
