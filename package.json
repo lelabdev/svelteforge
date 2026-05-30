@@ -1,8 +1,7 @@
 {
 	"name": "@ludoloops/svelteforge",
-	"version": "0.2.2",
-	"type": "module",
-	"description": "sv community addon — 34 theme-aware UI components, admin dashboard, and 3-layer theme system for SvelteKit",
+	"version": "0.3.0",
+	"description": "sv community addon — SvelteKit starter templates with Skeleton UI, Tailwind CSS, Better Auth, and Drizzle ORM",
 	"author": "Ludo (https://lelab.dev)",
 	"repository": {
 		"type": "git",
