@@ -1,0 +1,17 @@
+/* === Tailwind custom tokens === */
+@theme {
+	--font-sans: 'Inter Variable', sans-serif;
+	--font-heading: 'Space Grotesk Variable', sans-serif;
+	--font-code: 'Fira Code Variable', monospace;
+
+	--spacing-section: 2rem;
+	--spacing-group: 1.5rem;
+	--spacing-element: 1rem;
+
+	--radius-card: 0.75rem;
+	--radius-modal: 1rem;
+
+	--width-modal: 28rem;
+	--width-toast: 20rem;
+	--width-container: 80rem;
+}
