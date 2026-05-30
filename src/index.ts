@@ -45,12 +45,25 @@ export default defineAddon({
 		sv.dependency('zod', 'latest');
 
 		sv.devDependency('@skeletonlabs/skeleton', 'latest');
-		sv.devDependency('@skeletonlabs/skeleton-common', 'latest');
 		sv.devDependency('@skeletonlabs/skeleton-svelte', 'latest');
 		sv.devDependency('@tailwindcss/forms', '^0.5.0');
 		sv.devDependency('@tailwindcss/typography', '^0.5.0');
 		sv.devDependency('@tailwindcss/vite', '^4.0.0');
 		sv.devDependency('tailwindcss', '^4.0.0');
+
+		// ── Vite config: ensure @tailwindcss/vite plugin ──
+		sv.file('vite.config.ts', (content) => {
+			// Already has tailwindcss plugin
+			if (content.includes('@tailwindcss/vite')) return content;
+			// Add import + plugin
+			let updated = content;
+			updated = `import tailwindcss from '@tailwindcss/vite';\n${updated}`;
+			updated = updated.replace(
+				/plugins:\s*\[/,
+				'plugins: [tailwindcss(), '
+			);
+			return updated;
+		});
 
 		// ── Apply mode-specific files ──
 		if (template === 'fullstack') {

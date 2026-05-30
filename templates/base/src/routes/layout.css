@@ -1,6 +1,6 @@
 @import 'tailwindcss';
 @import '@skeletonlabs/skeleton';
-@import '@skeletonlabs/skeleton-common' layer(base);
+@import '@skeletonlabs/skeleton-svelte';
 @import '@fontsource-variable/inter';
 @import '@fontsource-variable/space-grotesk';
 @import '@fontsource-variable/manrope';
