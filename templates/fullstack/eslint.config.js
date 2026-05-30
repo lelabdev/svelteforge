@@ -13,18 +13,16 @@ const gitignorePath = path.resolve(import.meta.dirname, '.gitignore');
 export default defineConfig(
 	includeIgnoreFile(gitignorePath),
 	js.configs.recommended,
-	...ts.configs.recommended,
-	...svelte.configs.recommended,
+	ts.configs.recommended,
+	svelte.configs.recommended,
 	prettier,
-	...svelte.configs.prettier,
+	svelte.configs.prettier,
 	{
 		languageOptions: { globals: { ...globals.browser, ...globals.node } },
 		rules: {
 			// typescript-eslint strongly recommend that you do not use the no-undef lint rule on TypeScript projects.
 			// see: https://typescript-eslint.io/troubleshooting/faqs/eslint/#i-get-errors-from-the-no-undef-rule-about-global-variables-not-being-defined-even-though-there-are-no-typescript-errors
-			'no-undef': 'off',
-			// Disable the svelte navigation rule for auth pages - navigation with replaceState: true is intentional
-			'svelte/no-navigation-without-resolve': 'off'
+			"no-undef": 'off'
 		}
 	},
 	{
@@ -37,5 +35,10 @@ export default defineConfig(
 				svelteConfig
 			}
 		}
+	},
+	{
+		// Override or add rule settings here, such as:
+		// 'svelte/button-has-type': 'error'
+		rules: {}
 	}
 );

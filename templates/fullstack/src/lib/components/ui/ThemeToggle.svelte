@@ -1,32 +1,26 @@
 <script lang="ts">
-	import { onMount, onDestroy } from 'svelte';
-	import { themeStore } from '$lib/utils/theme.svelte';
-	import Icon from '$lib/components/icons/Icon.svelte';
+	import Sun from 'phosphor-svelte/lib/Sun';
+	import Moon from 'phosphor-svelte/lib/Moon';
 
-	let mounted = $state(false);
+	interface Props {
+		class?: string;
+	}
 
-	onMount(() => {
-		themeStore.init();
-		mounted = true;
-	});
+	let { class: className }: Props = $props();
 
-	onDestroy(() => {
-		themeStore.destroy();
-	});
+	function toggle() {
+		const html = document.documentElement;
+		const isDark = html.classList.contains('dark');
+		html.classList.toggle('dark', !isDark);
+		localStorage.setItem('theme', isDark ? 'light' : 'dark');
+	}
 </script>
 
-{#if mounted}
-	<button
-		type="button"
-		onclick={() => themeStore.toggle()}
-		class="btn-icon hover:bg-surface-200-800 text-surface-900-50 transition-colors"
-		aria-label={themeStore.isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-		title={themeStore.isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-	>
-		{#if themeStore.isDark}
-			<Icon name="moon" size={20} />
-		{:else}
-			<Icon name="sun" size={20} />
-		{/if}
-	</button>
-{/if}
+<button
+	onclick={toggle}
+	class="btn preset-ghost variant-surface p-2 rounded-full"
+	aria-label="Toggle theme"
+>
+	<Sun size={18} class="dark:hidden" />
+	<Moon size={18} class="hidden dark:block" />
+</button>

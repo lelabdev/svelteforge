@@ -1,104 +1,56 @@
 <script lang="ts">
-	import { cn } from './utils/cn';
+	import { cn } from '$lib/utils/cn';
+	import type { Snippet } from 'svelte';
+	import type { HTMLAttributes } from 'svelte/elements';
 
-	type ButtonVariant =
-		| 'primary'
-		| 'secondary'
-		| 'outline'
-		| 'ghost'
-		| 'danger'
-		| 'success'
-		| 'glass'
-		| 'cta'
-		| 'tonal'
-		| 'none';
-	type ButtonSize = 'sm' | 'md' | 'lg';
+	type Variant = 'filled' | 'outlined' | 'tonal' | 'ghost' | 'glass' | 'elevated';
+	type Color = 'primary' | 'secondary' | 'tertiary' | 'success' | 'warning' | 'error';
 
-	interface Props {
-		variant?: ButtonVariant;
-		size?: ButtonSize;
-		class?: string;
-		style?: string;
-		children: any;
-		onclick?: (event: MouseEvent) => void;
-		onmouseenter?: () => void;
-		onmouseleave?: () => void;
-		disabled?: boolean;
-		loading?: boolean;
-		type?: 'button' | 'submit' | 'reset';
+	interface Props extends HTMLAttributes<HTMLButtonElement> {
+		variant?: Variant;
+		color?: Color;
+		size?: 'sm' | 'md' | 'lg';
 		href?: string;
-		target?: string;
-		ariaLabel?: string;
-		id?: string;
+		type?: 'button' | 'submit' | 'reset';
+		disabled?: boolean;
+		class?: string;
+		children: Snippet;
 	}
 
 	let {
-		variant = 'primary',
+		variant = 'filled',
+		color = 'primary',
 		size = 'md',
-		class: className = '',
-		style: styleAttr = '',
-		children,
-		onclick,
-		onmouseenter,
-		onmouseleave,
-		disabled = false,
-		loading = false,
-		type = 'button',
 		href,
-		target,
-		ariaLabel,
-		id
+		class: className,
+		children,
+		...rest
 	}: Props = $props();
 
-	// Utilise les presets SkeletonUI pour une meilleure intégration du thème
-	const variants = {
-		primary: 'preset-filled-primary-500',
-		secondary: 'preset-filled-secondary-500',
-		outline: 'preset-outlined-primary-500',
-		ghost:
-			'hover:bg-surface-200-800 text-surface-700-300 hover:text-surface-900-50',
-		danger: 'preset-filled-error-500',
-		success: 'preset-filled-success-500',
-		glass:
-			'backdrop-blur-md bg-primary-500/20 border-2 border-primary-400/50 text-primary-300 hover:bg-primary-500/30 hover:border-primary-400/70 hover:text-primary-200 transition-all duration-300',
-		cta: 'preset-filled-primary-500 shadow-lg shadow-primary-500/25 hover:shadow-xl hover:shadow-primary-500/30 transition-all duration-300 motion-reduce:transition-none btn-shine',
-		tonal: 'preset-tonal-primary',
-		none: ''
+	const variants: Record<Variant, string> = {
+		filled: 'preset-filled',
+		outlined: 'preset-outlined',
+		tonal: 'preset-tonal',
+		ghost: 'preset-ghost',
+		glass: 'preset-glass',
+		elevated: 'preset-filled shadow-lg'
 	};
 
-	const sizes = {
-		sm: 'btn-sm',
-		md: 'btn-base',
-		lg: 'btn-lg'
+	const sizes: Record<string, string> = {
+		sm: 'px-3 py-1 text-sm',
+		md: 'px-4 py-2',
+		lg: 'px-6 py-3 text-lg'
 	};
 
-	const buttonClass = $derived(cn('btn', variants[variant], sizes[size], className));
+	const classes = cn('btn', variants[variant], `variant-${color}`, sizes[size], className);
 </script>
 
-<svelte:element
-	this={href ? 'a' : 'button'}
-	{href}
-	{id}
-	target={href ? target : undefined}
-	rel={target === '_blank' ? 'noopener noreferrer' : undefined}
-	type={href ? undefined : type}
-	{onclick}
-	{onmouseenter}
-	{onmouseleave}
-	disabled={href ? undefined : disabled || loading}
-	aria-disabled={href && disabled ? 'true' : undefined}
-	aria-label={ariaLabel}
-	role={href ? 'button' : undefined}
-	class={buttonClass}
-	style={styleAttr || undefined}
->
-	{#if loading}
-		<span class="flex items-center justify-center gap-2">
-			<span class="w-4 h-4 border-2 border-current/30 border-t-current rounded-full animate-spin"
-			></span>
-			{@render children()}
-		</span>
-	{:else}
+{#if href}
+	<a {href} class={classes}>
 		{@render children()}
-	{/if}
-</svelte:element>
+	</a>
+{:else}
+	<button class={classes} {...rest}>
+		{@render children()}
+	</button>
+{/if}

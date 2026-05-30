@@ -24,28 +24,28 @@ function readDirRecursively(dir: string, baseDir: string = dir): Record<string, 
 	return files;
 }
 
-const landingFiles = readDirRecursively(join(__dirname, '../templates/landing/src'));
+const baseFiles = readDirRecursively(join(__dirname, '../templates/base/src'));
 const fullstackFiles = readDirRecursively(join(__dirname, '../templates/fullstack/src'));
 
-const landingPackageJson = JSON.parse(readFileSync(join(__dirname, '../templates/landing/package.json'), 'utf-8'));
+const basePackageJson = JSON.parse(readFileSync(join(__dirname, '../templates/base/package.json'), 'utf-8'));
 const fullstackPackageJson = JSON.parse(readFileSync(join(__dirname, '../templates/fullstack/package.json'), 'utf-8'));
 
-const landingViteConfig = readFileSync(join(__dirname, '../templates/landing/vite.config.ts'), 'utf-8');
+const baseViteConfig = readFileSync(join(__dirname, '../templates/base/vite.config.ts'), 'utf-8');
 const fullstackViteConfig = readFileSync(join(__dirname, '../templates/fullstack/vite.config.ts'), 'utf-8');
 
 // Write to a TypeScript file that exports everything
 const output = `// AUTO-GENERATED - DO NOT EDIT
 // Run \`bun run prebuild\` to regenerate
 
-export const landingFiles = ${JSON.stringify(landingFiles, null, 2)};
+export const baseFiles = ${JSON.stringify(baseFiles, null, 2)};
 
 export const fullstackFiles = ${JSON.stringify(fullstackFiles, null, 2)};
 
-export const landingPackageJson = ${JSON.stringify(landingPackageJson, null, 2)};
+export const basePackageJson = ${JSON.stringify(basePackageJson, null, 2)};
 
 export const fullstackPackageJson = ${JSON.stringify(fullstackPackageJson, null, 2)};
 
-export const landingViteConfig = ${JSON.stringify(landingViteConfig, null, 2)};
+export const baseViteConfig = ${JSON.stringify(baseViteConfig, null, 2)};
 
 export const fullstackViteConfig = ${JSON.stringify(fullstackViteConfig, null, 2)};
 `;
@@ -53,5 +53,5 @@ export const fullstackViteConfig = ${JSON.stringify(fullstackViteConfig, null, 2
 writeFileSync(join(__dirname, '../src/templates.ts'), output);
 
 console.log('✅ Generated src/templates.ts');
-console.log(`   ${Object.keys(landingFiles).length} landing files`);
+console.log(`   ${Object.keys(baseFiles).length} base files`);
 console.log(`   ${Object.keys(fullstackFiles).length} fullstack files`);

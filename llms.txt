@@ -1,106 +1,119 @@
 # SvelteForge
 
-> **sv community addon** — UI/UX layer on top of `sv create`. Adds 34 production-ready components, a 3-layer theme system, admin dashboard, notification system, and Zod schemas to SvelteKit projects. Auth (better-auth) and database (Drizzle + SQLite) come from `sv` add-ons.
+A SvelteKit addon that provides a complete UI component library and starter templates built on Skeleton UI v4 and Tailwind CSS v4.
+
+## Templates
+
+### Base
+UI-only starter with components and theme. No auth, no database.
+
+### Fullstack
+Complete starter with auth (Better Auth), database (Drizzle + SQLite), and admin dashboard.
 
 ## Install
 
 ```bash
-sv create my-app --template minimal --types ts --add tailwindcss @ludoloops/svelteforge
-# or add to existing project:
-sv add @ludoloops/svelteforge
+# Create a new project with SvelteForge
+npx sv create my-app --template minimal --types ts
+cd my-app
+npx sv add @ludoloops/svelteforge
 ```
 
-Prompts for template mode: **Landing Page** (UI only) or **Full Stack** (UI + dashboard + auth + DB).
+Choose **base** (UI only) or **fullstack** (UI + auth + admin).
 
-## Stack
+## Quick Start — Base
 
-- SvelteKit 2 + Svelte 5 (runes: $state, $props, $derived, $effect)
-- Tailwind CSS v4 + Skeleton UI v4
-- Auth: better-auth (via sv add-on)
-- Database: SQLite libsql + Drizzle ORM (via sv add-on)
-- Forms: SuperForms v2 + Zod v4
-- Icons: Phosphor (phosphor-svelte) via centralized Icon.svelte wrapper
-- Rich Text: Tiptap
-- Logging: Pino
-- Testing: Vitest + @testing-library/svelte
+After installation, you get:
 
-## Key Conventions
+- **15 UI components** — Button, Card, Badge, Avatar, Alert, Input, Select, Textarea, Checkbox, Toggle, ThemeToggle, Accordion, Tabs, Table, Breadcrumb
+- **3 layout components** — Navbar (responsive), Footer, AdminLayout (sidebar + topbar)
+- **SvelteForge theme** — custom oklch color palette (steel blue primary, burnt orange secondary)
+- **Tailwind v4 custom utilities** — spacing, radius, and width tokens via `@theme`
+- **Demo page** at `/demo-ui` showcasing all components
 
-- Color pairings mandatory: `text-surface-50-950` NOT `dark:` variants
-- Raw colors forbidden: no `text-neutral-*`, `bg-white`, `text-red-*`
-- Design tokens via `var(--token)` for spacing/radius/sizing, never hardcode
-- Zod v4: `import { z } from 'zod/v4'`, adapters: `zod4` / `zod4Client`
-- Svelte 5: `{@render children()}` not `<slot>`, `onclick={}` not `on:click`
-- Skeleton UI components always used — never raw HTML for what Skeleton provides
+## Quick Start — Fullstack
 
-## Theme System
+Everything from Base, plus:
 
-3 layers, all overridable without touching components:
-- `svelteForge.css` — 7 color domains × 10 shades (oklch)
-- `tokens.css` — 60+ semantic tokens (padding, radius, sizing, typography)
-- `fonts.css` — Inter, Space Grotesk, Manrope, Fira Code
-- To create a theme: copy CSS files, change `[data-theme]` name + values
+- **Better Auth** — email/password login, session management, protected routes
+- **Drizzle + SQLite** — schema auto-generated, `db:push` to create tables
+- **Admin dashboard** `/admin` — stats cards (users, sessions, new this week)
+- **User CRUD** `/admin/users` — create, edit, delete, search, toggle email verification
+- **Settings** `/admin/settings` — change password
+- **Auth guard** — unprotected routes redirect to `/login`
+
+### Fullstack setup
+
+```bash
+cp .env.example .env    # Configure DATABASE_URL, ORIGIN, BETTER_AUTH_SECRET
+bun run db:push          # Create database tables
+bun run dev              # Start dev server
+# Visit /login and sign up
+```
+
+## Components
+
+Every component uses `cn()` (clsx + tailwind-merge) and accepts a `class` prop for easy customization:
+
+```svelte
+<script>
+  import { Button, Card } from '$lib/components/ui';
+</script>
+
+<Button variant="filled" color="primary" size="lg">
+  Get Started
+</Button>
+
+<Card variant="elevated">
+  <h2>Hello World</h2>
+</Card>
+```
+
+### Button Variants
+`filled` · `outlined` · `tonal` · `ghost` · `glass` · `elevated`
+Colors: `primary` · `secondary` · `tertiary` · `success` · `warning` · `error`
+
+### Card Variants
+`flat` · `elevated` · `outlined`
+
+## Theming
+
+Colors are defined as oklch CSS variables in `src/routes/layout.css`. To change the palette, edit the `[data-theme='svelteForge']` block.
+
+Custom Tailwind utilities via `@theme`:
+- `p-section` / `p-group` / `p-element` — spacing
+- `rounded-card` / `rounded-modal` — radius
+- `max-w-modal` / `max-w-toast` / `max-w-container` — widths
 
 ## Architecture
 
-SvelteForge is an sv community addon using `defineAddon()` from the `sv` package.
+### Base
+- `src/lib/components/ui/` — 15 UI components
+- `src/lib/components/layout/` — Navbar, Footer, AdminLayout
+- `src/lib/utils/cn.ts` — class merging utility
+- `src/routes/layout.css` — theme + Tailwind config
 
-```
-svelteforge/
-├── src/
-│   ├── index.ts          ← defineAddon() entry (options, deps, file injection)
-│   ├── templates.ts      ← AUTO-GENERATED (file contents as JSON strings)
-│   └── modes/
-│       ├── fullstack.ts  ← writes all fullstack files via sv.file()
-│       └── landing.ts    ← filters fullstack + landing overrides
-├── templates/
-│   ├── fullstack/        ← fullstack mode source files
-│   └── landing/          ← landing mode overrides
-├── scripts/prebuild.ts   ← reads templates/ → generates src/templates.ts
-├── tsdown.config.ts      ← bundles into dist/index.js
-└── package.json          ← @ludoloops/svelteforge
-```
+### Fullstack (extends Base)
+- `src/lib/server/auth.ts` — Better Auth config
+- `src/lib/server/db/` — Drizzle schema (user, session, account, verification)
+- `src/lib/client/auth.ts` — Auth client (sign in, sign out)
+- `src/routes/login/` — Login page
+- `src/routes/(app)/admin/` — Dashboard, Users CRUD, Settings
+- `src/hooks.server.ts` — Session handling + Better Auth middleware
 
-Build: `prebuild` reads template files → inlines into `templates.ts` → `tsdown` bundles everything into `dist/index.js`.
+## Stack
 
-## Template Structure
+| Layer | Technology |
+|-------|-----------|
+| Framework | SvelteKit 2.x + Svelte 5.x |
+| Styling | Tailwind CSS v4 + Skeleton UI v4 |
+| Auth | Better Auth v1.x |
+| Database | Drizzle ORM + libsql (SQLite) |
+| Icons | Phosphor Icons |
+| Build | Vite 8.x |
 
-```
-src/lib/
-├── components/ui/       # 34 components (Card, DataTable, Toast, Modal, etc.)
-├── components/layout/   # Navbar, Footer, AdminSidebar, AuthButtons, MobileMenu
-├── components/icons/    # Icon.svelte (Phosphor wrapper, name→component map)
-├── schemas/             # Zod v4 (signup, login, password, account, profile)
-├── stores/              # notification-store.svelte.ts (Svelte 5 runes)
-├── styles/              # svelteForge.css, tokens.css, fonts.css
-└── utils/               # cn.ts, formatters.ts, slugify.ts, theme.svelte.ts, focus-trap.ts
-src/routes/
-├── (public)/            # /login, /signup
-├── (protected)/         # /dashboard
-│   └── admin/           # /admin (sidebar), /admin/users, /admin/settings, /admin/notifications
-└── (legal)/             # /privacy, /legal
-```
+## Links
 
-Auth config, DB, hooks.server.ts, and API routes are provided by `sv` — SvelteForge does not override them.
-
-## Admin Dashboard (Full Stack)
-
-Collapsible sidebar layout with:
-- User management (DataTable, search, role filter, pagination)
-- Settings (tabbed: General, Auth, Notifications)
-- Notification system (create + manage, user bell + panel)
-
-## Tests
-
-83 tests across 11 files covering utils, schemas, stores, admin guard. Run with `npx vitest run`.
-
-## Documentation
-
-- [README.md](https://github.com/lelabdev/svelteforge/blob/main/README.md): Quick start, stack, structure
-- [AGENTS.md](https://github.com/lelabdev/svelteforge/blob/main/AGENTS.md): Full conventions, rules, gotchas for AI agents
-
-## Optional
-
-- [SvelteForge website](https://svelteforge.dev): Landing page and documentation
-- [Skeleton UI docs](https://skeleton.docs.get-skeleton.dev): Component library reference
-- [Phosphor Icons](https://phosphoricons.com): Icon set used in Icon.svelte wrapper
+- [Svelte 5 Documentation](./docs/llms-svelte.txt)
+- [Skeleton UI Documentation](./docs/llms-skeleton.txt)
+- [GitHub](https://github.com/ludoloops/svelteforge)

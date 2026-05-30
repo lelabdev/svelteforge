@@ -1,6 +1,6 @@
 import { defineAddon, defineAddonOptions } from 'sv';
-import { landingFiles, fullstackFiles } from './templates';
-import { applyLandingMode } from './modes/landing';
+import { baseFiles, fullstackFiles } from './templates';
+import { applyBaseMode } from './modes/base';
 import { applyFullstackMode } from './modes/fullstack';
 
 export default defineAddon({
@@ -14,8 +14,8 @@ export default defineAddon({
 			question: 'Which SvelteForge template?',
 			type: 'select',
 			options: [
-				{ value: 'landing', label: 'Landing Page — UI only' },
-				{ value: 'fullstack', label: 'Full Stack — dashboard + auth + DB' }
+				{ value: 'base', label: 'Base — UI kit + layouts + forms (landing, portfolio, marketing…)' },
+				{ value: 'fullstack', label: 'Full Stack — base + admin dashboard + auth + DB' }
 			]
 		})
 		.build(),
@@ -24,10 +24,10 @@ export default defineAddon({
 		if (!isKit) unsupported('SvelteForge requires SvelteKit');
 	},
 
-	run: ({ sv, options, file, directory }) => {
-		const template = options.template as 'landing' | 'fullstack';
+	run: ({ sv, options }) => {
+		const template = options.template as 'base' | 'fullstack';
 
-		// ── Shared dependencies (both templates) ──
+		// ── Shared dependencies ──
 		sv.dependency('@fontsource-variable/fira-code', 'latest');
 		sv.dependency('@fontsource-variable/inter', 'latest');
 		sv.dependency('@fontsource-variable/manrope', 'latest');
@@ -52,12 +52,10 @@ export default defineAddon({
 		sv.devDependency('tailwindcss', '^4.0.0');
 
 		// ── Apply mode-specific files ──
-		if (template === 'landing') {
-			// Derive project name from directory for __PROJECT_NAME__ replacement
-			const projectName = directory.src.split('/').slice(-2, -1)[0] || 'My App';
-			applyLandingMode(sv, landingFiles, fullstackFiles, projectName);
+		if (template === 'fullstack') {
+			applyFullstackMode(sv, baseFiles, fullstackFiles);
 		} else {
-			applyFullstackMode(sv, fullstackFiles);
+			applyBaseMode(sv, baseFiles);
 		}
 	},
 

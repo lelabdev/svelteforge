@@ -1,63 +1,37 @@
 <script lang="ts">
-	import { Tabs as SkeletonTabs } from '@skeletonlabs/skeleton-svelte';
-	import type { Snippet } from 'svelte';
+	import { cn } from '$lib/utils/cn';
 
-	interface TabItem {
-		value: string;
+	interface Tab {
 		label: string;
-		icon?: Snippet;
-		content: Snippet;
-		disabled?: boolean;
+		content: string;
 	}
 
 	interface Props {
-		tabs: TabItem[];
-		value?: string;
-		onValueChange?: (value: string) => void;
-		variant?: 'underline' | 'pills';
+		tabs: Tab[];
 		class?: string;
 	}
 
-	let {
-		tabs,
-		value = $bindable(tabs[0]?.value ?? ''),
-		onValueChange,
-		variant = 'underline',
-		class: className = ''
-	}: Props = $props();
-
-	const variantClasses: Record<string, string> = {
-		underline: '',
-		pills: 'bg-surface-100-800'
-	};
-
-	const variantStyles: Record<string, string> = {
-		underline: '',
-		pills: 'border-radius: var(--radius-tab-pills); padding: var(--tab-pills-p)'
-	};
+	let { tabs, class: className }: Props = $props();
+	let activeTab = $state(0);
 </script>
 
-{#if tabs.length > 0}
-	<SkeletonTabs {value} onValueChange={(e: { value: string }) => { value = e.value; onValueChange?.(e.value); }}>
-		<div class="{variantClasses[variant]} {className}" style="{variantStyles[variant]}">
-			<SkeletonTabs.List class="flex" style="gap: var(--gap-xs)">
-				{#each tabs as tab (tab.value)}
-					<SkeletonTabs.Trigger value={tab.value} disabled={tab.disabled}>
-						<div class="flex items-center" style="gap: var(--gap-sm); padding: var(--tab-trigger-py) var(--tab-trigger-px); font-size: var(--text-body); font-weight: var(--weight-subtitle)">
-							{#if tab.icon}{@render tab.icon()}{/if}
-							{tab.label}
-						</div>
-					</SkeletonTabs.Trigger>
-				{/each}
-			</SkeletonTabs.List>
-
-			{#each tabs as tab (tab.value)}
-				<SkeletonTabs.Content value={tab.value}>
-					<div style="padding-top: var(--space-inline)">
-						{@render tab.content()}
-					</div>
-				</SkeletonTabs.Content>
-			{/each}
-		</div>
-	</SkeletonTabs>
-{/if}
+<div class={className}>
+	<div class="flex border-b border-surface-200 dark:border-surface-800 gap-1">
+		{#each tabs as tab, i}
+			<button
+				class={cn(
+					'px-4 py-2 font-medium transition-colors rounded-t-card',
+					activeTab === i
+						? 'text-primary-600 dark:text-primary-400 border-b-2 border-primary-500'
+						: 'text-surface-500 hover:text-surface-900 dark:hover:text-surface-100'
+				)}
+				onclick={() => (activeTab = i)}
+			>
+				{tab.label}
+			</button>
+		{/each}
+	</div>
+	<div class="p-element">
+		{tabs[activeTab].content}
+	</div>
+</div>

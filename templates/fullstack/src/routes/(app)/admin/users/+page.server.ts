@@ -1,0 +1,143 @@
+import { db } from '$lib/server/db';
+import { user, account, session } from '$lib/server/db/schema';
+import { desc, eq } from 'drizzle-orm';
+import { fail, type Actions } from '@sveltejs/kit';
+import { hashPassword } from 'better-auth/crypto';
+import { isAdmin } from '$lib/server/admin';
+import { redirect } from '@sveltejs/kit';
+import type { PageServerLoad } from './$types';
+
+export const load: PageServerLoad = async ({ locals }) => {
+	if (!locals.user || !(await isAdmin(locals.user.id))) {
+		throw redirect(302, '/login');
+	}
+
+	const users = await db.select({
+		id: user.id,
+		name: user.name,
+		email: user.email,
+		emailVerified: user.emailVerified,
+		image: user.image,
+		createdAt: user.createdAt
+	}).from(user).orderBy(desc(user.createdAt));
+
+	return { users };
+};
+
+export const actions: Actions = {
+	create: async ({ request }) => {
+		const formData = await request.formData();
+		const name = formData.get('name')?.toString()?.trim();
+		const email = formData.get('email')?.toString()?.trim();
+		const password = formData.get('password')?.toString();
+
+		if (!name || !email || !password) {
+			return fail(400, { message: 'Name, email and password are required' });
+		}
+
+		if (password.length < 8) {
+			return fail(400, { message: 'Password must be at least 8 characters' });
+		}
+
+		// Check duplicate email
+		const [existing] = await db.select({ id: user.id }).from(user).where(eq(user.email, email)).limit(1);
+		if (existing) {
+			return fail(400, { message: 'Email already exists' });
+		}
+
+		// Direct DB insert to avoid signUpEmail session hijack
+		// (signUpEmail creates a session cookie that overwrites admin's session)
+		try {
+			const hashedPassword = await hashPassword(password);
+			const userId = crypto.randomUUID();
+
+			await db.insert(user).values({
+				id: userId,
+				name,
+				email,
+				emailVerified: false,
+				createdAt: new Date(),
+				updatedAt: new Date()
+			});
+
+			await db.insert(account).values({
+				id: crypto.randomUUID(),
+				userId,
+				accountId: email,
+				providerId: 'credential',
+				password: hashedPassword,
+				createdAt: new Date(),
+				updatedAt: new Date()
+			});
+		} catch (e: any) {
+			return fail(500, { message: e.message || 'Failed to create user' });
+		}
+
+		return { success: true, message: `User ${name} created` };
+	},
+
+	update: async ({ request }) => {
+		const formData = await request.formData();
+		const id = formData.get('id')?.toString();
+		const name = formData.get('name')?.toString()?.trim();
+		const email = formData.get('email')?.toString()?.trim();
+
+		if (!id || !name || !email) {
+			return fail(400, { message: 'ID, name and email are required' });
+		}
+
+		// Check email not taken by another user
+		const [existing] = await db.select({ id: user.id }).from(user).where(eq(user.email, email)).limit(1);
+		if (existing && existing.id !== id) {
+			return fail(400, { message: 'Email already taken by another user' });
+		}
+
+		await db.update(user).set({
+			name,
+			email,
+			updatedAt: new Date()
+		}).where(eq(user.id, id));
+
+		return { success: true, message: `User ${name} updated` };
+	},
+
+	delete: async ({ request, locals }) => {
+		const formData = await request.formData();
+		const id = formData.get('id')?.toString();
+
+		if (!id) {
+			return fail(400, { message: 'User ID is required' });
+		}
+
+		// Prevent self-delete
+		if (id === locals.user?.id) {
+			return fail(400, { message: 'You cannot delete your own account' });
+		}
+
+		// Delete sessions first (avoid orphan sessions)
+		await db.delete(session).where(eq(session.userId, id));
+		// Delete accounts
+		await db.delete(account).where(eq(account.userId, id));
+		// Delete user
+		await db.delete(user).where(eq(user.id, id));
+
+		return { success: true, message: 'User deleted' };
+	},
+
+	toggleVerify: async ({ request }) => {
+		const formData = await request.formData();
+		const id = formData.get('id')?.toString();
+		const verified = formData.get('verified')?.toString() === 'true';
+
+		if (!id) {
+			return fail(400, { message: 'User ID is required' });
+		}
+
+		await db.update(user).set({
+			emailVerified: !verified,
+			updatedAt: new Date()
+		}).where(eq(user.id, id));
+
+		return { success: true, message: `Email ${!verified ? 'verified' : 'unverified'}` };
+	}
+};
