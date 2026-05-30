@@ -25,7 +25,9 @@ function readDirRecursively(dir: string, baseDir: string = dir): Record<string, 
 }
 
 const baseFiles = readDirRecursively(join(__dirname, '../templates/base/src'));
-const fullstackFiles = readDirRecursively(join(__dirname, '../templates/fullstack/src'));
+const fullstackOverlay = readDirRecursively(join(__dirname, '../templates/fullstack/src'));
+// Fullstack = base + overlay (fullstack files override base if same path)
+const fullstackFiles = { ...baseFiles, ...fullstackOverlay };
 
 const basePackageJson = JSON.parse(readFileSync(join(__dirname, '../templates/base/package.json'), 'utf-8'));
 const fullstackPackageJson = JSON.parse(readFileSync(join(__dirname, '../templates/fullstack/package.json'), 'utf-8'));

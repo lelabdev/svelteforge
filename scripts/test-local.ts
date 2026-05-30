@@ -1,5 +1,6 @@
 /**
- * Test script: simulates sv add by running the addon logic and writing files to a directory.
+ * Test script: simulates sv add by copying template files to a directory.
+ * Fullstack mode = base first, then fullstack overlay on top.
  * Usage: bun scripts/test-local.ts [mode] [output-dir]
  *   mode: base (default) or fullstack
  *   output-dir: target directory (default: /tmp/sf-test)
@@ -10,7 +11,7 @@ import { join, dirname } from 'path';
 
 const mode = process.argv[2] || 'base';
 const output = process.argv[3] || '/tmp/sf-test';
-const templatesDir = join(import.meta.dirname, '..', 'templates', mode);
+const templatesDir = join(import.meta.dirname, '..', 'templates');
 
 console.log(`🧪 SvelteForge test — mode: ${mode}, output: ${output}`);
 
@@ -18,7 +19,7 @@ console.log(`🧪 SvelteForge test — mode: ${mode}, output: ${output}`);
 if (existsSync(output)) rmSync(output, { recursive: true });
 mkdirSync(output, { recursive: true });
 
-// Read templates directory recursively
+// Copy a template directory recursively into output
 function copyDir(src: string, dest: string) {
 	const items = execSync(`find "${src}" -type f`, { encoding: 'utf-8' }).trim().split('\n').filter(Boolean);
 	let count = 0;
@@ -27,7 +28,6 @@ function copyDir(src: string, dest: string) {
 		const target = join(dest, relative);
 		mkdirSync(dirname(target), { recursive: true });
 
-		// Read file content
 		const content = execSync(`cat "${item}"`, { encoding: 'utf-8' });
 		writeFileSync(target, content);
 		count++;
@@ -35,7 +35,13 @@ function copyDir(src: string, dest: string) {
 	return count;
 }
 
-const count = copyDir(templatesDir, output);
+// Always copy base first
+let count = copyDir(join(templatesDir, 'base'), output);
+
+// For fullstack, overlay on top of base
+if (mode === 'fullstack') {
+	count += copyDir(join(templatesDir, 'fullstack'), output);
+}
 
 console.log(`\n✅ ${count} files written to ${output}`);
 console.log(`\nNext steps:`);
