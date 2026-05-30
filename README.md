@@ -4,16 +4,31 @@
 
 ## Install
 
+SvelteForge is an **sv addon** — it adds UI components and templates to a SvelteKit project.
+
+### New project
+
 ```bash
-# Create a new project
+# 1. Scaffold a SvelteKit project
 npx sv create my-app --template minimal --types ts
 cd my-app
 
-# Add SvelteForge (prompts for base or fullstack)
+# 2. Add SvelteForge
+npx sv add @ludoloops/svelteforge
+
+# 3. Install dependencies and start
+npm install
+npm run dev
+```
+
+### Existing project
+
+```bash
+cd my-existing-app
 npx sv add @ludoloops/svelteforge
 ```
 
-Choose a template:
+The addon prompts for a template:
 
 - **Base** — UI components + theme + layouts (no auth/DB)
 - **Fullstack** — Base + Better Auth + Drizzle SQLite + admin dashboard
