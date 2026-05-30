@@ -1,14 +1,12 @@
 @import 'tailwindcss';
 @import '@skeletonlabs/skeleton';
-@import '@skeletonlabs/skeleton-svelte/dist/index.css';
-
-@plugin '@tailwindcss/forms';
-@plugin '@tailwindcss/typography';
-
 @import '@fontsource-variable/inter';
 @import '@fontsource-variable/space-grotesk';
 @import '@fontsource-variable/manrope';
 @import '@fontsource-variable/fira-code';
+
+@plugin '@tailwindcss/forms';
+@plugin '@tailwindcss/typography';
 
 /* === Tailwind custom utilities === */
 @theme {
