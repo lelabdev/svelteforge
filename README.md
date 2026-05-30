@@ -4,104 +4,102 @@
 
 ## Install
 
-SvelteForge is an **sv addon** — it adds UI components and templates to a SvelteKit project.
-
-### New project
-
 ```bash
-# 1. Scaffold a SvelteKit project
+# One-liner
+npx sv create my-app --template minimal --types ts --add '@ludoloops/svelteforge=template:base' --install bun
+cd my-app && bun dev
+```
+
+Or step by step:
+```bash
 npx sv create my-app --template minimal --types ts
 cd my-app
-
-# 2. Add SvelteForge
-npx sv add @ludoloops/svelteforge
-
-# 3. Install dependencies and start
-npm install
-npm run dev
+npx sv add @ludoloops/svelteforge   # prompts: base or fullstack
 ```
 
-### Existing project
-
-```bash
-cd my-existing-app
-npx sv add @ludoloops/svelteforge
-```
-
-The addon prompts for a template:
-
-- **Base** — UI components + theme + layouts (no auth/DB)
-- **Fullstack** — Base + Better Auth + Drizzle SQLite + admin dashboard
-
-## Quick Start — Base
-
-After install, you get:
+## What you get — Base
 
 - **15 UI components** — Button, Card, Badge, Avatar, Alert, Input, Select, Textarea, Checkbox, Toggle, Accordion, Tabs, Table, Breadcrumb, ThemeToggle
-- **3 layout components** — Navbar (responsive), Footer, AdminLayout (sidebar)
-- **SvelteForge theme** — custom oklch color palette (steel blue, burnt orange, soft teal)
-- **Demo page** at `/demo-ui` showcasing all components
+- **2 layout components** — Navbar (responsive), Footer
+- **SvelteForge theme** — custom oklch color palette
+- **Demo page** at `/demo-ui`
 
-## Quick Start — Fullstack
+## What you get — Fullstack
 
 Everything from Base, plus:
 
-- **Better Auth** — email/password login, session management, protected routes
-- **Drizzle + SQLite** — schema auto-generated, `drizzle-kit push` to create tables
-- **Admin dashboard** (`/admin`) — stats cards, user CRUD, settings
-- **Auth guard** — redirects to `/login` if no session
-
-### Fullstack setup
+- **Better Auth** — email/password, sessions, protected routes
+- **Drizzle + SQLite** — schema auto-generated
+- **Admin dashboard** (`/admin`) — stats, user CRUD, settings
 
 ```bash
-cp .env.example .env    # DATABASE_URL, ORIGIN, BETTER_AUTH_SECRET
-npx drizzle-kit push    # Create database tables
-npm run dev             # Start dev server
-# Visit /login and sign up — first user is admin
+cp .env.example .env && npx drizzle-kit push && bun dev
+# Visit /login — first user is admin
 ```
 
 ## Usage
 
-All components use `cn()` (clsx + tailwind-merge) and accept a `class` prop:
-
 ```svelte
 <script>
-  import { Button, Card } from '$lib/components/ui';
+  import { Button, Card, Badge, Alert } from '$lib/components/ui';
 </script>
 
-<Button variant="filled" color="primary" size="lg">
-  Get Started
-</Button>
+<Button variant="filled" color="primary" size="lg">Get Started</Button>
+<Button variant="gradient" color="primary">Gradient</Button>
+<Button variant="glass" color="secondary">Glass</Button>
+<Button loading={saving}>Saving...</Button>
+<Button href="/about">Link Button</Button>
+
+<Badge variant="tonal" color="success">Active</Badge>
 
 <Card variant="elevated">
   <h2>Hello World</h2>
 </Card>
+
+<Alert variant="success">Operation completed!</Alert>
 ```
 
-### Button Variants
+### Button Props
 
-`filled` · `outlined` · `tonal` · `ghost` · `glass` · `elevated`
-Colors: `primary` · `secondary` · `tertiary` · `success` · `warning` · `error`
+| Prop | Values | Default |
+|------|--------|---------|
+| variant | `filled` `outlined` `tonal` `ghost` `glass` `elevated` `gradient` | `filled` |
+| color | `primary` `secondary` `tertiary` `success` `warning` `error` `surface` | `primary` |
+| size | `sm` `md` `lg` | `md` |
+| loading | `boolean` | `false` |
+| disabled | `boolean` | `false` |
+| href | `string` | — (renders `<a>` tag) |
 
-### Card Variants
+### Badge Props
 
-`flat` · `elevated` · `outlined`
+| Prop | Values | Default |
+|------|--------|---------|
+| variant | `filled` `outlined` `tonal` | `filled` |
+| color | `primary` `secondary` `tertiary` `success` `warning` `error` `surface` | `primary` |
+| size | `sm` `md` `lg` | `md` |
+
+### Card Props
+
+| Prop | Values | Default |
+|------|--------|---------|
+| variant | `flat` `elevated` `outlined` | `flat` |
+
+### Alert Props
+
+| Prop | Values | Default |
+|------|--------|---------|
+| variant | `info` `success` `warning` `error` | `info` |
 
 ## Theming
 
-Colors defined as oklch CSS variables in `[data-theme='svelteForge']`. Edit `src/routes/layout.css` to change the palette.
-
-Custom Tailwind utilities via `@theme`:
-
-```css
-@theme {
-  --font-sans: 'Inter Variable', sans-serif;
-  --font-heading: 'Space Grotesk Variable', sans-serif;
-  --spacing-section: 2rem;
-  --radius-card: 0.75rem;
-  --width-container: 80rem;
-}
 ```
+src/lib/styles/
+├── index.css              ← barrel
+├── tokens.css             ← fonts, spacing, radius (@theme block)
+└── svelteforge-theme.css  ← oklch colors ([data-theme='svelteForge'])
+```
+
+Custom Tailwind utilities: `p-section`, `rounded-card`, `max-w-container`, etc.
 
 ## Stack
 
@@ -114,29 +112,11 @@ Custom Tailwind utilities via `@theme`:
 | Icons | Phosphor Icons |
 | Build | Vite 8 |
 
-## Architecture
-
-```
-templates/
-├── base/              # UI components + theme + layouts
-│   └── src/
-│       ├── lib/components/ui/      # 15 components
-│       ├── lib/components/layout/  # Navbar, Footer, AdminLayout
-│       └── routes/layout.css       # Theme + Tailwind config
-└── fullstack/         # Base + auth + DB + admin
-    └── src/
-        ├── lib/server/auth.ts      # Better Auth config
-        ├── lib/server/db/          # Drizzle schema
-        ├── routes/login/           # Login page
-        └── routes/(app)/admin/     # Dashboard, Users, Settings
-```
-
 ## Development
 
 ```bash
-bun install
-bun run build                              # prebuild + tsdown
-bun scripts/test-local.ts fullstack /tmp/test  # local test
+bun run build
+bun scripts/test-local.ts base /tmp/test
 cd /tmp/test && bun install && bun dev
 ```
 

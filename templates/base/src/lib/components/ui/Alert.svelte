@@ -11,16 +11,18 @@
 		children: Snippet;
 	}
 
-	let { variant = 'info', class: className, children, ...rest }: Props = $props();
+	let { variant = 'info', class: className = '', children, ...rest }: Props = $props();
 
-	const variants: Record<Variant, string> = {
-		info: 'alert-info',
-		success: 'alert-success',
-		warning: 'alert-warning',
-		error: 'alert-error'
+	const presets: Record<Variant, string> = {
+		info: 'preset-tonal-info',
+		success: 'preset-tonal-success',
+		warning: 'preset-tonal-warning',
+		error: 'preset-tonal-error'
 	};
+
+	let classes = $derived(cn('alert', presets[variant], className));
 </script>
 
-<div class={cn('alert', variants[variant], className)} {...rest}>
+<div class={classes} {...rest}>
 	{@render children()}
 </div>

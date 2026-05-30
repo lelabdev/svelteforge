@@ -12,7 +12,7 @@
 		class?: string;
 	}
 
-	let { items, class: className }: Props = $props();
+	let { items, class: className = '' }: Props = $props();
 </script>
 
 <nav aria-label="Breadcrumb" class={className}>
@@ -23,7 +23,7 @@
 					<CaretRight size={14} class="text-surface-400" />
 				{/if}
 				{#if item.href}
-					<a href={item.href} class="hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
+					<a href={item.href} class="hover:text-primary-500 transition-colors">
 						{item.label}
 					</a>
 				{:else}

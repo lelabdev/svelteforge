@@ -12,7 +12,7 @@
 		class?: string;
 	}
 
-	let { items, class: className }: Props = $props();
+	let { items, class: className = '' }: Props = $props();
 	let openIndex = $state<number | null>(null);
 
 	function toggle(i: number) {
@@ -20,11 +20,11 @@
 	}
 </script>
 
-<div class={cn('divide-y divide-surface-200 dark:divide-surface-800 rounded-card border border-surface-200 dark:border-surface-800', className)}>
+<div class={cn('divide-y divide-surface-200-800 rounded-card border border-surface-200-800', className)}>
 	{#each items as item, i}
 		<div>
 			<button
-				class="w-full flex items-center justify-between p-element hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors"
+				class="w-full flex items-center justify-between p-element hover:bg-surface-100-800 transition-colors"
 				onclick={() => toggle(i)}
 			>
 				<span class="font-medium">{item.title}</span>
@@ -34,7 +34,7 @@
 				/>
 			</button>
 			{#if openIndex === i}
-				<div class="px-element pb-element text-surface-600 dark:text-surface-400">
+				<div class="px-element pb-element text-surface-500-400">
 					{item.content}
 				</div>
 			{/if}

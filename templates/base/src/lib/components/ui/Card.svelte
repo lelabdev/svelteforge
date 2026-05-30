@@ -13,18 +13,20 @@
 		footer?: Snippet;
 	}
 
-	let { variant = 'flat', class: className, children, header, footer, ...rest }: Props = $props();
+	let { variant = 'flat', class: className = '', children, header, footer, ...rest }: Props = $props();
 
-	const variants: Record<Variant, string> = {
+	const variantClasses: Record<Variant, string> = {
 		flat: 'card',
 		elevated: 'card shadow-lg',
-		outlined: 'card ring-1 ring-surface-200 dark:ring-surface-800'
+		outlined: 'card ring-1 ring-surface-200-800'
 	};
+
+	let classes = $derived(cn(variantClasses[variant], 'p-element rounded-card', className));
 </script>
 
-<div class={cn(variants[variant], 'p-element rounded-card', className)} {...rest}>
+<div class={classes} {...rest}>
 	{#if header}
-		<div class="border-b border-surface-200 dark:border-surface-800 pb-3 mb-3">
+		<div class="border-b border-surface-200-800 pb-3 mb-3">
 			{@render header()}
 		</div>
 	{/if}
@@ -32,7 +34,7 @@
 	{@render children()}
 
 	{#if footer}
-		<div class="border-t border-surface-200 dark:border-surface-800 pt-3 mt-3">
+		<div class="border-t border-surface-200-800 pt-3 mt-3">
 			{@render footer()}
 		</div>
 	{/if}

@@ -6,7 +6,7 @@
 		class?: string;
 	}
 
-	let { class: className }: Props = $props();
+	let { class: className = '' }: Props = $props();
 
 	function toggle() {
 		const html = document.documentElement;
@@ -18,7 +18,7 @@
 
 <button
 	onclick={toggle}
-	class="btn preset-ghost variant-surface p-2 rounded-full"
+	class="btn hover:preset-tonal-surface p-2 rounded-full {className}"
 	aria-label="Toggle theme"
 >
 	<Sun size={18} class="dark:hidden" />

@@ -8,7 +8,7 @@
 		class?: string;
 	}
 
-	let { size = 'md', class: className, src, alt = '' }: Props = $props();
+	let { size = 'md', class: className = '', src, alt = '' }: Props = $props();
 
 	const sizes: Record<string, string> = {
 		sm: 'w-8 h-8',
@@ -20,5 +20,5 @@
 <img
 	{src}
 	{alt}
-	class={cn('rounded-full object-cover ring-2 ring-surface-200 dark:ring-surface-800', sizes[size], className)}
+	class={cn('rounded-full object-cover ring-2 ring-surface-200-800', sizes[size], className)}
 />
