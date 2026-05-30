@@ -1,173 +1,134 @@
 # SvelteForge
 
-**sv community addon** — UI/UX layer on top of `sv create`. Adds 34 production-ready components, a 3-layer theme system, admin dashboard, notification system, and Zod schemas to SvelteKit projects. Auth (better-auth) and database (Drizzle + SQLite) come from `sv` add-ons.
+**sv community addon** — SvelteKit starter templates built on Skeleton UI v4 and Tailwind CSS v4. Adds production-ready UI components, auth (Better Auth), database (Drizzle + SQLite), and admin dashboard to new SvelteKit projects.
 
 ## Install
 
 ```bash
-# Full stack (UI + auth + DB)
-sv create my-app --template minimal --types ts --add tailwindcss @ludoloops/svelteforge
-
-# Or add to an existing project
+# Create a new project
+npx sv create my-app --template minimal --types ts
 cd my-app
-sv add @ludoloops/svelteforge
+
+# Add SvelteForge (prompts for base or fullstack)
+npx sv add @ludoloops/svelteforge
 ```
 
-The addon prompts for a template mode:
+Choose a template:
 
-- **Landing Page** — UI components + theme + landing page (no auth/DB)
-- **Full Stack** — UI + dashboard + auth + DB (via sv add-ons)
+- **Base** — UI components + theme + layouts (no auth/DB)
+- **Fullstack** — Base + Better Auth + Drizzle SQLite + admin dashboard
 
-## Post-Install
+## Quick Start — Base
+
+After install, you get:
+
+- **15 UI components** — Button, Card, Badge, Avatar, Alert, Input, Select, Textarea, Checkbox, Toggle, Accordion, Tabs, Table, Breadcrumb, ThemeToggle
+- **3 layout components** — Navbar (responsive), Footer, AdminLayout (sidebar)
+- **SvelteForge theme** — custom oklch color palette (steel blue, burnt orange, soft teal)
+- **Demo page** at `/demo-ui` showcasing all components
+
+## Quick Start — Fullstack
+
+Everything from Base, plus:
+
+- **Better Auth** — email/password login, session management, protected routes
+- **Drizzle + SQLite** — schema auto-generated, `drizzle-kit push` to create tables
+- **Admin dashboard** (`/admin`) — stats cards, user CRUD, settings
+- **Auth guard** — redirects to `/login` if no session
+
+### Fullstack setup
 
 ```bash
-cd my-app
-bun dev   # → http://localhost:5173
+cp .env.example .env    # DATABASE_URL, ORIGIN, BETTER_AUTH_SECRET
+npx drizzle-kit push    # Create database tables
+npm run dev             # Start dev server
+# Visit /login and sign up — first user is admin
 ```
 
-`sv create` handles `.env` generation (auth secret, DB path). No extra setup step needed.
+## Usage
 
-## What's Included
+All components use `cn()` (clsx + tailwind-merge) and accept a `class` prop:
 
-### Full Stack Mode
+```svelte
+<script>
+  import { Button, Card } from '$lib/components/ui';
+</script>
+
+<Button variant="filled" color="primary" size="lg">
+  Get Started
+</Button>
+
+<Card variant="elevated">
+  <h2>Hello World</h2>
+</Card>
+```
+
+### Button Variants
+
+`filled` · `outlined` · `tonal` · `ghost` · `glass` · `elevated`
+Colors: `primary` · `secondary` · `tertiary` · `success` · `warning` · `error`
+
+### Card Variants
+
+`flat` · `elevated` · `outlined`
+
+## Theming
+
+Colors defined as oklch CSS variables in `[data-theme='svelteForge']`. Edit `src/routes/layout.css` to change the palette.
+
+Custom Tailwind utilities via `@theme`:
+
+```css
+@theme {
+  --font-sans: 'Inter Variable', sans-serif;
+  --font-heading: 'Space Grotesk Variable', sans-serif;
+  --spacing-section: 2rem;
+  --radius-card: 0.75rem;
+  --width-container: 80rem;
+}
+```
+
+## Stack
 
 | Layer | Technology |
 |-------|-----------|
-| Framework | **SvelteKit 2** + **Svelte 5** (runes) |
-| Styling | **Tailwind CSS v4** + **Skeleton UI v4** |
-| Auth | via **sv add-on** (better-auth — email/password, admin plugin, sessions) |
-| Database | via **sv add-on** (SQLite `libsql` + Drizzle ORM) |
-| Forms | **SuperForms v2** + **Zod v4** |
-| Rich Text | **Tiptap** — editor & preview |
-| Icons | **Phosphor** (via Icon wrapper component) |
-| Logging | **Pino** |
-| Testing | **Vitest** + `@testing-library/svelte` |
-
-### 34 UI Components
-
-All theme-aware, built on Skeleton UI v4:
-
-**Surfaces** — Card, AuthCard, Modal, Sheet, PopOver, Carousel
-**Feedback** — Toast, ErrorAlert, SuccessAlert, Loader, Progress, SkeletonLoader, NavigationLoader
-**Navigation** — Tabs, Breadcrumb, Stepper, Menu
-**Data** — DataTable, EmptyState, NotificationBadge, Badge, Avatar
-**Controls** — Button, Switch, Divider, Accordion, Tooltip, RadioGroup, SearchInput, ThemeToggle, ConfirmDialog
-**Forms** — Input, PasswordInput (with strength meter), TextArea, Select, Checkbox, FormField, SubmitButton
-**Rich Text** — RichTextEditor, RichTextPreview
-
-### Admin Dashboard (Full Stack only)
-
-Full admin area with collapsible sidebar:
-
-- **User Management** — DataTable with search, role filter, pagination, role change
-- **Settings** — Tabbed config (General, Auth, Notifications)
-- **Notifications** — Create + manage notifications for users
-- **Role Guard** — Admin-only access enforced at layout level
-
-### Theme System
-
-Three-layer theming — change the look without touching components:
-
-| Layer | File | Purpose |
-|-------|------|---------|
-| Colors | `svelteForge.css` | 7 domains × 10 shades (oklch) |
-| Spacing | `tokens.css` | 60+ semantic tokens (padding, radius, sizing, typography) |
-| Fonts | `fonts.css` | Inter, Space Grotesk, Manrope, Fira Code |
-
-**To create a theme:** copy `svelteForge.css` + `tokens.css`, change the `[data-theme]` name and values. Done. Every component adapts automatically.
-
-### What SvelteForge Adds vs. `sv create`
-
-| | `sv create` | + SvelteForge |
-|--|:-----------:|:-------------:|
-| SvelteKit + Tailwind + ESLint + Prettier | ✓ | ✓ |
-| Auth (better-auth) | ✓ (add-on) | ✓ |
-| Database (Drizzle + SQLite) | ✓ (add-on) | ✓ |
-| 34 UI components | — | ✓ |
-| 3-layer theme system | — | ✓ |
-| Layout (Navbar, Footer, MobileMenu, AuthButtons) | — | ✓ |
-| Admin dashboard (sidebar, users, settings, notifications) | — | ✓ |
-| Zod validation schemas | — | ✓ |
-| Utils (cn, formatters, theme store) | — | ✓ |
-| Tests (Vitest + testing-library) | — | ✓ |
-
-### Project Structure (Generated)
-
-```
-src/
-├── lib/
-│   ├── components/
-│   │   ├── ui/              # 34 components
-│   │   ├── layout/          # Navbar, Footer, AuthButtons, MobileMenu, AdminSidebar
-│   │   └── icons/           # Phosphor wrapper (Icon.svelte)
-│   ├── schemas/             # Zod v4 validation
-│   ├── stores/              # notification-store.svelte.ts
-│   ├── styles/              # Theme + tokens + fonts
-│   └── utils/               # cn, formatters, theme store
-├── routes/
-│   ├── (public)/            # login, signup
-│   ├── (protected)/         # dashboard
-│   │   └── admin/           # sidebar layout, users, settings, notifications
-│   └── (legal)/             # privacy, legal
-└── tests-setup.ts           # Vitest + jest-dom setup
-```
-
-Auth config, DB connection, Drizzle schemas, `hooks.server.ts`, and API routes are provided by `sv` — SvelteForge does not override them.
-
-## Modes
-
-| Mode | UI + Forms | Auth + DB |
-|------|:----------:|:---------:|
-| **Full Stack** (default) | ✓ | ✓ (via sv) |
-| **Landing Page** | ✓ | ✗ |
+| Framework | SvelteKit 2 + Svelte 5 (runes) |
+| Styling | Tailwind CSS v4 + Skeleton UI v4 |
+| Auth | Better Auth |
+| Database | Drizzle ORM + libsql (SQLite) |
+| Icons | Phosphor Icons |
+| Build | Vite 8 |
 
 ## Architecture
 
-SvelteForge is an **sv community addon**. It uses the `sv` addon API (`defineAddon`, `sv.dependency()`, `sv.file()`) to inject files and dependencies into the user's project.
-
 ```
-svelteforge/                  ← this repo (addon package)
-├── src/
-│   ├── index.ts              ← defineAddon() entry point
-│   ├── templates.ts          ← auto-generated (file contents as JSON)
-│   └── modes/
-│       ├── fullstack.ts      ← fullstack file injection logic
-│       └── landing.ts        ← landing file injection + filtering
-├── templates/
-│   ├── fullstack/            ← fullstack mode source files
-│   └── landing/              ← landing mode source files
-├── scripts/
-│   └── prebuild.ts           ← reads templates/ → generates src/templates.ts
-├── tsdown.config.ts          ← bundler (bundles everything into dist/index.js)
-├── package.json              ← @ludoloops/svelteforge
-├── AGENTS.md
-└── README.md
+templates/
+├── base/              # UI components + theme + layouts
+│   └── src/
+│       ├── lib/components/ui/      # 15 components
+│       ├── lib/components/layout/  # Navbar, Footer, AdminLayout
+│       └── routes/layout.css       # Theme + Tailwind config
+└── fullstack/         # Base + auth + DB + admin
+    └── src/
+        ├── lib/server/auth.ts      # Better Auth config
+        ├── lib/server/db/          # Drizzle schema
+        ├── routes/login/           # Login page
+        └── routes/(app)/admin/     # Dashboard, Users, Settings
 ```
-
-### Build pipeline
-
-1. `bun run prebuild` — reads `templates/` directories, inlines all file contents into `src/templates.ts`
-2. `tsdown` — bundles `src/index.ts` + modes + templates into a single `dist/index.js`
-3. Published on npm as `@ludoloops/svelteforge`
 
 ## Development
 
 ```bash
-# Build the addon
-bun run build
-
-# Test locally with bun link
-bun link
-mkdir /tmp/test-app && cd /tmp/test-app
-sv create my-app --template minimal --types ts --add tailwindcss @ludoloops/svelteforge
-cd my-app
-bun dev
+bun install
+bun run build                              # prebuild + tsdown
+bun scripts/test-local.ts fullstack /tmp/test  # local test
+cd /tmp/test && bun install && bun dev
 ```
 
-## Requirements
+## Links
 
-- [Bun](https://bun.sh) >= 1.0.0
-- [sv](https://github.com/sveltejs/cli) >= 0.13.0
+- [npm](https://www.npmjs.com/package/@ludoloops/svelteforge)
+- [GitHub](https://github.com/ludoloops/svelteforge)
 
 ## License
 
