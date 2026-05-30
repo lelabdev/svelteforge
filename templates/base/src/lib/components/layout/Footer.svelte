@@ -31,7 +31,7 @@
 		</div>
 
 		<div class="mt-section pt-3 border-t border-surface-200-800 text-sm text-surface-500">
-			&copy; {new Date().getFullYear()} SvelteForge. All rights reserved.
+			&copy; {new Date().getFullYear()} SVForge. All rights reserved.
 		</div>
 	</div>
 </footer>

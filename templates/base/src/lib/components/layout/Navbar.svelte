@@ -3,6 +3,7 @@
 	import type { Snippet } from 'svelte';
 	import type { HTMLAttributes } from 'svelte/elements';
 	import ThemeToggle from '$lib/components/ui/ThemeToggle.svelte';
+	import Logo from '$lib/components/ui/Logo.svelte';
 	import Menu from 'phosphor-svelte/lib/List';
 	import X from 'phosphor-svelte/lib/X';
 
@@ -19,11 +20,11 @@
 <nav class={cn('sticky top-0 z-50 bg-surface-50-950/80 backdrop-blur-md border-b border-surface-200-800', className)} {...rest}>
 	<div class="max-w-container mx-auto flex items-center justify-between px-element py-3">
 		<!-- Brand -->
-		<a href="/" class="text-xl font-heading font-bold text-primary-500">
+		<a href="/" class="text-xl font-bold">
 			{#if brand}
 				{@render brand()}
 			{:else}
-				SvelteForge
+				<Logo />
 			{/if}
 		</a>
 
