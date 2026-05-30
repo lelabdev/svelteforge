@@ -11,29 +11,28 @@
 
 	let isDark = $state(true);
 
+	function applyMode(dark: boolean) {
+		const mode = dark ? 'dark' : 'light';
+		document.documentElement.setAttribute('data-mode', mode);
+		document.documentElement.style.colorScheme = mode;
+	}
+
 	onMount(() => {
 		const stored = localStorage.getItem('theme-mode');
-		if (stored === 'light') {
-			isDark = false;
-			document.documentElement.setAttribute('data-mode', 'light');
-			document.documentElement.style.colorScheme = 'light';
+		if (stored) {
+			// User has a manual preference
+			isDark = stored === 'dark';
 		} else {
-			isDark = true;
-			document.documentElement.setAttribute('data-mode', 'dark');
-			document.documentElement.style.colorScheme = 'dark';
+			// Follow system
+			isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
 		}
+		applyMode(isDark);
 	});
 
 	function toggle() {
 		isDark = !isDark;
-		const mode = isDark ? 'dark' : 'light';
-		document.documentElement.setAttribute('data-mode', mode);
-		document.documentElement.style.colorScheme = mode;
-		if (mode === 'light') {
-			localStorage.setItem('theme-mode', 'light');
-		} else {
-			localStorage.removeItem('theme-mode');
-		}
+		applyMode(isDark);
+		localStorage.setItem('theme-mode', isDark ? 'dark' : 'light');
 	}
 </script>
 

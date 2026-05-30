@@ -43,9 +43,6 @@
 			<Button variant="outlined">Outlined</Button>
 			<Button variant="tonal">Tonal</Button>
 			<Button variant="ghost">Ghost</Button>
-			<Button variant="glass">Glass</Button>
-			<Button variant="elevated">Elevated</Button>
-			<Button variant="gradient">Gradient</Button>
 		</div>
 		<h3 class="text-lg font-heading">Sizes</h3>
 		<div class="flex flex-wrap gap-3 items-center">

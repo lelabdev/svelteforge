@@ -1,27 +1,32 @@
-# SvelteForge
+# SVForge
 
 **sv community addon** — SvelteKit starter templates built on Skeleton UI v4 and Tailwind CSS v4. Adds production-ready UI components, auth (Better Auth), database (Drizzle + SQLite), and admin dashboard to new SvelteKit projects.
 
 ## Install
 
 ```bash
-# One-liner
-npx sv create my-app --template minimal --types ts --add '@ludoloops/svelteforge=template:base' --install bun
+# Base template
+bunx sv create my-app --template minimal --types ts --add svforge --install bun
 cd my-app && bun dev
+
+# Fullstack template (auth + DB + admin)
+bunx sv create my-app --template minimal --types ts --add 'svforge=template:fullstack' --install bun
+cd my-app && cp .env.example .env && bunx drizzle-kit push && bun dev
 ```
 
 Or step by step:
 ```bash
-npx sv create my-app --template minimal --types ts
+bunx sv create my-app --template minimal --types ts
 cd my-app
-npx sv add @ludoloops/svelteforge   # prompts: base or fullstack
+bunx sv add svforge   # prompts: base or fullstack
 ```
 
 ## What you get — Base
 
 - **15 UI components** — Button, Card, Badge, Avatar, Alert, Input, Select, Textarea, Checkbox, Toggle, Accordion, Tabs, Table, Breadcrumb, ThemeToggle
 - **2 layout components** — Navbar (responsive), Footer
-- **SvelteForge theme** — custom oklch color palette
+- **SVForge theme** — custom oklch color palette
+- **Dark/light mode** — auto-detects system preference, manual toggle
 - **Demo page** at `/demo-ui`
 
 ## What you get — Fullstack
@@ -31,10 +36,11 @@ Everything from Base, plus:
 - **Better Auth** — email/password, sessions, protected routes
 - **Drizzle + SQLite** — schema auto-generated
 - **Admin dashboard** (`/admin`) — stats, user CRUD, settings
+- **Setup page** (`/setup`) — dev-only, create first admin user
 
 ```bash
-cp .env.example .env && npx drizzle-kit push && bun dev
-# Visit /login — first user is admin
+cp .env.example .env && bunx drizzle-kit push && bun dev
+# Visit /setup to create your admin, then /login
 ```
 
 ## Usage
@@ -45,8 +51,7 @@ cp .env.example .env && npx drizzle-kit push && bun dev
 </script>
 
 <Button variant="filled" color="primary" size="lg">Get Started</Button>
-<Button variant="gradient" color="primary">Gradient</Button>
-<Button variant="glass" color="secondary">Glass</Button>
+<Button variant="tonal" color="success">Tonal</Button>
 <Button loading={saving}>Saving...</Button>
 <Button href="/about">Link Button</Button>
 
@@ -63,7 +68,7 @@ cp .env.example .env && npx drizzle-kit push && bun dev
 
 | Prop | Values | Default |
 |------|--------|---------|
-| variant | `filled` `outlined` `tonal` `ghost` `glass` `elevated` `gradient` | `filled` |
+| variant | `filled` `outlined` `tonal` `ghost` | `filled` |
 | color | `primary` `secondary` `tertiary` `success` `warning` `error` `surface` | `primary` |
 | size | `sm` `md` `lg` | `md` |
 | loading | `boolean` | `false` |
@@ -122,8 +127,9 @@ cd /tmp/test && bun install && bun dev
 
 ## Links
 
-- [npm](https://www.npmjs.com/package/@ludoloops/svelteforge)
-- [GitHub](https://github.com/ludoloops/svelteforge)
+- [npm](https://www.npmjs.com/package/svforge)
+- [GitHub](https://github.com/lelabdev/svforge)
+- [Org](https://www.npmjs.com/org/svforge)
 
 ## License
 
