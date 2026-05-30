@@ -10,6 +10,8 @@
 @plugin '@tailwindcss/forms';
 @plugin '@tailwindcss/typography';
 
+@custom-variant dark (&:where([data-mode=dark], [data-mode=dark] *));
+
 h1, h2, h3, h4, h5, h6 {
 	font-family: var(--font-heading);
 }
