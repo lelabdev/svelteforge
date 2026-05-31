@@ -7,13 +7,56 @@ SvelteForge is a `sv` community addon that scaffolds SvelteKit projects with a p
 ## Architecture
 
 ```
-templates/base/          → Base template (all UI components, layouts, theme)
-templates/fullstack/     → Fullstack overlay (auth, admin, DB) — TODO: rebuild
+templates/base/          → Base template (essential UI components, layouts, theme)
+templates/fullstack/     → Fullstack overlay (auth, admin, DB)
 src/modes/base.ts        → Applies base template files via sv.file()
 src/modes/fullstack.ts   → Applies base + fullstack overlay
 src/index.ts             → Addon entry point
 scripts/prebuild.ts      → Generates src/templates.ts from template directories
 ```
+
+## File Structure (generated project)
+
+```
+src/lib/components/
+├── svforge/                ← all SVForge modules (namespaced)
+│   ├── ui/                ← UI components, flat (no subfolders)
+│   │   ├── Button.svelte  ← comes with base
+│   │   ├── Card.svelte
+│   │   ├── Badge.svelte
+│   │   ├── Toast.svelte   ← added by @svforge/ui_toast
+│   │   ├── Modal.svelte   ← added by @svforge/ui_modal
+│   │   └── ...            ← each atomic component = separate npm package
+│   ├── tiptap/            ← added by @svforge/tiptap
+│   ├── charts/            ← added by @svforge/charts
+│   └── ...
+└── ...                    ← user's own components (safe to modify)
+```
+
+- `svforge/` = installed modules. Modules import from here.
+- `ui/` is flat. Each atomic component installed separately.
+- Complex modules (tiptap, charts) get their own folder.
+- User can modify colors/presets in svforge/ files, but structure stays intact.
+- If something breaks after modifying svforge/, user knows why.
+
+## Module Architecture
+
+Each module is an npm package installable via `sv add`. Files are copied into the project (shadcn model).
+
+| Package | What it adds |
+|---------|-------------|
+| `svforge` | Base: essential UI + SEO + layouts + theme |
+| `@svforge/ui_toast` | Toast.svelte (atomic) |
+| `@svforge/ui_modal` | Modal.svelte (atomic) |
+| `@svforge/ui_file-upload` | FileUpload.svelte (atomic) |
+| `@svforge/fullstack` | Auth + DB + admin dashboard |
+| `@svforge/tiptap` | Rich text editor |
+| `@svforge/charts` | Charts via LayerChart |
+| `@svforge/data-table` | Sorting, filtering, pagination |
+| `@svforge/dnd` | Drag & drop |
+| `@svforge/command-palette` | Cmd+K keyboard launcher |
+| `@svforge/blog` | Fullstack + tiptap + posts + writer roles |
+| `@svforge/ecommerce` | Fullstack + tiptap + products + cart |
 
 ## Commands
 
@@ -37,7 +80,7 @@ cd /tmp/sf-test && bun install && bun dev
 - **`cn()` + `class` prop** on every component for class merging/override
 - **`HTMLAttributes<T>`** from `svelte/elements` for extending native HTML attributes
 - **`$bindable()`** for two-way binding (value, checked) — must be declared in the Props interface
-- **Minimal variants** — Button keeps 6 variants × 6 colors, Card has 3, rest is flexible via `class`
+- **Minimal variants** — Button has 4 variants (filled, outlined, tonal, ghost) × 7 colors, Card has 3, rest is flexible via `class`
 - **Phosphor icons** — import from `phosphor-svelte/lib/IconName` (no `.svelte` extension)
 
 ## Theme
