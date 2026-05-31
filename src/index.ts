@@ -1,5 +1,5 @@
 import { defineAddon, defineAddonOptions } from 'sv';
-import { baseFiles, fullstackFiles } from './templates';
+import { baseFiles, fullstackFiles, toastFiles } from './templates';
 import { applyBaseMode } from './modes/base';
 import { applyFullstackMode } from './modes/fullstack';
 
@@ -19,6 +19,14 @@ export default defineAddon({
 				{ value: 'fullstack', label: 'Full Stack — base + admin dashboard + auth + DB' }
 			]
 		})
+		.add('extras', {
+			question: 'Extra modules to include?',
+			type: 'multiselect',
+			default: [],
+			options: [
+				{ value: 'toast', label: 'Toast — notification toasts (success, error, warning, info)' }
+			]
+		})
 		.build(),
 
 	setup: ({ unsupported, isKit }) => {
@@ -27,6 +35,7 @@ export default defineAddon({
 
 	run: ({ sv, options }) => {
 		const template = options.template as 'base' | 'fullstack';
+		const extras = (options.extras as string[]) ?? [];
 
 		// ── Shared dependencies ──
 		sv.dependency('@fontsource-variable/fira-code', 'latest');
@@ -70,6 +79,13 @@ export default defineAddon({
 			applyFullstackMode(sv, baseFiles, fullstackFiles);
 		} else {
 			applyBaseMode(sv, baseFiles);
+		}
+
+		// ── Apply extras ──
+		if (extras.includes('toast')) {
+			for (const [src, dest] of Object.entries(toastFiles)) {
+				sv.file(dest, () => src);
+			}
 		}
 	},
 
