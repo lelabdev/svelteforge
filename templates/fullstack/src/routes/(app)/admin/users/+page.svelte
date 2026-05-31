@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
 	import { page } from '$app/stores';
-	import { Button, Badge, Input, Card, AvatarInitial, Feedback } from '$lib/components/ui';
+	import { Button, Badge, Input, Card, AvatarInitial, Feedback } from '$lib/components/svforge/ui';
 	import UserPlus from 'phosphor-svelte/lib/UserPlus';
 	import Trash from 'phosphor-svelte/lib/Trash';
 	import Pencil from 'phosphor-svelte/lib/Pencil';

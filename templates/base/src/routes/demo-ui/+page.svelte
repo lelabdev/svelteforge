@@ -2,7 +2,7 @@
 	import {
 		Accordion, Alert, Avatar, Badge, Breadcrumb, Button, Card,
 		Checkbox, Input, Select, Table, Tabs, Textarea, ThemeToggle, Toggle
-	} from '$lib/components/ui';
+	} from '$lib/components/svforge/ui';
 	import { Navbar } from '$lib/components/layout';
 	import { Footer } from '$lib/components/layout';
 

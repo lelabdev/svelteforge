@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Button, Card } from '$lib/components/ui';
+	import { Button, Card } from '$lib/components/svforge/ui';
 </script>
 
 <svelte:head>

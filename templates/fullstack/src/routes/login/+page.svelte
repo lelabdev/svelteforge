@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { goto } from '$app/navigation';
-	import { Button, Input, Card } from '$lib/components/ui';
-	import ThemeToggle from '$lib/components/ui/ThemeToggle.svelte';
+	import { Button, Input, Card } from '$lib/components/svforge/ui';
+	import ThemeToggle from '$lib/components/svforge/ui/ThemeToggle.svelte';
 	import type { ActionData } from './$types';
 
 	let { form }: { form: ActionData } = $props();

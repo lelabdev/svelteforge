@@ -8,7 +8,7 @@
 	import SignOut from 'phosphor-svelte/lib/SignOut';
 	import Menu from 'phosphor-svelte/lib/List';
 	import X from 'phosphor-svelte/lib/X';
-	import ThemeToggle from '$lib/components/ui/ThemeToggle.svelte';
+	import ThemeToggle from '$lib/components/svforge/ui/ThemeToggle.svelte';
 
 	type NavItem = { href: string; label: string; icon: typeof ChartBar };
 
