@@ -24,14 +24,14 @@
 						return `<strong>${acc}</strong>`;
 					case 'italic':
 						return `<em>${acc}</em>`;
+					case 'underline':
+						return `<u>${acc}</u>`;
 					case 'strike':
 						return `<s>${acc}</s>`;
 					case 'code':
 						return `<code>${acc}</code>`;
 					case 'link':
 						return `<a href="${mark.attrs?.href || '#'}" target="${mark.attrs?.target || '_blank'}">${acc}</a>`;
-					case 'gradient':
-						return `<span class="text-transparent bg-clip-text bg-gradient-to-r from-primary-300 via-primary-400 to-primary-500">${acc}</span>`;
 					default:
 						return acc;
 				}

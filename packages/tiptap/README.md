@@ -36,29 +36,52 @@ bunx sv add @svforge/tiptap
 <TiptapPreview content={savedContent} />
 ```
 
-### Custom extensions
+### Editor + Preview side by side
+
+```svelte
+<script>
+  import { TiptapEditor, TiptapPreview } from '$lib/components/svforge/tiptap';
+  import type { JSONContent } from '@tiptap/core';
+
+  let content = $state<JSONContent>({
+    type: 'doc',
+    content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Start writing...' }] }]
+  });
+</script>
+
+<div class="grid grid-cols-2 gap-4">
+  <TiptapEditor content={content} onUpdate={(json) => content = json} />
+  <TiptapPreview content={content} />
+</div>
+```
+
+## Storage
+
+Tiptap content is JSON (`JSONContent`). Save it as-is in your database:
 
 ```ts
-import { Gradient, VisualHeading } from '$lib/components/svforge/tiptap/tiptap-extensions';
-// Use in your own Tiptap setup
+// Save to DB
+await db.insert(posts).values({ content: JSON.stringify(content) });
+
+// Load from DB
+const content = JSON.parse(row.content) as JSONContent;
 ```
+
+## Toolbar buttons
+
+Bold, Italic, Underline, Strikethrough, H1-H3, Bullet list, Ordered list, Blockquote, Code block, Link.
 
 ## What's included
 
-- `TiptapEditor.svelte` — full editor with toolbar (bold, italic, gradient, headings)
+- `TiptapEditor.svelte` — full editor with toolbar
 - `TiptapToolbar.svelte` — formatting toolbar
 - `TiptapPreview.svelte` — lightweight JSON→HTML renderer (no editor loaded)
-- `tiptap-extensions.ts` — Gradient mark + VisualHeading node
+- `tiptap-extensions.ts` — VisualHeading node
 
 ## Dependencies
 
 - `@tiptap/core` — editor engine
 - `@tiptap/starter-kit` — bold, italic, lists, code, blockquote, etc.
+- `@tiptap/extension-underline` — underline formatting
+- `@tiptap/extension-link` — link support
 - `@skeletonlabs/skeleton-svelte` >= 4.0.0 (peer)
-
-## Features
-
-- Dynamic import — editor loads lazily, no SSR issues
-- Gradient text mark — apply gradient colors to any text
-- Visual headings — styled headings without affecting document outline
-- Skeleton v4 color tokens — adapts to light/dark mode automatically

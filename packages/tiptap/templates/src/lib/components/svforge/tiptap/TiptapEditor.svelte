@@ -21,21 +21,32 @@
 		if (!browser) return;
 
 		try {
-			const [coreModule, starterKitModule, extensionsModule] = await Promise.all([
+			const [
+				coreModule,
+				starterKitModule,
+				underlineModule,
+				linkModule,
+				extensionsModule
+			] = await Promise.all([
 				import('@tiptap/core'),
 				import('@tiptap/starter-kit'),
+				import('@tiptap/extension-underline'),
+				import('@tiptap/extension-link'),
 				import('./tiptap-extensions')
 			]);
 
 			const EditorClass = coreModule.Editor;
 			const StarterKit = starterKitModule.default;
-			const { Gradient, VisualHeading } = extensionsModule;
+			const Underline = underlineModule.default;
+			const Link = linkModule.default;
+			const { VisualHeading } = extensionsModule;
 
 			editorInstance = new EditorClass({
 				element: editorElement,
 				extensions: [
 					StarterKit.configure({ heading: false }),
-					Gradient,
+					Underline,
+					Link.configure({ openOnClick: false }),
 					VisualHeading
 				],
 				content: content,
@@ -65,9 +76,20 @@
 	const actions = {
 		toggleBold: () => editorInstance?.chain().focus().toggleBold().run(),
 		toggleItalic: () => editorInstance?.chain().focus().toggleItalic().run(),
-		toggleGradient: () => editorInstance?.chain().focus().toggleGradient().run(),
+		toggleUnderline: () => editorInstance?.chain().focus().toggleUnderline().run(),
+		toggleStrike: () => editorInstance?.chain().focus().toggleStrike().run(),
+		toggleBulletList: () => editorInstance?.chain().focus().toggleBulletList().run(),
+		toggleOrderedList: () => editorInstance?.chain().focus().toggleOrderedList().run(),
+		toggleBlockquote: () => editorInstance?.chain().focus().toggleBlockquote().run(),
+		toggleCode: () => editorInstance?.chain().focus().toggleCodeBlock().run(),
 		setHeading: (level: 1 | 2 | 3) =>
 			editorInstance?.chain().focus().toggleVisualHeading({ level }).run(),
+		setLink: () => {
+			const url = window.prompt('URL:');
+			if (url) {
+				editorInstance?.chain().focus().setLink({ href: url }).run();
+			}
+		},
 		isActive: (type: string, attrs?: Record<string, unknown>) =>
 			editorInstance?.isActive(type, attrs) ?? false
 	};
@@ -79,7 +101,13 @@
 		isActive={actions.isActive}
 		onToggleBold={actions.toggleBold}
 		onToggleItalic={actions.toggleItalic}
-		onToggleGradient={actions.toggleGradient}
+		onToggleUnderline={actions.toggleUnderline}
+		onToggleStrike={actions.toggleStrike}
+		onToggleBulletList={actions.toggleBulletList}
+		onToggleOrderedList={actions.toggleOrderedList}
+		onToggleBlockquote={actions.toggleBlockquote}
+		onToggleCode={actions.toggleCode}
+		onSetLink={actions.setLink}
 		onSetHeading={actions.setHeading}
 	/>
 

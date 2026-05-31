@@ -15,7 +15,9 @@
 	],
 	"dependencies": {
 		"@tiptap/core": "latest",
-		"@tiptap/starter-kit": "latest"
+		"@tiptap/starter-kit": "latest",
+		"@tiptap/extension-underline": "latest",
+		"@tiptap/extension-link": "latest"
 	},
 	"peerDependencies": {
 		"@skeletonlabs/skeleton-svelte": ">=4.0.0"

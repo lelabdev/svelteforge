@@ -1,70 +1,7 @@
 /**
  * SVForge Tiptap Extensions
  */
-import { Mark, Node, mergeAttributes } from '@tiptap/core';
-
-// ============================================================
-// Gradient Mark - Text with gradient colors
-// ============================================================
-
-export interface GradientOptions {
-	HTMLAttributes: Record<string, string>;
-}
-
-declare module '@tiptap/core' {
-	interface Commands<ReturnType> {
-		gradient: {
-			setGradient: () => ReturnType;
-			unsetGradient: () => ReturnType;
-			toggleGradient: () => ReturnType;
-		};
-	}
-}
-
-export const Gradient = Mark.create<GradientOptions>({
-	name: 'gradient',
-
-	addOptions() {
-		return {
-			HTMLAttributes: {
-				class:
-					'text-transparent bg-clip-text bg-gradient-to-r from-primary-300 via-primary-400 to-primary-500'
-			}
-		};
-	},
-
-	parseHTML() {
-		return [{ tag: 'span[data-gradient]' }];
-	},
-
-	renderHTML({ HTMLAttributes }) {
-		return [
-			'span',
-			mergeAttributes(this.options.HTMLAttributes, HTMLAttributes, { 'data-gradient': '' }),
-			0
-		];
-	},
-
-	addCommands() {
-		return {
-			setGradient:
-				() =>
-				({ commands }) => {
-					return commands.setMark(this.name);
-				},
-			unsetGradient:
-				() =>
-				({ commands }) => {
-					return commands.unsetMark(this.name);
-				},
-			toggleGradient:
-				() =>
-				({ commands }) => {
-					return commands.toggleMark(this.name);
-				}
-		};
-	}
-});
+import { Node, mergeAttributes } from '@tiptap/core';
 
 // ============================================================
 // Visual Heading - Non-semantic heading (span with class)
