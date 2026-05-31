@@ -1,6 +1,6 @@
 {
 	"name": "svforge",
-	"version": "1.0.2",
+	"version": "1.1.0",
 	"type": "module",
 	"description": "sv community addon — SvelteKit starter templates with Skeleton UI, Tailwind CSS, Better Auth, and Drizzle ORM",
 	"author": "Ludo (https://lelab.dev)",
