@@ -5,8 +5,11 @@ on:
     branches: [prod]
   workflow_dispatch:
 
+permissions:
+  id-token: write
+
 jobs:
-  publish:
+  publish-latest:
     runs-on: self-hosted
 
     steps:
@@ -16,6 +19,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
+          registry-url: https://registry.npmjs.org
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -40,22 +44,22 @@ jobs:
       - name: Run tests
         run: bun x vitest run
 
-      - name: Publish svforge
+      - name: Publish svforge@latest
         run: cd packages/svforge && npm publish --access public --ignore-scripts
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: Publish ui_toast
+      - name: Publish ui_toast@latest
         run: cd packages/ui_toast && npm publish --access public --ignore-scripts
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: Publish dnd
+      - name: Publish dnd@latest
         run: cd packages/dnd && npm publish --access public --ignore-scripts
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: Publish tiptap
+      - name: Publish tiptap@latest
         run: cd packages/tiptap && npm publish --access public --ignore-scripts
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
