@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    runs-on: self-hosted
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile --ignore-scripts
+
+      - name: Build svforge
+        run: cd packages/svforge && bun run build
+
+      - name: Build ui_toast
+        run: cd packages/ui_toast && bun run prebuild && bun x tsdown
+
+      - name: Build dnd
+        run: cd packages/dnd && bun run prebuild && bun x tsdown
+
+      - name: Build tiptap
+        run: cd packages/tiptap && bun run prebuild && bun x tsdown
+
+      - name: Run tests
+        run: bun x vitest run
