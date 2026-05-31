@@ -1,13 +1,13 @@
 /**
- * Apply Fullstack mode files via sv.file()
- * Fullstack = base + admin/auth/DB routes + testing
+ * Apply Dashboard mode files via sv.file()
+ * Dashboard = base + admin dashboard + auth + DB
  */
-export function applyFullstackMode(
+export function applyDashboardMode(
 	sv: any,
 	baseFiles: Record<string, string>,
-	fullstackFiles: Record<string, string>
+	dashboardFiles: Record<string, string>
 ): void {
-	// Fullstack-specific devDeps for testing
+	// Dashboard-specific devDeps for testing
 	sv.devDependency('@testing-library/jest-dom', '^6.9.1');
 	sv.devDependency('@testing-library/svelte', '^5.3.1');
 	sv.devDependency('jsdom', '^29.1.1');
@@ -18,8 +18,8 @@ export function applyFullstackMode(
 		sv.file(`src${path}`, () => content);
 	}
 
-	// Then overlay fullstack-specific files (routes, admin components)
-	for (const [path, content] of Object.entries(fullstackFiles)) {
+	// Then overlay dashboard-specific files (routes, admin components)
+	for (const [path, content] of Object.entries(dashboardFiles)) {
 		sv.file(`src${path}`, () => content);
 	}
 }

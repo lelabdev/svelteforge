@@ -1,7 +1,7 @@
 import { defineAddon, defineAddonOptions } from 'sv';
-import { baseFiles, fullstackFiles } from './templates';
+import { baseFiles, dashboardFiles } from './templates';
 import { applyBaseMode } from './modes/base';
-import { applyFullstackMode } from './modes/fullstack';
+import { applyDashboardMode } from './modes/dashboard';
 
 export default defineAddon({
 	id: 'svelteforge',
@@ -16,7 +16,7 @@ export default defineAddon({
 			default: 'base',
 			options: [
 				{ value: 'base', label: 'Base — UI kit + layouts + forms (landing, portfolio, marketing…)' },
-				{ value: 'fullstack', label: 'Full Stack — base + admin dashboard + auth + DB' }
+				{ value: 'dashboard', label: 'Dashboard — base + admin dashboard + auth + DB' }
 			]
 		})
 		.build(),
@@ -26,7 +26,7 @@ export default defineAddon({
 	},
 
 	run: ({ sv, options }) => {
-		const template = options.template as 'base' | 'fullstack';
+		const template = options.template as 'base' | 'dashboard';
 
 		// ── Shared dependencies ──
 		sv.dependency('@fontsource-variable/fira-code', 'latest');
@@ -57,8 +57,8 @@ export default defineAddon({
 		});
 
 		// ── Apply mode-specific files ──
-		if (template === 'fullstack') {
-			applyFullstackMode(sv, baseFiles, fullstackFiles);
+		if (template === 'dashboard') {
+			applyDashboardMode(sv, baseFiles, dashboardFiles);
 		} else {
 			applyBaseMode(sv, baseFiles);
 		}

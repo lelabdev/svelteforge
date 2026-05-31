@@ -25,15 +25,15 @@ function readDirRecursively(dir: string, baseDir: string = dir): Record<string, 
 }
 
 const baseFiles = readDirRecursively(join(__dirname, '../templates/base/src'));
-const fullstackOverlay = readDirRecursively(join(__dirname, '../templates/fullstack/src'));
-// Fullstack = base + overlay (fullstack files override base if same path)
-const fullstackFiles = { ...baseFiles, ...fullstackOverlay };
+const dashboardOverlay = readDirRecursively(join(__dirname, '../templates/dashboard/src'));
+// Dashboard = base + overlay (dashboard files override base if same path)
+const dashboardFiles = { ...baseFiles, ...dashboardOverlay };
 
 const basePackageJson = JSON.parse(readFileSync(join(__dirname, '../templates/base/package.json'), 'utf-8'));
-const fullstackPackageJson = JSON.parse(readFileSync(join(__dirname, '../templates/fullstack/package.json'), 'utf-8'));
+const dashboardPackageJson = JSON.parse(readFileSync(join(__dirname, '../templates/dashboard/package.json'), 'utf-8'));
 
 const baseViteConfig = readFileSync(join(__dirname, '../templates/base/vite.config.ts'), 'utf-8');
-const fullstackViteConfig = readFileSync(join(__dirname, '../templates/fullstack/vite.config.ts'), 'utf-8');
+const dashboardViteConfig = readFileSync(join(__dirname, '../templates/dashboard/vite.config.ts'), 'utf-8');
 
 // Write to a TypeScript file that exports everything
 const output = `// AUTO-GENERATED - DO NOT EDIT
@@ -41,19 +41,19 @@ const output = `// AUTO-GENERATED - DO NOT EDIT
 
 export const baseFiles = ${JSON.stringify(baseFiles, null, 2)};
 
-export const fullstackFiles = ${JSON.stringify(fullstackFiles, null, 2)};
+export const dashboardFiles = ${JSON.stringify(dashboardFiles, null, 2)};
 
 export const basePackageJson = ${JSON.stringify(basePackageJson, null, 2)};
 
-export const fullstackPackageJson = ${JSON.stringify(fullstackPackageJson, null, 2)};
+export const dashboardPackageJson = ${JSON.stringify(dashboardPackageJson, null, 2)};
 
 export const baseViteConfig = ${JSON.stringify(baseViteConfig, null, 2)};
 
-export const fullstackViteConfig = ${JSON.stringify(fullstackViteConfig, null, 2)};
+export const dashboardViteConfig = ${JSON.stringify(dashboardViteConfig, null, 2)};
 `;
 
 writeFileSync(join(__dirname, '../src/templates.ts'), output);
 
 console.log('✅ Generated src/templates.ts');
 console.log(`   ${Object.keys(baseFiles).length} base files`);
-console.log(`   ${Object.keys(fullstackFiles).length} fullstack files`);
+console.log(`   ${Object.keys(dashboardFiles).length} dashboard files`);

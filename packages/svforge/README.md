@@ -10,7 +10,7 @@ bunx sv create my-app --template minimal --types ts --add svforge --install bun
 cd my-app && bun dev
 
 # Fullstack template (auth + DB + admin)
-bunx sv create my-app --template minimal --types ts --add 'svforge=template:fullstack' --install bun
+bunx sv create my-app --template minimal --types ts --add 'svforge=template:dashboard' --install bun
 cd my-app && cp .env.example .env && bunx drizzle-kit push && bun dev
 ```
 
@@ -18,7 +18,7 @@ Or step by step:
 ```bash
 bunx sv create my-app --template minimal --types ts
 cd my-app
-bunx sv add svforge   # prompts: base or fullstack
+bunx sv add svforge   # prompts: base or dashboard
 ```
 
 ## What you get — Base

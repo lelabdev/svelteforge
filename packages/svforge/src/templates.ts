@@ -35,7 +35,7 @@ export const baseFiles = {
   "/app.d.ts": "// See https://svelte.dev/docs/kit/types#app.d.ts\n// for information about these interfaces\ndeclare global {\n\tnamespace App {\n\t\t// interface Error {}\n\t\t// interface Locals {}\n\t\t// interface PageData {}\n\t\t// interface PageState {}\n\t\t// interface Platform {}\n\t}\n}\n\nexport {};\n"
 };
 
-export const fullstackFiles = {
+export const dashboardFiles = {
   "/routes/layout.css": "@import 'tailwindcss';\n@import '@skeletonlabs/skeleton';\n@import '@skeletonlabs/skeleton-svelte';\n@import '@fontsource-variable/inter';\n@import '@fontsource-variable/space-grotesk';\n@import '@fontsource-variable/manrope';\n@import '@fontsource-variable/fira-code';\n@import '../lib/styles/index.css';\n\n@plugin '@tailwindcss/forms';\n@plugin '@tailwindcss/typography';\n\n@custom-variant dark (&:where([data-mode=dark], [data-mode=dark] *));\n\nh1, h2, h3, h4, h5, h6 {\n\tfont-family: var(--font-heading);\n}\n\ncode, pre {\n\tfont-family: var(--font-code);\n}\n",
   "/routes/+layout.svelte": "<script lang=\"ts\">\n\timport './layout.css';\n\tlet { children } = $props();\n</script>\n\n{@render children()}\n",
   "/routes/+page.svelte": "<script lang=\"ts\">\n\timport { Button, Card } from '$lib/components/svforge/ui';\n</script>\n\n<svelte:head>\n\t<title>SvelteForge</title>\n</svelte:head>\n\n<main class=\"max-w-container mx-auto px-element py-section\">\n\t<section class=\"text-center space-y-6 py-section\">\n\t\t<h1 class=\"text-5xl font-heading font-bold\">\n\t\t\tWelcome to <span class=\"text-primary-500\">SvelteForge</span>\n\t\t</h1>\n\t\t<p class=\"text-xl text-surface-500 max-w-2xl mx-auto\">\n\t\t\tA modern SvelteKit starter kit built on Skeleton UI with Tailwind CSS.\n\t\t</p>\n\t\t<div class=\"flex justify-center gap-4\">\n\t\t\t<Button href=\"/demo-ui\" size=\"lg\">View Components</Button>\n\t\t\t<Button variant=\"outlined\" size=\"lg\" href=\"https://github.com/ludoloops/svelteforge\">GitHub</Button>\n\t\t</div>\n\t</section>\n\n\t<section class=\"grid grid-cols-1 md:grid-cols-3 gap-group mt-section\">\n\t\t<Card variant=\"elevated\">\n\t\t\t<h3 class=\"font-heading font-bold text-lg mb-2\">Modern Stack</h3>\n\t\t\t<p class=\"text-surface-500\">SvelteKit + Tailwind v4 + Skeleton UI v4. Always up to date.</p>\n\t\t</Card>\n\t\t<Card variant=\"elevated\">\n\t\t\t<h3 class=\"font-heading font-bold text-lg mb-2\">Customizable</h3>\n\t\t\t<p class=\"text-surface-500\">Full theme system with oklch colors. Make it yours.</p>\n\t\t</Card>\n\t\t<Card variant=\"elevated\">\n\t\t\t<h3 class=\"font-heading font-bold text-lg mb-2\">Production Ready</h3>\n\t\t\t<p class=\"text-surface-500\">Prettier, ESLint, TypeScript, responsive. Ship with confidence.</p>\n\t\t</Card>\n\t</section>\n</main>\n",
@@ -144,8 +144,8 @@ export const basePackageJson = {
   }
 };
 
-export const fullstackPackageJson = {
-  "name": "sf-fullstack",
+export const dashboardPackageJson = {
+  "name": "sf-dashboard",
   "private": true,
   "version": "0.0.1",
   "type": "module",
@@ -207,4 +207,4 @@ export const fullstackPackageJson = {
 
 export const baseViteConfig = "import tailwindcss from '@tailwindcss/vite';\nimport { sveltekit } from '@sveltejs/kit/vite';\nimport { defineConfig } from 'vite';\n\nexport default defineConfig({ plugins: [tailwindcss(), sveltekit()] });\n";
 
-export const fullstackViteConfig = "import tailwindcss from '@tailwindcss/vite';\nimport { sveltekit } from '@sveltejs/kit/vite';\nimport { defineConfig } from 'vite';\n\nexport default defineConfig({ plugins: [tailwindcss(), sveltekit()] });\n";
+export const dashboardViteConfig = "import tailwindcss from '@tailwindcss/vite';\nimport { sveltekit } from '@sveltejs/kit/vite';\nimport { defineConfig } from 'vite';\n\nexport default defineConfig({ plugins: [tailwindcss(), sveltekit()] });\n";

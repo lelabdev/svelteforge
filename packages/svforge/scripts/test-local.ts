@@ -1,6 +1,6 @@
 /**
  * Test script: simulates sv add by copying template files to a directory.
- * Fullstack mode = base first, then fullstack overlay on top.
+ * Dashboard mode = base first, then fullstack overlay on top.
  * Usage: bun scripts/test-local.ts [mode] [output-dir]
  *   mode: base (default) or fullstack
  *   output-dir: target directory (default: /tmp/sf-test)
@@ -39,8 +39,8 @@ function copyDir(src: string, dest: string) {
 let count = copyDir(join(templatesDir, 'base'), output);
 
 // For fullstack, overlay on top of base
-if (mode === 'fullstack') {
-	count += copyDir(join(templatesDir, 'fullstack'), output);
+if (mode === 'dashboard') {
+	count += copyDir(join(templatesDir, 'dashboard'), output);
 }
 
 console.log(`\n✅ ${count} files written to ${output}`);
