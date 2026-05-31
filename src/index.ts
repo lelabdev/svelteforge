@@ -1,5 +1,5 @@
 import { defineAddon, defineAddonOptions } from 'sv';
-import { baseFiles, fullstackFiles, toastFiles } from './templates';
+import { baseFiles, fullstackFiles, toastFiles, dndFiles } from './templates';
 import { applyBaseMode } from './modes/base';
 import { applyFullstackMode } from './modes/fullstack';
 
@@ -24,7 +24,8 @@ export default defineAddon({
 			type: 'multiselect',
 			default: [],
 			options: [
-				{ value: 'toast', label: 'Toast — notification toasts (success, error, warning, info)' }
+				{ value: 'toast', label: 'Toast — notification toasts (success, error, warning, info)' },
+				{ value: 'dnd', label: 'Drag & Drop — sortable lists via @thisux/sveltednd' }
 			]
 		})
 		.build(),
@@ -84,6 +85,13 @@ export default defineAddon({
 		// ── Apply extras ──
 		if (extras.includes('toast')) {
 			for (const [src, dest] of Object.entries(toastFiles)) {
+				sv.file(dest, () => src);
+			}
+		}
+
+		if (extras.includes('dnd')) {
+			sv.dependency('@thisux/sveltednd', 'latest');
+			for (const [src, dest] of Object.entries(dndFiles)) {
 				sv.file(dest, () => src);
 			}
 		}
