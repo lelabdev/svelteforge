@@ -1,0 +1,29 @@
+import { defineAddon } from 'sv';
+import { files } from './templates';
+
+export default defineAddon({
+	id: 'svforge-ui-toast',
+	alias: 'forge-toast',
+	shortDescription: 'SVForge Toast — notification toasts',
+	homepage: 'https://github.com/lelabdev/svelteforge',
+
+	setup: ({ unsupported, isKit }) => {
+		if (!isKit) unsupported('SVForge Toast requires SvelteKit');
+	},
+
+	run: ({ sv }) => {
+		for (const [path, content] of Object.entries(files)) {
+			sv.file(`src${path}`, () => content);
+		}
+	},
+
+	nextSteps: () => [
+		'@svforge/ui_toast installed!',
+		'Import Toaster in your root layout:',
+		"  import { Toaster } from '$lib/components/svforge/ui/Toaster.svelte';",
+		'  <Toaster />',
+		'Trigger toasts from anywhere:',
+		"  import { toaster } from '$lib/components/svforge/ui/toaster';",
+		'  toaster.success({ title: "Done!" });'
+	]
+});

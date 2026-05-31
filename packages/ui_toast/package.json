@@ -2,21 +2,40 @@
 	"name": "@svforge/ui_toast",
 	"version": "0.0.1",
 	"type": "module",
-	"description": "SVForge Toast module — notification toasts via Skeleton UI",
+	"description": "SVForge Toast — notification toasts via Skeleton UI",
 	"author": "Ludo (https://lelab.dev)",
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/lelabdev/svelteforge.git",
 		"directory": "packages/ui_toast"
 	},
-	"license": "MIT",
+	"types": "./dist/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"default": "./dist/index.js"
+		}
+	},
 	"files": [
-		"templates/"
+		"dist/"
 	],
+	"license": "MIT",
 	"peerDependencies": {
+		"sv": "^0.13.0",
 		"@skeletonlabs/skeleton-svelte": ">=4.0.0"
 	},
+	"devDependencies": {
+		"sv": "^0.15.3",
+		"tsdown": "^0.12.0",
+		"typescript": "^6.0.3"
+	},
+	"scripts": {
+		"prebuild": "bun scripts/prebuild.ts",
+		"build": "bun run prebuild && tsdown",
+		"prepublishOnly": "bun run build"
+	},
 	"keywords": [
+		"sv-add",
 		"svforge",
 		"toast",
 		"notifications",
