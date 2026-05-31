@@ -3,6 +3,7 @@
 		Accordion, Alert, Avatar, Badge, Breadcrumb, Button, Card,
 		Checkbox, Input, Select, Table, Tabs, Textarea, ThemeToggle, Toggle
 	} from '$lib/components/svforge/ui';
+	import { toaster } from '$lib/components/svforge/ui';
 	import { Navbar } from '$lib/components/layout';
 	import { Footer } from '$lib/components/layout';
 
@@ -224,6 +225,17 @@
 		<h2 class="text-2xl font-heading border-b border-surface-200-800 pb-2">Theme</h2>
 		<p class="text-surface-500">Click to toggle light/dark mode:</p>
 		<ThemeToggle />
+	</section>
+
+	<!-- Toast -->
+	<section class="space-y-4">
+		<h2 class="text-2xl font-heading border-b border-surface-200-800 pb-2">Toast</h2>
+		<div class="flex flex-wrap gap-3">
+			<Button onclick={() => toaster.success({ title: 'Saved!', description: 'Your changes have been saved.' })}>Success</Button>
+			<Button color="error" onclick={() => toaster.error({ title: 'Error', description: 'Something went wrong.' })}>Error</Button>
+			<Button color="warning" onclick={() => toaster.warning({ title: 'Warning', description: 'Check your input.' })}>Warning</Button>
+			<Button color="secondary" onclick={() => toaster.info({ title: 'Info', description: 'Here is some info.' })}>Info</Button>
+		</div>
 	</section>
 </main>
 

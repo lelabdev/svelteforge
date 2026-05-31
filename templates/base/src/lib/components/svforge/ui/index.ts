@@ -14,3 +14,5 @@ export { default as Textarea } from './Textarea.svelte';
 export { default as ThemeToggle } from './ThemeToggle.svelte';
 export { default as Toggle } from './Toggle.svelte';
 export { default as Logo } from './Logo.svelte';
+export { default as Toaster } from './Toaster.svelte';
+export { toaster } from './toaster.ts';
