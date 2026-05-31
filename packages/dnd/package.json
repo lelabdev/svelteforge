@@ -1,0 +1,30 @@
+{
+	"name": "@svforge/dnd",
+	"version": "0.0.1",
+	"type": "module",
+	"description": "SVForge Drag & Drop module — sortable lists via @thisux/sveltednd",
+	"author": "Ludo (https://lelab.dev)",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/lelabdev/svelteforge.git",
+		"directory": "packages/dnd"
+	},
+	"license": "MIT",
+	"files": [
+		"templates/"
+	],
+	"dependencies": {
+		"@thisux/sveltednd": "latest"
+	},
+	"peerDependencies": {
+		"@skeletonlabs/skeleton-svelte": ">=4.0.0"
+	},
+	"keywords": [
+		"svforge",
+		"drag-drop",
+		"dnd",
+		"sortable",
+		"svelte",
+		"sveltekit"
+	]
+}

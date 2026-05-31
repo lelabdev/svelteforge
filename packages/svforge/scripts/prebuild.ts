@@ -29,10 +29,6 @@ const fullstackOverlay = readDirRecursively(join(__dirname, '../templates/fullst
 // Fullstack = base + overlay (fullstack files override base if same path)
 const fullstackFiles = { ...baseFiles, ...fullstackOverlay };
 
-// Extras (atomic modules)
-const toastFiles = readDirRecursively(join(__dirname, '../templates/ui_toast/src'));
-const dndFiles = readDirRecursively(join(__dirname, '../templates/dnd/src'));
-
 const basePackageJson = JSON.parse(readFileSync(join(__dirname, '../templates/base/package.json'), 'utf-8'));
 const fullstackPackageJson = JSON.parse(readFileSync(join(__dirname, '../templates/fullstack/package.json'), 'utf-8'));
 
@@ -46,10 +42,6 @@ const output = `// AUTO-GENERATED - DO NOT EDIT
 export const baseFiles = ${JSON.stringify(baseFiles, null, 2)};
 
 export const fullstackFiles = ${JSON.stringify(fullstackFiles, null, 2)};
-
-export const toastFiles = ${JSON.stringify(toastFiles, null, 2)};
-
-export const dndFiles = ${JSON.stringify(dndFiles, null, 2)};
 
 export const basePackageJson = ${JSON.stringify(basePackageJson, null, 2)};
 

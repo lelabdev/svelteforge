@@ -1,49 +1,12 @@
 {
-	"name": "svforge",
-	"version": "1.0.2",
+	"name": "svforge-monorepo",
+	"private": true,
 	"type": "module",
-	"description": "sv community addon — SvelteKit starter templates with Skeleton UI, Tailwind CSS, Better Auth, and Drizzle ORM",
-	"author": "Ludo (https://lelab.dev)",
-	"repository": {
-		"type": "git",
-		"url": "git+https://github.com/lelabdev/svelteforge.git",
-		"directory": "svelteForge"
-	},
-	"homepage": "https://github.com/lelabdev/svelteforge#readme",
-	"bugs": "https://github.com/lelabdev/svelteforge/issues",
-	"types": "./dist/index-BYdmvQGe.d.ts",
-	"exports": {
-		".": {
-			"types": "./dist/index-BYdmvQGe.d.ts",
-			"default": "./dist/index.js"
-		}
-	},
-	"files": [
-		"dist/"
+	"workspaces": [
+		"packages/*"
 	],
-	"keywords": [
-		"sv-add",
-		"svelte",
-		"sveltekit",
-		"boilerplate",
-		"skeleton-ui",
-		"tailwindcss",
-		"ui-components",
-		"starter",
-		"template"
-	],
-	"license": "MIT",
-	"peerDependencies": {
-		"sv": "^0.13.0"
-	},
-	"devDependencies": {
-		"sv": "^0.15.3",
-		"tsdown": "^0.12.0",
-		"typescript": "^6.0.3"
-	},
 	"scripts": {
-		"prebuild": "bun scripts/prebuild.ts",
-		"build": "bun run prebuild && tsdown",
-		"prepublishOnly": "bun run build"
+		"build": "bun run --filter svforge build",
+		"build:all": "bun run --filter '*' build"
 	}
 }

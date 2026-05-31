@@ -1,5 +1,5 @@
 import { defineAddon, defineAddonOptions } from 'sv';
-import { baseFiles, fullstackFiles, toastFiles, dndFiles } from './templates';
+import { baseFiles, fullstackFiles } from './templates';
 import { applyBaseMode } from './modes/base';
 import { applyFullstackMode } from './modes/fullstack';
 
@@ -19,15 +19,6 @@ export default defineAddon({
 				{ value: 'fullstack', label: 'Full Stack — base + admin dashboard + auth + DB' }
 			]
 		})
-		.add('extras', {
-			question: 'Extra modules to include?',
-			type: 'multiselect',
-			default: [],
-			options: [
-				{ value: 'toast', label: 'Toast — notification toasts (success, error, warning, info)' },
-				{ value: 'dnd', label: 'Drag & Drop — sortable lists via @thisux/sveltednd' }
-			]
-		})
 		.build(),
 
 	setup: ({ unsupported, isKit }) => {
@@ -36,23 +27,15 @@ export default defineAddon({
 
 	run: ({ sv, options }) => {
 		const template = options.template as 'base' | 'fullstack';
-		const extras = (options.extras as string[]) ?? [];
 
 		// ── Shared dependencies ──
 		sv.dependency('@fontsource-variable/fira-code', 'latest');
 		sv.dependency('@fontsource-variable/inter', 'latest');
 		sv.dependency('@fontsource-variable/manrope', 'latest');
 		sv.dependency('@fontsource-variable/space-grotesk', 'latest');
-		sv.dependency('@tiptap/core', 'latest');
-		sv.dependency('@tiptap/extension-underline', 'latest');
-		sv.dependency('@tiptap/starter-kit', 'latest');
 		sv.dependency('clsx', 'latest');
 		sv.dependency('phosphor-svelte', '^3.1.0');
-		sv.dependency('pino', 'latest');
-		sv.dependency('pino-pretty', 'latest');
-		sv.dependency('sveltekit-superforms', 'latest');
 		sv.dependency('tailwind-merge', 'latest');
-		sv.dependency('zod', 'latest');
 
 		sv.devDependency('@skeletonlabs/skeleton', 'latest');
 		sv.devDependency('@skeletonlabs/skeleton-svelte', 'latest');
@@ -63,9 +46,7 @@ export default defineAddon({
 
 		// ── Vite config: ensure @tailwindcss/vite plugin ──
 		sv.file('vite.config.ts', (content) => {
-			// Already has tailwindcss plugin
 			if (content.includes('@tailwindcss/vite')) return content;
-			// Add import + plugin
 			let updated = content;
 			updated = `import tailwindcss from '@tailwindcss/vite';\n${updated}`;
 			updated = updated.replace(
@@ -80,20 +61,6 @@ export default defineAddon({
 			applyFullstackMode(sv, baseFiles, fullstackFiles);
 		} else {
 			applyBaseMode(sv, baseFiles);
-		}
-
-		// ── Apply extras ──
-		if (extras.includes('toast')) {
-			for (const [src, dest] of Object.entries(toastFiles)) {
-				sv.file(dest, () => src);
-			}
-		}
-
-		if (extras.includes('dnd')) {
-			sv.dependency('@thisux/sveltednd', 'latest');
-			for (const [src, dest] of Object.entries(dndFiles)) {
-				sv.file(dest, () => src);
-			}
 		}
 	},
 
