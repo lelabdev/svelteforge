@@ -14,3 +14,5 @@ export { default as Textarea } from './Textarea.svelte';
 export { default as ThemeToggle } from './ThemeToggle.svelte';
 export { default as Toggle } from './Toggle.svelte';
 export { default as Logo } from './Logo.svelte';
+export { default as Seo } from './Seo.svelte';
+export { generateSitemap } from './Sitemap';
