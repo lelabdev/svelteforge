@@ -1,4 +1,5 @@
 import type { Handle } from '@sveltejs/kit';
+// `building` is used to skip auth during prerender/build (SvelteKit builds pages statically).
 import { building } from '$app/environment';
 import { auth } from '$lib/server/auth';
 import { svelteKitHandler } from 'better-auth/svelte-kit';

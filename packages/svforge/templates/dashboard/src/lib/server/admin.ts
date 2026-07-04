@@ -9,6 +9,8 @@ import { asc } from 'drizzle-orm';
  * For multi-user scenarios, add a `role` column to the user schema
  * and check it here instead.
  */
+// Pattern: first-user-is-admin. The oldest user (by createdAt) is the admin.
+// For multi-role scenarios, add a `role` column to the user table and check it here.
 export async function isAdmin(userId: string): Promise<boolean> {
 	const [firstUser] = await db.select({ id: user.id })
 		.from(user)

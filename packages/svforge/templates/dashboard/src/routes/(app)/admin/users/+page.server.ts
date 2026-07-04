@@ -46,10 +46,12 @@ export const actions: Actions = {
 			return fail(400, { message: 'Email already exists' });
 		}
 
-		// Direct DB insert to avoid signUpEmail session hijack
+
 		// (signUpEmail creates a session cookie that overwrites admin's session)
 		try {
-			const hashedPassword = await hashPassword(password);
+			// Direct DB insert instead of auth.api.signUpEmail: signUpEmail creates a
+		// session cookie that overwrites the admin's session.
+		const hashedPassword = await hashPassword(password);
 			const userId = crypto.randomUUID();
 
 			await db.insert(user).values({
@@ -119,12 +121,14 @@ export const actions: Actions = {
 			return fail(400, { message: 'You cannot delete your own account' });
 		}
 
-		// Delete sessions first (avoid orphan sessions)
+		// Delete order matters: session → account → user (FK constraints cascade)
+		// If you skip deleting sessions/accounts first, orphan records will remain.
+		await db.delete(session).where(eq(session.userId, id));
 		await db.delete(session).where(eq(session.userId, id));
 		// Delete accounts
-		await db.delete(account).where(eq(account.userId, id));
+
 		// Delete user
-		await db.delete(user).where(eq(user.id, id));
+
 
 		return { success: true, message: 'User deleted' };
 	},
