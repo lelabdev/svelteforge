@@ -96,6 +96,18 @@
         "sv": "^0.13.0",
       },
     },
+    "packages/uploads": {
+      "name": "@svforge/uploads",
+      "version": "0.0.1",
+      "devDependencies": {
+        "sv": "^0.15.3",
+        "tsdown": "^0.12.0",
+        "typescript": "^6.0.3",
+      },
+      "peerDependencies": {
+        "sv": "^0.13.0",
+      },
+    },
   },
   "packages": {
     "@babel/generator": ["@babel/generator@7.29.7", "", { "dependencies": { "@babel/parser": "^7.29.7", "@babel/types": "^7.29.7", "@jridgewell/gen-mapping": "^0.3.12", "@jridgewell/trace-mapping": "^0.3.28", "jsesc": "^3.0.2" } }, "sha512-DkXD5OJQaAQIdZ1bt3UZdEnHAn9Imd3IVBdX03UFe+ony9Ojw5pzr9YVKGDY1jt+Gcn/FnGkNf8r+Vj5NOJWtQ=="],
@@ -291,6 +303,8 @@
     "@svforge/tiptap": ["@svforge/tiptap@workspace:packages/tiptap"],
 
     "@svforge/ui_toast": ["@svforge/ui_toast@workspace:packages/ui_toast"],
+
+    "@svforge/uploads": ["@svforge/uploads@workspace:packages/uploads"],
 
     "@swc/helpers": ["@swc/helpers@0.5.23", "", { "dependencies": { "tslib": "^2.8.0" } }, "sha512-5lSsMOTXURePglDfvuAQUqkGek9Hg2kksOYay2m0+XR++b2NWYL/4sWyuvVBIs8oKnJaxkdi9whaL/sqN13afw=="],
 
