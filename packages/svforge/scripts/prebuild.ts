@@ -27,7 +27,7 @@ function readDirRecursively(dir: string, baseDir: string = dir): Record<string, 
 const baseFiles = readDirRecursively(join(__dirname, '../templates/base/src'));
 const dashboardOverlay = readDirRecursively(join(__dirname, '../templates/dashboard/src'));
 // Dashboard = base + overlay (dashboard files override base if same path)
-const dashboardFiles = { ...baseFiles, ...dashboardOverlay };
+const dashboardFiles = dashboardOverlay;
 
 const basePackageJson = JSON.parse(readFileSync(join(__dirname, '../templates/base/package.json'), 'utf-8'));
 const dashboardPackageJson = JSON.parse(readFileSync(join(__dirname, '../templates/dashboard/package.json'), 'utf-8'));
