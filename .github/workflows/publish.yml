@@ -44,6 +44,18 @@ jobs:
       - name: Build tiptap
         run: cd packages/tiptap && bun run prebuild && bun x tsdown
 
+      - name: Build email
+        run: cd packages/email && bun run prebuild && bun x tsdown
+
+      - name: Build oauth
+        run: cd packages/oauth && bun run prebuild && bun x tsdown
+
+      - name: Build uploads
+        run: cd packages/uploads && bun run prebuild && bun x tsdown
+
+      - name: Build blog
+        run: cd packages/blog && bun run prebuild && bun x tsdown
+
       - name: Run tests
         run: bun x vitest run
 
@@ -69,5 +81,25 @@ jobs:
 
       - name: Publish tiptap@latest
         run: cd packages/tiptap && npm publish --access public --ignore-scripts
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish email@latest
+        run: cd packages/email && npm publish --tag latest --access public --ignore-scripts
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish oauth@latest
+        run: cd packages/oauth && npm publish --tag latest --access public --ignore-scripts
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish uploads@latest
+        run: cd packages/uploads && npm publish --tag latest --access public --ignore-scripts
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish blog@latest
+        run: cd packages/blog && npm publish --tag latest --access public --ignore-scripts
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

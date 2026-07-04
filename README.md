@@ -25,6 +25,10 @@ npx sv create my-project --template minimal --types ts --add 'svforge=template:b
 | `@svforge/dnd` | Drag & drop sortable lists (@thisux/sveltednd) |
 | `@svforge/tiptap` | Rich text editor (Tiptap) |
 | `@svforge/graph` | Knowledge graph visualization (force-graph) |
+| `@svforge/email` | Transactional emails (Resend) |
+| `@svforge/oauth` | Social auth (Google, GitHub) |
+| `@svforge/uploads` | File uploads (S3/R2) |
+| `@svforge/blog` | Blog/CMS (MDsveX) |
 
 ## Architecture
 

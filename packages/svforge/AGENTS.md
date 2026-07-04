@@ -51,6 +51,10 @@ Each module is an npm package installable via `sv add`. Files are copied into th
 | `@svforge/tiptap` | Rich text editor |
 | `@svforge/dnd` | Drag & drop |
 | `@svforge/graph` | Knowledge graph visualization |
+| `@svforge/email` | Transactional emails |
+| `@svforge/oauth` | Social auth |
+| `@svforge/uploads` | File uploads |
+| `@svforge/blog` | Blog/CMS |
 
 ## Commands
 
