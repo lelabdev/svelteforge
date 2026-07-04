@@ -137,7 +137,12 @@
 			.graphData({ nodes: [...nodes], links: [...links] })
 			.backgroundColor(bgColor)
 			.nodeLabel((node: any) => getNodeLabel(node))
-			.nodeColor((node: any) => getNodeColor(node))
+			.nodeColor((node: any) => {
+				if (nodeColor) {
+					return typeof nodeColor === 'function' ? nodeColor(node) : nodeColor;
+				}
+				return getNodeColor(node);
+			})
 			.linkWidth(linkWidth)
 			.linkDirectionalArrowLength(linkDirectionalArrowLength)
 			.enableZoomInteraction(enableZoom)
