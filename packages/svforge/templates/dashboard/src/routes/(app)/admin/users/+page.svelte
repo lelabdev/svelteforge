@@ -144,9 +144,9 @@
 	<Input placeholder="Search users..." bind:value={search} />
 
 	<!-- Users table -->
-	<div class="overflow-x-auto rounded-card border border-surface-200 dark:border-surface-800">
+	<div class="overflow-x-auto rounded-card border border-surface-200-800">
 		<table class="w-full text-sm">
-			<thead class="bg-surface-100 dark:bg-surface-900">
+			<thead class="bg-surface-100-900">
 				<tr>
 					<th class="text-left px-4 py-3 font-medium">Name</th>
 					<th class="text-left px-4 py-3 font-medium hidden sm:table-cell">Email</th>
@@ -154,9 +154,9 @@
 					<th class="text-right px-4 py-3 font-medium">Actions</th>
 				</tr>
 			</thead>
-			<tbody class="divide-y divide-surface-100 dark:divide-surface-800">
+			<tbody class="divide-y divide-surface-100-800">
 				{#each filtered as u}
-					<tr class="hover:bg-surface-50 dark:hover:bg-surface-900 transition-colors">
+					<tr class="hover:hover:bg-surface-900-50 transition-colors">
 						<td class="px-4 py-3">
 							<div class="flex items-center gap-3">
 								<AvatarInitial name={u.name} size="sm" />

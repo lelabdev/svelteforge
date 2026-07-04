@@ -41,18 +41,18 @@
 		return cn(
 			'flex items-center gap-3 px-3 py-2 rounded-card transition-colors',
 			currentPath === href
-				? 'bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300'
-				: 'hover:bg-surface-100 dark:hover:bg-surface-800 text-surface-600 dark:text-surface-400'
+				? 'bg-primary-100-900 text-primary-700-300'
+				: 'hover:bg-surface-100-800 text-surface-600-400'
 		);
 	}
 </script>
 
 <div class={cn('flex min-h-screen', className)}>
 	<!-- Desktop Sidebar -->
-	<aside class="hidden lg:flex flex-col border-r border-surface-200 dark:border-surface-800 bg-surface-50 dark:bg-surface-950 transition-all {collapsed ? 'w-16' : 'w-56'}">
-		<div class="flex items-center justify-between p-3 border-b border-surface-200 dark:border-surface-800">
+	<aside class="hidden lg:flex flex-col border-r border-surface-200-800 bg-surface-50-950 transition-all {collapsed ? 'w-16' : 'w-56'}">
+		<div class="flex items-center justify-between p-3 border-b border-surface-200-800">
 			{#if !collapsed}
-				<a href="/admin" class="text-lg font-heading font-bold text-primary-600 dark:text-primary-400">Admin</a>
+				<a href="/admin" class="text-lg font-heading font-bold text-primary-600-400">Admin</a>
 			{/if}
 			<button
 				class="btn preset-ghost variant-surface p-1 rounded"
@@ -76,7 +76,7 @@
 			{/each}
 		</nav>
 
-		<div class="p-2 border-t border-surface-200 dark:border-surface-800">
+		<div class="p-2 border-t border-surface-200-800">
 			<ThemeToggle />
 		</div>
 	</aside>
@@ -84,7 +84,7 @@
 	<!-- Main area -->
 	<div class="flex-1 flex flex-col">
 		<!-- Top bar -->
-		<header class="sticky top-0 z-50 bg-surface-50/80 dark:bg-surface-950/80 backdrop-blur-md border-b border-surface-200 dark:border-surface-800 px-element py-3 flex items-center justify-between">
+		<header class="sticky top-0 z-50 bg-surface-50-950/80 backdrop-blur-md border-b border-surface-200-800 px-element py-3 flex items-center justify-between">
 			<div class="flex items-center gap-3">
 				<button class="lg:hidden btn preset-ghost variant-surface p-2 rounded" onclick={() => (mobileOpen = !mobileOpen)} aria-label="Menu">
 					{#if mobileOpen}<X size={20} />{:else}<Menu size={20} />{/if}
@@ -107,7 +107,7 @@
 		<!-- Mobile sidebar overlay -->
 		{#if mobileOpen}
 			<div class="lg:hidden fixed inset-0 z-40 bg-black/50" onclick={() => (mobileOpen = false)}>
-				<aside class="w-56 h-full bg-surface-50 dark:bg-surface-950 border-r border-surface-200 dark:border-surface-800 p-3 space-y-1" onclick={(e: Event) => e.stopPropagation()}>
+				<aside class="w-56 h-full bg-surface-50-950 border-r border-surface-200-800 p-3 space-y-1" onclick={(e: Event) => e.stopPropagation()}>
 					{#each items as item}
 						{@const Icon = item.icon}
 						<a
