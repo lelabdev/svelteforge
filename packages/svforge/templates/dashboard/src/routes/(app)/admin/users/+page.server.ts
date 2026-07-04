@@ -4,6 +4,7 @@ import { desc, eq } from 'drizzle-orm';
 import { fail, type Actions } from '@sveltejs/kit';
 import { hashPassword } from 'better-auth/crypto';
 import { isAdmin } from '$lib/server/admin';
+import { createUserSchema, updateUserSchema, deleteUserSchema, toggleVerifySchema } from '$lib/server/schemas';
 import { redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 
@@ -27,17 +28,17 @@ export const load: PageServerLoad = async ({ locals }) => {
 export const actions: Actions = {
 	create: async ({ request }) => {
 		const formData = await request.formData();
-		const name = formData.get('name')?.toString()?.trim();
-		const email = formData.get('email')?.toString()?.trim();
-		const password = formData.get('password')?.toString();
+		const parsed = createUserSchema.safeParse({
+			name: formData.get('name'),
+			email: formData.get('email'),
+			password: formData.get('password')
+		});
 
-		if (!name || !email || !password) {
-			return fail(400, { message: 'Name, email and password are required' });
+		if (!parsed.success) {
+			return fail(400, { message: parsed.error.issues[0]?.message ?? 'Invalid input' });
 		}
 
-		if (password.length < 8) {
-			return fail(400, { message: 'Password must be at least 8 characters' });
-		}
+		const { name, email, password } = parsed.data;
 
 		// Check duplicate email
 		const [existing] = await db.select({ id: user.id }).from(user).where(eq(user.email, email)).limit(1);
@@ -103,11 +104,15 @@ export const actions: Actions = {
 
 	delete: async ({ request, locals }) => {
 		const formData = await request.formData();
-		const id = formData.get('id')?.toString();
+	const parsed = deleteUserSchema.safeParse({
+			id: formData.get('id')
+		});
 
-		if (!id) {
+		if (!parsed.success) {
 			return fail(400, { message: 'User ID is required' });
 		}
+
+		const { id } = parsed.data;
 
 		// Prevent self-delete
 		if (id === locals.user?.id) {
@@ -126,12 +131,16 @@ export const actions: Actions = {
 
 	toggleVerify: async ({ request }) => {
 		const formData = await request.formData();
-		const id = formData.get('id')?.toString();
-		const verified = formData.get('verified')?.toString() === 'true';
+		const parsed = toggleVerifySchema.safeParse({
+			id: formData.get('id'),
+			verified: formData.get('verified') === 'true'
+		});
 
-		if (!id) {
+		if (!parsed.success) {
 			return fail(400, { message: 'User ID is required' });
 		}
+
+		const { id, verified } = parsed.data;
 
 		await db.update(user).set({
 			emailVerified: !verified,

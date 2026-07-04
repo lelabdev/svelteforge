@@ -1,4 +1,5 @@
 import { auth } from '$lib/server/auth';
+import { changePasswordSchema } from '$lib/server/schemas';
 import { fail, type Actions } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 
@@ -11,12 +12,16 @@ export const load: PageServerLoad = async ({ locals }) => {
 export const actions: Actions = {
 	changePassword: async ({ request }) => {
 		const formData = await request.formData();
-		const currentPassword = formData.get('currentPassword')?.toString();
-		const newPassword = formData.get('newPassword')?.toString();
+		const parsed = changePasswordSchema.safeParse({
+			currentPassword: formData.get('currentPassword'),
+			newPassword: formData.get('newPassword')
+		});
 
-		if (!currentPassword || !newPassword) {
-			return fail(400, { message: 'Both passwords are required' });
+		if (!parsed.success) {
+			return fail(400, { message: parsed.error.issues[0]?.message ?? 'Invalid input' });
 		}
+
+		const { currentPassword, newPassword } = parsed.data;
 
 		try {
 			await auth.api.changePassword({
