@@ -50,6 +50,18 @@ jobs:
       - name: Scaffold test (dashboard)
         run: bash scripts/test-scaffold.sh dashboard
 
+      - name: Build email
+        run: cd packages/email && bun run prebuild && bun x tsdown
+
+      - name: Build oauth
+        run: cd packages/oauth && bun run prebuild && bun x tsdown
+
+      - name: Build uploads
+        run: cd packages/uploads && bun run prebuild && bun x tsdown
+
+      - name: Build blog
+        run: cd packages/blog && bun run prebuild && bun x tsdown
+
       - name: Run tests
         run: bun x vitest run
 
@@ -75,5 +87,25 @@ jobs:
 
       - name: Publish tiptap@dev
         run: cd packages/tiptap && npm publish --tag dev --access public --ignore-scripts
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish email@dev
+        run: cd packages/email && npm publish --tag dev --access public --ignore-scripts
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish oauth@dev
+        run: cd packages/oauth && npm publish --tag dev --access public --ignore-scripts
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish uploads@dev
+        run: cd packages/uploads && npm publish --tag dev --access public --ignore-scripts
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish blog@dev
+        run: cd packages/blog && npm publish --tag dev --access public --ignore-scripts
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
