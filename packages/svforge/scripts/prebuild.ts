@@ -29,28 +29,12 @@ const dashboardOverlay = readDirRecursively(join(__dirname, '../templates/dashbo
 // Dashboard = base + overlay (dashboard files override base if same path)
 const dashboardFiles = dashboardOverlay;
 
-const basePackageJson = JSON.parse(readFileSync(join(__dirname, '../templates/base/package.json'), 'utf-8'));
-const dashboardPackageJson = JSON.parse(readFileSync(join(__dirname, '../templates/dashboard/package.json'), 'utf-8'));
-
-const baseViteConfig = readFileSync(join(__dirname, '../templates/base/vite.config.ts'), 'utf-8');
-const dashboardViteConfig = readFileSync(join(__dirname, '../templates/dashboard/vite.config.ts'), 'utf-8');
-
-// Write to a TypeScript file that exports everything
 const output = `// AUTO-GENERATED - DO NOT EDIT
 // Run \`bun run prebuild\` to regenerate
 
 export const baseFiles = ${JSON.stringify(baseFiles, null, 2)};
 
 export const dashboardFiles = ${JSON.stringify(dashboardFiles, null, 2)};
-
-export const basePackageJson = ${JSON.stringify(basePackageJson, null, 2)};
-
-export const dashboardPackageJson = ${JSON.stringify(dashboardPackageJson, null, 2)};
-
-export const baseViteConfig = ${JSON.stringify(baseViteConfig, null, 2)};
-
-export const dashboardViteConfig = ${JSON.stringify(dashboardViteConfig, null, 2)};
-`;
 
 writeFileSync(join(__dirname, '../src/templates.ts'), output);
 
