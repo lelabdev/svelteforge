@@ -44,6 +44,12 @@ jobs:
       - name: Build tiptap
         run: cd packages/tiptap && bun run prebuild && bun x tsdown
 
+      - name: Scaffold test (base)
+        run: bash scripts/test-scaffold.sh base
+
+      - name: Scaffold test (dashboard)
+        run: bash scripts/test-scaffold.sh dashboard
+
       - name: Run tests
         run: bun x vitest run
 
