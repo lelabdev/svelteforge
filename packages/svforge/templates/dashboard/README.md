@@ -1,42 +1,46 @@
-# sv
+# SvelteForge Dashboard Template
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+Base template + admin dashboard with Better Auth, Drizzle ORM, and user management.
 
-## Creating a project
+## What You Get (in addition to Base)
 
-If you're seeing this, you've probably already done this step. Congrats!
+### Auth System
+- **Better Auth** with email/password
+- **Session management** via `hooks.server.ts`
+- **Setup page** at `/setup` (dev-only, creates first admin)
+- **Login page** at `/login`
+- **Auth guard** on `(app)/` route group with callbackURL redirect
+- **Pattern**: First registered user is admin (see `$lib/server/admin.ts`)
 
-```sh
-# create a new project
-npx sv create my-app
-```
+### Database
+- **Drizzle ORM** with SQLite (libsql)
+- **Schema**: user, session, account, verification tables
+- **Auth schema** at `src/lib/server/db/auth.schema.ts`
 
-To recreate this project with the same configuration:
+### Admin Dashboard
+- **Dashboard** at `/admin` — stats (total users, active sessions, new this week)
+- **User management** at `/admin/users` — CRUD, email verification toggle, search
+- **Settings** at `/admin/settings` — change password
+- **AdminLayout** — responsive sidebar nav, collapsible, mobile drawer
 
-```sh
-# recreate this project
-npx sv@0.15.3 create --template minimal --types ts --add tailwindcss="plugins:typography,forms" prettier eslint drizzle="database:sqlite+sqlite:libsql" better-auth="demo:password" --no-download-check --no-install .
-```
+### Routes Structure
+- `/` — redirects to `/login` or `/admin` based on session
+- `/login` — public
+- `/setup` — dev-only, first admin creation
+- `/(app)/admin` — protected, requires session
+- `/(app)/admin/users` — protected, requires admin
+- `/(app)/admin/settings` — protected
 
-## Developing
+## Environment Variables
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+- `DATABASE_URL` — SQLite path (e.g. `file:local.db`)
+- `ORIGIN` — app URL (e.g. `http://localhost:5173`)
+- `BETTER_AUTH_SECRET` — generate with `openssl rand -base64 32`
 
-```sh
-npm run dev
+## Next Steps
 
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
-```
-
-## Building
-
-To create a production version of your app:
-
-```sh
-npm run build
-```
-
-You can preview the production build with `npm run preview`.
-
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+- **Run migrations**: `bunx drizzle-kit push --force`
+- **Create first admin**: Go to `/setup` in dev mode
+- **Add a protected route**: Create file in `src/routes/(app)/your-route/+page.svelte`
+- **Modify admin pattern**: Edit `src/lib/server/admin.ts` to add role-based checks
+- **Delete order**: Always `session` → `account` → `user` (FK constraints)
