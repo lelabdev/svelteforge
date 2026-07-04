@@ -1,0 +1,45 @@
+{
+	"name": "@svforge/blog",
+	"version": "0.0.1",
+	"type": "module",
+	"description": "SVForge Blog \u2014 MDsveX blog with posts list and article pages",
+	"author": "Ludo (https://lelab.dev)",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/lelabdev/svelteforge.git",
+		"directory": "packages/blog"
+	},
+	"types": "./dist/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"default": "./dist/index.js"
+		}
+	},
+	"files": [
+		"dist/"
+	],
+	"license": "MIT",
+	"peerDependencies": {
+		"sv": "^0.13.0"
+	},
+	"devDependencies": {
+		"sv": "^0.15.3",
+		"tsdown": "^0.12.0",
+		"typescript": "^6.0.3"
+	},
+	"scripts": {
+		"prebuild": "bun scripts/prebuild.ts",
+		"build": "bun run prebuild && tsdown",
+		"prepublishOnly": "bun run build"
+	},
+	"keywords": [
+		"sv-add",
+		"svforge",
+		"blog",
+		"mdsvex",
+		"markdown",
+		"svelte",
+		"sveltekit"
+	]
+}
