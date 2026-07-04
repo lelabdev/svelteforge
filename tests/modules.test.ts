@@ -55,3 +55,15 @@ describe('tiptap module', () => {
 		expect(existsSync(join(dir, 'dist/index.js'))).toBe(true);
 	});
 });
+
+describe('graph module', () => {
+	const dir = join(ROOT, 'packages/graph');
+
+	it('has KnowledgeGraph component', () => {
+		expect(existsSync(join(dir, 'templates/src/lib/components/svforge/graph/KnowledgeGraph.svelte'))).toBe(true);
+	});
+
+	it('has dist built', () => {
+		expect(existsSync(join(dir, 'dist/index.js'))).toBe(true);
+	});
+});
