@@ -21,6 +21,18 @@
         "sv": "^0.13.0",
       },
     },
+    "packages/email": {
+      "name": "@svforge/email",
+      "version": "0.0.1",
+      "devDependencies": {
+        "sv": "^0.15.3",
+        "tsdown": "^0.12.0",
+        "typescript": "^6.0.3",
+      },
+      "peerDependencies": {
+        "sv": "^0.13.0",
+      },
+    },
     "packages/graph": {
       "name": "@svforge/graph",
       "version": "0.0.1",
@@ -257,6 +269,8 @@
     "@sveltejs/sv-utils": ["@sveltejs/sv-utils@0.2.2", "", {}, "sha512-2rmR7HKhqcMR6vz9eoYPPMgVaKLME2+tZGFsxy1QV44HkVrLttXzUrE8GXBHDsd2uMOr945cBnQLs7+DYPNopA=="],
 
     "@svforge/dnd": ["@svforge/dnd@workspace:packages/dnd"],
+
+    "@svforge/email": ["@svforge/email@workspace:packages/email"],
 
     "@svforge/graph": ["@svforge/graph@workspace:packages/graph"],
 
