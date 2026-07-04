@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 
 	interface Props {
 		title: string;
@@ -11,7 +11,7 @@
 
 	let { title, description, image, url, type = 'website' }: Props = $props();
 
-	const resolvedUrl = $derived(url ?? $page.url.href);
+	const resolvedUrl = $derived(url ?? page.url.href);
 	const twitterCard = $derived(image ? 'summary_large_image' : 'summary');
 </script>
 
