@@ -8,9 +8,9 @@ SvelteForge is a `sv` community addon that scaffolds SvelteKit projects with a p
 
 ```
 templates/base/          → Base template (essential UI components, layouts, theme)
-templates/fullstack/     → Fullstack overlay (auth, admin, DB)
+templates/dashboard/     → Fullstack overlay (auth, admin, DB)
 src/modes/base.ts        → Applies base template files via sv.file()
-src/modes/fullstack.ts   → Applies base + fullstack overlay
+src/modes/dashboard.ts   → Applies base + fullstack overlay
 src/index.ts             → Addon entry point
 scripts/prebuild.ts      → Generates src/templates.ts from template directories
 ```
@@ -47,16 +47,10 @@ Each module is an npm package installable via `sv add`. Files are copied into th
 |---------|-------------|
 | `svforge` | Base: essential UI + SEO + layouts + theme |
 | `@svforge/ui_toast` | Toast.svelte (atomic) |
-| `@svforge/ui_modal` | Modal.svelte (atomic) |
-| `@svforge/ui_file-upload` | FileUpload.svelte (atomic) |
-| `@svforge/fullstack` | Auth + DB + admin dashboard |
+| `@svforge/ui_toast` | Toast.svelte (atomic) |
 | `@svforge/tiptap` | Rich text editor |
-| `@svforge/charts` | Charts via LayerChart |
-| `@svforge/data-table` | Sorting, filtering, pagination |
 | `@svforge/dnd` | Drag & drop |
-| `@svforge/command-palette` | Cmd+K keyboard launcher |
-| `@svforge/blog` | Fullstack + tiptap + posts + writer roles |
-| `@svforge/ecommerce` | Fullstack + tiptap + products + cart |
+| `@svforge/graph` | Knowledge graph visualization |
 
 ## Commands
 
