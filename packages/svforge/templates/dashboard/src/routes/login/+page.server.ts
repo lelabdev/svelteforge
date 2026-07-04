@@ -25,8 +25,8 @@ export const actions: Actions = {
 				headers: request.headers
 			});
 			return { success: true };
-		} catch (e: any) {
-			return fail(401, { message: e.message || 'Invalid credentials' });
+		} catch (e: unknown) {
+			return fail(401, { message: e instanceof Error ? e.message : "Invalid credentials" || 'Invalid credentials' });
 		}
 	}
 };
