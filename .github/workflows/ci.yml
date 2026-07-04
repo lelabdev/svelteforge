@@ -38,6 +38,9 @@ jobs:
       - name: Build dnd
         run: cd packages/dnd && bun run prebuild && bun x tsdown
 
+      - name: Build graph
+        run: cd packages/graph && bun run prebuild && bun x tsdown
+
       - name: Build tiptap
         run: cd packages/tiptap && bun run prebuild && bun x tsdown
 
@@ -56,6 +59,11 @@ jobs:
 
       - name: Publish dnd@dev
         run: cd packages/dnd && npm publish --tag dev --access public --ignore-scripts
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish graph@dev
+        run: cd packages/graph && npm publish --tag dev --access public --ignore-scripts
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
