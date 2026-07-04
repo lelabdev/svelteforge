@@ -13,7 +13,7 @@
 </script>
 
 {#if message}
-<div class={cn('flex items-center gap-2 p-3 rounded-card', type === 'success' ? 'bg-success-100 dark:bg-success-900 text-success-700 dark:text-success-300' : 'bg-error-100 dark:bg-error-900 text-error-700 dark:text-error-300', className)}>
+<div class={cn('flex items-center gap-2 p-3 rounded-card', type === 'success' ? 'bg-success-100-900 text-success-700-300' : 'bg-error-100-900 text-error-300-700', className)}>
     {#if type === 'success'}<Check size={18} />{:else}<Warning size={18} />{/if}
     <span class="text-sm">{message}</span>
     {#if ondismiss}

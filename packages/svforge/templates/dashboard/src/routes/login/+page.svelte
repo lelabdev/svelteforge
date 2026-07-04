@@ -15,7 +15,7 @@
 	<title>Login — SvelteForge</title>
 </svelte:head>
 
-<main class="min-h-screen flex items-center justify-center bg-surface-50 dark:bg-surface-950 p-element">
+<main class="min-h-screen flex items-center justify-center bg-surface-50-950 p-element">
 	<div class="w-full max-w-modal">
 		<div class="flex justify-end mb-4">
 			<ThemeToggle />

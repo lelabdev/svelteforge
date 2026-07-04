@@ -27,8 +27,8 @@
 	<div class="grid grid-cols-1 sm:grid-cols-3 gap-group">
 		<Card variant="elevated">
 			<div class="flex items-center gap-3">
-				<div class="p-3 rounded-card bg-primary-100 dark:bg-primary-900">
-					<Users size={24} class="text-primary-600 dark:text-primary-400" />
+				<div class="p-3 rounded-card bg-primary-100-900">
+					<Users size={24} class="text-primary-600-400" />
 				</div>
 				<div>
 					<p class="text-sm text-surface-500">Total Users</p>
@@ -38,8 +38,8 @@
 		</Card>
 		<Card variant="elevated">
 			<div class="flex items-center gap-3">
-				<div class="p-3 rounded-card bg-success-100 dark:bg-success-900">
-					<Clock size={24} class="text-success-600 dark:text-success-400" />
+				<div class="p-3 rounded-card bg-success-100-900">
+					<Clock size={24} class="text-success-600" />
 				</div>
 				<div>
 					<p class="text-sm text-surface-500">Active Sessions</p>
@@ -49,8 +49,8 @@
 		</Card>
 		<Card variant="elevated">
 			<div class="flex items-center gap-3">
-				<div class="p-3 rounded-card bg-secondary-100 dark:bg-secondary-900">
-					<ChartBar size={24} class="text-secondary-600 dark:text-secondary-400" />
+				<div class="p-3 rounded-card bg-secondary-100-900">
+					<ChartBar size={24} class="text-secondary-600-400" />
 				</div>
 				<div>
 					<p class="text-sm text-surface-500">This Week</p>
@@ -68,7 +68,7 @@
 
 		<div class="space-y-3">
 			{#each data.recentUsers as u}
-				<div class="flex items-center justify-between py-2 border-b border-surface-100 dark:border-surface-800 last:border-0">
+				<div class="flex items-center justify-between py-2 border-b border-surface-100-800 last:border-0">
 					<div class="flex items-center gap-3">
 						<AvatarInitial name={u.name} />
 						<div>
