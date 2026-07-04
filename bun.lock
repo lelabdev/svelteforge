@@ -34,6 +34,18 @@
         "sv": "^0.13.0",
       },
     },
+    "packages/oauth": {
+      "name": "@svforge/oauth",
+      "version": "0.0.1",
+      "devDependencies": {
+        "sv": "^0.15.3",
+        "tsdown": "^0.12.0",
+        "typescript": "^6.0.3",
+      },
+      "peerDependencies": {
+        "sv": "^0.13.0",
+      },
+    },
     "packages/svforge": {
       "name": "svforge",
       "version": "1.1.0",
@@ -259,6 +271,8 @@
     "@svforge/dnd": ["@svforge/dnd@workspace:packages/dnd"],
 
     "@svforge/graph": ["@svforge/graph@workspace:packages/graph"],
+
+    "@svforge/oauth": ["@svforge/oauth@workspace:packages/oauth"],
 
     "@svforge/tiptap": ["@svforge/tiptap@workspace:packages/tiptap"],
 
