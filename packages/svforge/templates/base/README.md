@@ -20,6 +20,9 @@ UI-only starter with components, theme, and layouts. No auth, no database.
 - **ThemeToggle** — light/dark toggle with system detection
 - **Logo** — animated gradient text logo
 - **Seo** — Open Graph + Twitter Card meta tags
+- **generateSitemap()** — XML sitemap generator utility
+- **Logo** — animated gradient text logo
+- **Seo** — Open Graph + Twitter Card meta tags
 
 ### Routes
 - `/` — Landing page with hero + feature cards

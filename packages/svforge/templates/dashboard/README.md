@@ -12,6 +12,10 @@ Base template + admin dashboard with Better Auth, Drizzle ORM, and user manageme
 - **Auth guard** on `(app)/` route group with callbackURL redirect
 - **Pattern**: First registered user is admin (see `$lib/server/admin.ts`)
 
+### Validation
+- **Zod schemas** — type-safe validation on all server actions (login, settings, users CRUD, setup)
+- Schemas at `src/lib/server/schemas.ts`
+
 ### Database
 - **Drizzle ORM** with SQLite (libsql)
 - **Schema**: user, session, account, verification tables
@@ -30,6 +34,11 @@ Base template + admin dashboard with Better Auth, Drizzle ORM, and user manageme
 - `/(app)/admin` — protected, requires session
 - `/(app)/admin/users` — protected, requires admin
 - `/(app)/admin/settings` — protected
+
+### Pre-configured Files
+- `drizzle.config.ts` — ready for `bunx drizzle-kit push`
+- `.env.example` — copy to `.env` and fill in
+- `scripts/setup.sh` — run after install (generates secret, inits DB)
 
 ## Environment Variables
 
