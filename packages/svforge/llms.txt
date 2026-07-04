@@ -14,7 +14,7 @@ Base + auth (Better Auth), database (Drizzle + SQLite), and admin dashboard.
 
 ```bash
 # Create a new project with SvelteForge (one-liner)
-npx sv create my-app --template minimal --types ts --add '@ludoloops/svelteforge=template:base' --install bun
+npx sv create my-app --template minimal --types ts --add 'svforge=template:base' --install bun
 cd my-app
 bun dev
 ```
@@ -23,7 +23,7 @@ Or step by step:
 ```bash
 npx sv create my-app --template minimal --types ts
 cd my-app
-npx sv add @ludoloops/svelteforge
+npx sv add svforge
 ```
 
 The addon prompts for a template:
@@ -177,5 +177,5 @@ cd /tmp/test && bun install && bun dev
 
 - [Svelte 5 Documentation](./docs/llms-svelte.txt)
 - [Skeleton UI Documentation](./docs/llms-skeleton.txt)
-- [npm](https://www.npmjs.com/package/@ludoloops/svelteforge)
+- [npm](https://www.npmjs.com/package/svforge)
 - [GitHub](https://github.com/ludoloops/svelteforge)
