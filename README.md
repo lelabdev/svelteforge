@@ -1,6 +1,6 @@
 # SvelteForge
 
-A `sv` community addon that scaffolds SvelteKit projects with a pre-built UI component library powered by **Skeleton UI v4** and **Tailwind CSS v4**.
+A `sv` community addon that provides production-ready SvelteKit boilerplate templates powered by **Skeleton UI v4** and **Tailwind CSS v4**.
 
 ## Quick Start
 
