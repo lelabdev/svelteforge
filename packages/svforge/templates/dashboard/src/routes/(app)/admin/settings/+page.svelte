@@ -58,7 +58,14 @@
 			</div>
 		{/if}
 
-		<form method="POST" action="?/changePassword" use:enhance class="space-y-4">
+		<form method="POST" action="?/changePassword" onsubmit={(e) => {
+				if (newPassword !== confirmPassword) {
+					e.preventDefault();
+					validationError = 'Passwords do not match';
+				} else {
+					validationError = '';
+				}
+			}} use:enhance class="space-y-4">
 			<Input label="Current Password" type="password" name="currentPassword" bind:value={currentPassword} required />
 			<Input label="New Password" type="password" name="newPassword" bind:value={newPassword} placeholder="Min 8 characters" required />
 			<Input label="Confirm New Password" type="password" name="confirmPassword" bind:value={confirmPassword} required />
