@@ -67,3 +67,27 @@ describe('graph module', () => {
 		expect(existsSync(join(dir, 'dist/index.js'))).toBe(true);
 	});
 });
+
+describe('blog module', () => {
+const dir = join(ROOT, 'packages/blog');
+
+it('has posts utility', () => {
+expect(existsSync(join(dir, 'templates/src/lib/utils/posts.ts'))).toBe(true);
+});
+
+it('has welcome post', () => {
+expect(existsSync(join(dir, 'templates/src/posts/welcome.md'))).toBe(true);
+});
+
+it('has blog list page', () => {
+expect(existsSync(join(dir, 'templates/src/routes/blog/+page.svelte'))).toBe(true);
+});
+
+it('has blog article page', () => {
+expect(existsSync(join(dir, 'templates/src/routes/blog/[slug]/+page.svelte'))).toBe(true);
+});
+
+it('has dist built', () => {
+expect(existsSync(join(dir, 'dist/index.js'))).toBe(true);
+});
+});
