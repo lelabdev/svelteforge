@@ -5,7 +5,7 @@ import { join } from 'path';
 const ROOT = join(import.meta.dirname, '..');
 
 describe('monorepo structure', () => {
-	const packages = ['svforge', 'ui_toast', 'dnd', 'tiptap'];
+	const packages = ['svforge', 'ui_toast', 'dnd', 'tiptap', 'graph'];
 
 	it.each(packages)('packages/%s has package.json', (pkg) => {
 		expect(existsSync(join(ROOT, 'packages', pkg, 'package.json'))).toBe(true);
