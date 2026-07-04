@@ -69,8 +69,8 @@ export const actions: Actions = {
 				createdAt: new Date(),
 				updatedAt: new Date()
 			});
-		} catch (e: any) {
-			return fail(500, { message: e.message || 'Failed to create user' });
+		} catch (e: unknown) {
+			return fail(500, { message: e instanceof Error ? e.message : "Failed to create user" || 'Failed to create user' });
 		}
 
 		return { success: true, message: `User ${name} created` };

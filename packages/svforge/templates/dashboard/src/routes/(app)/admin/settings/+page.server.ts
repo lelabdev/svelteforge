@@ -24,8 +24,8 @@ export const actions: Actions = {
 				body: { currentPassword, newPassword }
 			});
 			return { success: true };
-		} catch (e: any) {
-			return fail(400, { message: e.message || 'Failed to change password' });
+		} catch (e: unknown) {
+			return fail(400, { message: e instanceof Error ? e.message : "Failed to change password" || 'Failed to change password' });
 		}
 	}
 };
