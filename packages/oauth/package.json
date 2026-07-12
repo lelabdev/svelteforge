@@ -9,10 +9,10 @@
 		"url": "git+https://github.com/lelabdev/svelteforge.git",
 		"directory": "packages/oauth"
 	},
-	"types": "./dist/index-B9n1xibO.d.ts",
+	"types": "./dist/index.d.ts",
 	"exports": {
 		".": {
-			"types": "./dist/index-B9n1xibO.d.ts",
+			"types": "./dist/index.d.ts",
 			"default": "./dist/index.js"
 		}
 	},
@@ -30,7 +30,7 @@
 	},
 	"scripts": {
 		"prebuild": "bun scripts/prebuild.ts",
-		"build": "bun run prebuild && bunx tsdown",
+		"build": "bun run prebuild && bunx tsdown && cp dist/index-*.d.ts dist/index.d.ts 2>/dev/null || true",
 		"prepublishOnly": "bun run build"
 	},
 	"keywords": [
