@@ -8,11 +8,11 @@ describe('ui_toast module', () => {
 	const dir = join(ROOT, 'packages/ui_toast');
 
 	it('has Toaster component', () => {
-		expect(existsSync(join(dir, 'templates/src/src/lib/components/svforge/ui/Toaster.svelte'))).toBe(true);
+		expect(existsSync(join(dir, 'templates/src/lib/components/svforge/ui/Toaster.svelte'))).toBe(true);
 	});
 
 	it('has toaster utility', () => {
-		expect(existsSync(join(dir, 'templates/src/src/lib/components/svforge/ui/toaster.ts'))).toBe(true);
+		expect(existsSync(join(dir, 'templates/src/lib/components/svforge/ui/toaster.ts'))).toBe(true);
 	});
 
 	it('has dist built', () => {
@@ -24,7 +24,7 @@ describe('dnd module', () => {
 	const dir = join(ROOT, 'packages/dnd');
 
 	it('has SortableList component', () => {
-		expect(existsSync(join(dir, 'templates/src/src/lib/components/svforge/dnd/SortableList.svelte'))).toBe(true);
+		expect(existsSync(join(dir, 'templates/src/lib/components/svforge/dnd/SortableList.svelte'))).toBe(true);
 	});
 
 	it('has dist built', () => {
