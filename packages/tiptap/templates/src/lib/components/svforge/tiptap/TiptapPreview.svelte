@@ -8,12 +8,40 @@
 
 	let { content, class: className = '' }: Props = $props();
 
+	/** Escape HTML special characters to prevent injection. */
+	function escapeHtml(text: string): string {
+		return text
+			.replace(/&/g, '&amp;')
+			.replace(/</g, '&lt;')
+			.replace(/>/g, '&gt;')
+			.replace(/"/g, '&quot;')
+			.replace(/'/g, '&#39;');
+	}
+
+	/** Allowed link protocols. Anything else is stripped to prevent javascript: URLs. */
+	const SAFE_PROTOCOLS = ['http:', 'https:', 'mailto:', 'tel:'];
+
+	/** Sanitize an href: validate protocol and escape for attribute interpolation. */
+	function sanitizeHref(href: string): string {
+		if (!href) return '#';
+		try {
+			const url = new URL(href, 'http://placeholder.local');
+			if (!SAFE_PROTOCOLS.includes(url.protocol)) {
+				return '#';
+			}
+			return escapeHtml(url.href);
+		} catch {
+			// Relative URLs are OK, escape them
+			return escapeHtml(href);
+		}
+	}
+
 	function renderContent(node: JSONContent): string {
 		if (!node) return '';
 
 		const type = node.type;
 		const nodeContent = node.content || [];
-		const text = node.text || '';
+		const text = escapeHtml(node.text || '');
 		const marks = node.marks || [];
 
 		function applyMarks(text: string, marks: JSONContent['marks']): string {
@@ -30,8 +58,11 @@
 						return `<s>${acc}</s>`;
 					case 'code':
 						return `<code>${acc}</code>`;
-					case 'link':
-						return `<a href="${mark.attrs?.href || '#'}" target="${mark.attrs?.target || '_blank'}">${acc}</a>`;
+					case 'link': {
+						const href = sanitizeHref(mark.attrs?.href || '#');
+						const target = escapeHtml(mark.attrs?.target || '_blank');
+						return `<a href="${href}" target="${target}" rel="noopener noreferrer">${acc}</a>`;
+					}
 					default:
 						return acc;
 				}
