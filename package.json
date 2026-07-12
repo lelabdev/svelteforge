@@ -8,7 +8,7 @@
 	"scripts": {
 		"build": "bun run --filter svforge build",
 		"build:all": "bun run --filter '*' build",
-		"test": "vitest run",
+		"test": "vitest run --no-file-parallelism",
 		"test:watch": "vitest"
 	},
 	"devDependencies": {
