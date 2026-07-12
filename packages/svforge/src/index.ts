@@ -7,6 +7,10 @@ import { applyDashboardMode } from './modes/dashboard';
 export { doctor, printReport } from './doctor';
 export type { DiagnosticResult, DoctorReport } from './doctor';
 
+// Export upgrade command for programmatic use
+export { upgrade, printUpgradeResult } from './upgrade';
+export type { UpgradeFile, UpgradeResult } from './upgrade';
+
 export default defineAddon({
 	id: 'svelteforge',
 	alias: 'forge',
