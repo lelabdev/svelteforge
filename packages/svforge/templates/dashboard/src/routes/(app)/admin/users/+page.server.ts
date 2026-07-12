@@ -129,7 +129,7 @@ export const actions: Actions = {
 		const adminId = await requireAdmin(event);
 		const { request } = event;
 		const formData = await request.formData();
-	const parsed = deleteUserSchema.safeParse({
+		const parsed = deleteUserSchema.safeParse({
 			id: formData.get('id')
 		});
 
@@ -144,14 +144,23 @@ export const actions: Actions = {
 			return fail(400, { message: 'You cannot delete your own account' });
 		}
 
-		// Delete order matters: session → account → user (FK constraints cascade)
-		// If you skip deleting sessions/accounts first, orphan records will remain.
-		await db.delete(session).where(eq(session.userId, id));
-		await db.delete(session).where(eq(session.userId, id));
-		// Delete accounts
+		// Verify the target user exists before attempting deletion
+		const [target] = await db.select({ id: user.id }).from(user).where(eq(user.id, id)).limit(1);
+		if (!target) {
+			return fail(404, { message: 'User not found' });
+		}
 
-		// Delete user
-
+		// Atomic deletion: session → account → user (FK-safe order)
+		// All deletions succeed or none do.
+		try {
+			await db.transaction(async (tx) => {
+				await tx.delete(session).where(eq(session.userId, id));
+				await tx.delete(account).where(eq(account.userId, id));
+				await tx.delete(user).where(eq(user.id, id));
+			});
+		} catch (e: unknown) {
+			return fail(500, { message: e instanceof Error ? e.message : 'Failed to delete user' });
+		}
 
 		return { success: true, message: 'User deleted' };
 	},
