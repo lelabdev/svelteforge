@@ -6,7 +6,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 export function readDirRecursively(dir: string, baseDir: string = dir): Record<string, string> {
 const files: Record<string, string> = {};
-for (const entry of readdirSync(dir)) {
+for (const entry of readdirSync(dir).sort()) {
 const fullPath = join(dir, entry);
 if (statSync(fullPath).isDirectory()) {
 Object.assign(files, readDirRecursively(fullPath, baseDir));
