@@ -8,7 +8,7 @@ let { data } = $props();
 <main class="max-w-container mx-auto px-element py-section">
 <h1 class="text-4xl font-heading font-bold mb-section">Blog</h1>
 <div class="grid grid-cols-1 md:grid-cols-2 gap-group">
-{#each data.posts as post}
+{#each data.posts as post (post.slug)}
 <a href="/blog/{post.slug}">
 <Card variant="elevated" class="h-full">
 <h2 class="text-xl font-heading font-bold mb-2">{post.title}</h2>

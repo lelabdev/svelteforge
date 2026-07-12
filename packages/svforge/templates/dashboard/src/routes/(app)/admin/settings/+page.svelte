@@ -9,12 +9,8 @@
 	let newPassword = $state('');
 	let confirmPassword = $state('');
 
-	// Client-side validation
+	// Client-side validation — cleared on form response, not via $effect
 	let validationError = $state('');
-
-	$effect(() => {
-		if (form?.message) validationError = '';
-	});
 </script>
 
 <svelte:head>
