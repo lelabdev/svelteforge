@@ -155,7 +155,7 @@
 				</tr>
 			</thead>
 			<tbody class="divide-y divide-surface-100-800">
-				{#each filtered as u}
+				{#each filtered as u (u.id)}
 					<tr class="hover:hover:bg-surface-900-50 transition-colors">
 						<td class="px-4 py-3">
 							<div class="flex items-center gap-3">
@@ -197,7 +197,7 @@
 
 <!-- Modal overlay -->
 {#if modal}
-	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-element" onclick={closeModal}>
+	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-element" role="presentation" onclick={closeModal}>
 		<Card class="w-full max-w-modal" onclick={(e: Event) => e.stopPropagation()}>
 			<div class="flex items-center justify-between mb-4">
 				<h3 class="text-lg font-heading font-bold">

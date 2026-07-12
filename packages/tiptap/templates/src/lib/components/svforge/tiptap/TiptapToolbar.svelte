@@ -31,22 +31,22 @@
 
 	type Btn = { label: string; title: string; action: () => void; check: string; checkAttrs?: Record<string, unknown> };
 
-	const formatBtns: Btn[] = [
+	const formatBtns: Btn[] = $derived([
 		{ label: 'B', title: 'Bold', action: onToggleBold, check: 'bold' },
 		{ label: 'I', title: 'Italic', action: onToggleItalic, check: 'italic' },
 		{ label: 'U', title: 'Underline', action: onToggleUnderline, check: 'underline' },
 		{ label: 'S', title: 'Strikethrough', action: onToggleStrike, check: 'strike' },
-	];
+	]);
 
-	const blockBtns: Btn[] = [
+	const blockBtns: Btn[] = $derived([
 		{ label: '❝', title: 'Blockquote', action: onToggleBlockquote, check: 'blockquote' },
 		{ label: '</>', title: 'Code block', action: onToggleCode, check: 'codeBlock' },
-	];
+	]);
 
-	const listBtns: Btn[] = [
+	const listBtns: Btn[] = $derived([
 		{ label: '• List', title: 'Bullet list', action: onToggleBulletList, check: 'bulletList' },
 		{ label: '1. List', title: 'Ordered list', action: onToggleOrderedList, check: 'orderedList' },
-	];
+	]);
 </script>
 
 <div class="flex flex-wrap items-center gap-1 p-2 bg-surface-100-900 border-b border-surface-200-800 rounded-t-lg">
