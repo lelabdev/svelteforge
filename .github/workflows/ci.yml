@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, dev]
   workflow_dispatch:
 
 permissions:
@@ -63,7 +63,7 @@ jobs:
         run: cd packages/blog && bun run prebuild && bun x tsdown
 
       - name: Run tests
-        run: bun x vitest run
+        run: bun x vitest run --no-file-parallelism
 
       - name: Publish svforge@dev
         run: cd packages/svforge && npm publish --tag dev --access public --ignore-scripts
