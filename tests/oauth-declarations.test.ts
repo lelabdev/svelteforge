@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { execSync } from 'node:child_process';
+import { runBun } from './helpers/bun';
 
 const ROOT = process.cwd();
 const OAUTH_PKG = join(ROOT, 'packages/oauth');
@@ -35,7 +35,7 @@ describe('OAuth TypeScript declaration publishing (#174)', () => {
 
 	it('build produces dist/index.d.ts (stable declaration file)', () => {
 		// Build the package and verify the stable declaration file exists
-		execSync('bun run build', { cwd: OAUTH_PKG, stdio: 'pipe', timeout: 60_000 });
+		runBun(['run', 'build'], OAUTH_PKG);
 		expect(existsSync(join(OAUTH_PKG, 'dist', 'index.d.ts'))).toBe(true);
 	});
 

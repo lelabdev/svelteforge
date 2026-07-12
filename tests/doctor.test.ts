@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { execSync } from 'node:child_process';
+import { runBun } from './helpers/bun';
 
 const ROOT = process.cwd();
 
@@ -56,11 +56,7 @@ describe('svforge doctor (#178)', () => {
 
 	describe('doctor module builds', () => {
 		it('is included in the dist output', () => {
-			execSync('bun run build', {
-				cwd: join(ROOT, 'packages/svforge'),
-				stdio: 'pipe',
-				timeout: 60_000
-			});
+			runBun(['run', 'build'], join(ROOT, 'packages/svforge'));
 			// The doctor module should be either bundled or a separate entry
 			const distContent = readFileSync(join(ROOT, 'packages/svforge/dist/index.js'), 'utf-8');
 			expect(distContent.length).toBeGreaterThan(0);

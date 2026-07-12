@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { execSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
+import { runBun } from './helpers/bun';
 
 const root = process.cwd();
 
@@ -16,7 +16,7 @@ describe('addon package builds produce dist/index.js (#171)', () => {
 	for (const pkg of packages) {
 		it(`${pkg} builds and emits dist/index.js`, () => {
 			const pkgDir = join(root, 'packages', pkg);
-			execSync('bun run build', { cwd: pkgDir, stdio: 'pipe', timeout: 60_000 });
+			runBun(['run', 'build'], pkgDir);
 			expect(existsSync(join(pkgDir, 'dist', 'index.js'))).toBe(true);
 		});
 	}
