@@ -1,12 +1,29 @@
 import { db } from '$lib/server/db';
 import { user, account, session } from '$lib/server/db/schema';
 import { desc, eq } from 'drizzle-orm';
-import { fail, type Actions } from '@sveltejs/kit';
+import { fail, error, type Actions } from '@sveltejs/kit';
 import { hashPassword } from 'better-auth/crypto';
 import { isAdmin } from '$lib/server/admin';
 import { createUserSchema, updateUserSchema, deleteUserSchema, toggleVerifySchema } from '$lib/server/schemas';
 import { redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
+import type { RequestEvent } from '@sveltejs/kit';
+
+/**
+ * Require an authenticated admin user for a form action.
+ * Returns the user id on success, or throws a 401/403 error.
+ *
+ * Every admin action must call this BEFORE reading formData or touching the db.
+ */
+async function requireAdmin(event: RequestEvent): Promise<string> {
+	if (!event.locals.user) {
+		throw error(401, { message: 'Authentication required' });
+	}
+	if (!(await isAdmin(event.locals.user.id))) {
+		throw error(403, { message: 'Admin access required' });
+	}
+	return event.locals.user.id;
+}
 
 export const load: PageServerLoad = async ({ locals }) => {
 	if (!locals.user || !(await isAdmin(locals.user.id))) {
@@ -26,7 +43,9 @@ export const load: PageServerLoad = async ({ locals }) => {
 };
 
 export const actions: Actions = {
-	create: async ({ request }) => {
+	create: async (event) => {
+		await requireAdmin(event);
+		const { request } = event;
 		const formData = await request.formData();
 		const parsed = createUserSchema.safeParse({
 			name: formData.get('name'),
@@ -79,7 +98,9 @@ export const actions: Actions = {
 		return { success: true, message: `User ${name} created` };
 	},
 
-	update: async ({ request }) => {
+	update: async (event) => {
+		await requireAdmin(event);
+		const { request } = event;
 		const formData = await request.formData();
 		const id = formData.get('id')?.toString();
 		const name = formData.get('name')?.toString()?.trim();
@@ -104,7 +125,9 @@ export const actions: Actions = {
 		return { success: true, message: `User ${name} updated` };
 	},
 
-	delete: async ({ request, locals }) => {
+	delete: async (event) => {
+		const adminId = await requireAdmin(event);
+		const { request } = event;
 		const formData = await request.formData();
 	const parsed = deleteUserSchema.safeParse({
 			id: formData.get('id')
@@ -117,7 +140,7 @@ export const actions: Actions = {
 		const { id } = parsed.data;
 
 		// Prevent self-delete
-		if (id === locals.user?.id) {
+		if (id === adminId) {
 			return fail(400, { message: 'You cannot delete your own account' });
 		}
 
@@ -133,7 +156,9 @@ export const actions: Actions = {
 		return { success: true, message: 'User deleted' };
 	},
 
-	toggleVerify: async ({ request }) => {
+	toggleVerify: async (event) => {
+		await requireAdmin(event);
+		const { request } = event;
 		const formData = await request.formData();
 		const parsed = toggleVerifySchema.safeParse({
 			id: formData.get('id'),
