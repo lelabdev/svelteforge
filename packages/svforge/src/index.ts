@@ -3,6 +3,10 @@ import { baseFiles, dashboardFiles } from './templates';
 import { applyBaseMode } from './modes/base';
 import { applyDashboardMode } from './modes/dashboard';
 
+// Export doctor diagnostics for programmatic use
+export { doctor, printReport } from './doctor';
+export type { DiagnosticResult, DoctorReport } from './doctor';
+
 export default defineAddon({
 	id: 'svelteforge',
 	alias: 'forge',
