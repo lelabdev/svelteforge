@@ -3,23 +3,19 @@ name: CI
 on:
   push:
     branches: [main, dev]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
-  id-token: write
+  contents: read
 
 jobs:
-  build-test-publish-dev:
-    runs-on: self-hosted
+  build-and-test:
+    runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          registry-url: https://registry.npmjs.org
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -29,83 +25,14 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile --ignore-scripts
 
-      - name: Build svforge
-        run: cd packages/svforge && bun run build
+      - name: Build all packages
+        run: bun run --filter '*' build
 
-      - name: Build ui_toast
-        run: cd packages/ui_toast && bun run prebuild && bun x tsdown
-
-      - name: Build dnd
-        run: cd packages/dnd && bun run prebuild && bun x tsdown
-
-      - name: Build graph
-        run: cd packages/graph && bun run prebuild && bun x tsdown
-
-      - name: Build tiptap
-        run: cd packages/tiptap && bun run prebuild && bun x tsdown
+      - name: Run tests
+        run: bun x vitest run --no-file-parallelism
 
       - name: Scaffold test (base)
         run: bash scripts/test-scaffold.sh base
 
       - name: Scaffold test (dashboard)
         run: bash scripts/test-scaffold.sh dashboard
-
-      - name: Build email
-        run: cd packages/email && bun run prebuild && bun x tsdown
-
-      - name: Build oauth
-        run: cd packages/oauth && bun run prebuild && bun x tsdown
-
-      - name: Build uploads
-        run: cd packages/uploads && bun run prebuild && bun x tsdown
-
-      - name: Build blog
-        run: cd packages/blog && bun run prebuild && bun x tsdown
-
-      - name: Run tests
-        run: bun x vitest run --no-file-parallelism
-
-      - name: Publish svforge@dev
-        run: cd packages/svforge && npm publish --tag dev --access public --ignore-scripts
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: Publish ui_toast@dev
-        run: cd packages/ui_toast && npm publish --tag dev --access public --ignore-scripts
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: Publish dnd@dev
-        run: cd packages/dnd && npm publish --tag dev --access public --ignore-scripts
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: Publish graph@dev
-        run: cd packages/graph && npm publish --tag dev --access public --ignore-scripts
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: Publish tiptap@dev
-        run: cd packages/tiptap && npm publish --tag dev --access public --ignore-scripts
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: Publish email@dev
-        run: cd packages/email && npm publish --tag dev --access public --ignore-scripts
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: Publish oauth@dev
-        run: cd packages/oauth && npm publish --tag dev --access public --ignore-scripts
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: Publish uploads@dev
-        run: cd packages/uploads && npm publish --tag dev --access public --ignore-scripts
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: Publish blog@dev
-        run: cd packages/blog && npm publish --tag dev --access public --ignore-scripts
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
