@@ -8,6 +8,16 @@ export function applyDashboardMode(
 	dashboardFiles: Record<string, string>,
 	testing: 'vitest' | 'playwright' = 'vitest'
 ): void {
+	// Dashboard-specific runtime dependencies
+	sv.dependency('drizzle-orm', '^0.45.2');
+	sv.dependency('@libsql/client', '^0.17.2');
+	sv.dependency('better-auth', '~1.4.21');
+
+	// Dashboard-specific dev dependencies
+	sv.devDependency('drizzle-kit', '^0.31.10');
+	sv.devDependency('@better-auth/cli', '~1.4.21');
+	sv.devDependency('@types/node', '^22');
+
 	// Dashboard-specific Vitest baseline (#180)
 	sv.devDependency('@testing-library/jest-dom', '^6.9.1');
 	sv.devDependency('@testing-library/svelte', '^5.3.1');

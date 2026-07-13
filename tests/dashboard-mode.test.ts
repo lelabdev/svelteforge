@@ -2,16 +2,22 @@ import { describe, it, expect } from 'vitest';
 import { applyDashboardMode } from '../packages/svforge/src/modes/dashboard';
 
 type FakeSv = {
+	dependencies: string[];
 	devDependencies: string[];
 	files: Map<string, string>;
+	dependency: (name: string, version: string) => void;
 	devDependency: (name: string, version: string) => void;
 	file: (path: string, transform: (content: string) => string) => void;
 };
 
 function fakeSv(): FakeSv {
 	const sv: FakeSv = {
+		dependencies: [],
 		devDependencies: [],
 		files: new Map(),
+		dependency(name) {
+			this.dependencies.push(name);
+		},
 		devDependency(name) {
 			this.devDependencies.push(name);
 		},
