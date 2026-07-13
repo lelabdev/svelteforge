@@ -21,6 +21,11 @@ describe('dashboard Vitest baseline (#180)', () => {
 			const config = readFileSync(join(dashboardRoot, 'vitest.config.ts'), 'utf-8');
 			expect(config).toMatch(/vitest/i);
 		});
+
+		it('defines a runnable test script in dashboard mode', () => {
+			const mode = readFileSync(join(ROOT, 'packages/svforge/src/modes/dashboard.ts'), 'utf-8');
+			expect(mode).toMatch(/test:\s*'vitest run'/);
+		});
 	});
 
 	describe('test files exist', () => {

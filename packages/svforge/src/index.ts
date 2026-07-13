@@ -27,6 +27,15 @@ export default defineAddon({
 				{ value: 'dashboard', label: 'Dashboard — base + admin dashboard + auth + DB' }
 			]
 		})
+		.add('testing', {
+			question: 'Which dashboard testing profile?',
+			type: 'select',
+			default: 'vitest',
+			options: [
+				{ value: 'vitest', label: 'Vitest — unit and server behavior tests' },
+				{ value: 'playwright', label: 'Playwright — Vitest plus full browser tests' }
+			]
+		})
 		.build(),
 
 	setup: ({ unsupported, isKit }) => {
@@ -35,6 +44,7 @@ export default defineAddon({
 
 	run: ({ sv, options }) => {
 		const template = options.template as 'base' | 'dashboard';
+		const testing = options.testing as 'vitest' | 'playwright';
 
 		// ── Shared dependencies ──
 		sv.dependency('@fontsource-variable/fira-code', 'latest');
@@ -66,7 +76,7 @@ export default defineAddon({
 
 		// ── Apply mode-specific files ──
 		if (template === 'dashboard') {
-			applyDashboardMode(sv, baseFiles, dashboardFiles);
+			applyDashboardMode(sv, baseFiles, dashboardFiles, testing);
 		} else {
 			applyBaseMode(sv, baseFiles);
 		}

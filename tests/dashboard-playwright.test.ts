@@ -74,9 +74,16 @@ describe('dashboard Playwright profile (#181)', () => {
 	});
 
 	describe('not installed by default', () => {
-		it('playwright config is separate from vitest (opt-in)', () => {
-			const vitestConfig = readFileSync(join(dashboardRoot, 'vitest.config.ts'), 'utf-8');
-			expect(vitestConfig).not.toMatch(/playwright/);
+		it('is filtered unless the playwright profile is selected', () => {
+			const mode = readFileSync(join(ROOT, 'packages/svforge/src/modes/dashboard.ts'), 'utf-8');
+			expect(mode).toMatch(/testing === 'playwright'/);
+			expect(mode).toMatch(/isPlaywrightFile.*testing !== 'playwright'/s);
+		});
+
+		it('adds Playwright dependency and script only for the profile', () => {
+			const mode = readFileSync(join(ROOT, 'packages/svforge/src/modes/dashboard.ts'), 'utf-8');
+			expect(mode).toMatch(/@playwright\/test/);
+			expect(mode).toMatch(/test:e2e.*playwright test/);
 		});
 	});
 });
