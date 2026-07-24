@@ -10,10 +10,15 @@ permissions:
 
 jobs:
   publish-latest:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -21,43 +26,14 @@ jobs:
           node-version: 22
           registry-url: https://registry.npmjs.org
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
       - name: Install dependencies
         run: bun install --frozen-lockfile --ignore-scripts
 
-      - name: Build svforge
-        run: cd packages/svforge && bun run build
-
-      - name: Build ui_toast
-        run: cd packages/ui_toast && bun run prebuild && bun x tsdown
-
-      - name: Build dnd
-        run: cd packages/dnd && bun run prebuild && bun x tsdown
-
-      - name: Build graph
-        run: cd packages/graph && bun run prebuild && bun x tsdown
-
-      - name: Build tiptap
-        run: cd packages/tiptap && bun run prebuild && bun x tsdown
-
-      - name: Build email
-        run: cd packages/email && bun run prebuild && bun x tsdown
-
-      - name: Build oauth
-        run: cd packages/oauth && bun run prebuild && bun x tsdown
-
-      - name: Build uploads
-        run: cd packages/uploads && bun run prebuild && bun x tsdown
-
-      - name: Build blog
-        run: cd packages/blog && bun run prebuild && bun x tsdown
+      - name: Build all packages
+        run: bun run --filter '*' build
 
       - name: Run tests
-        run: bun x vitest run
+        run: bun x vitest run --no-file-parallelism
 
       - name: Publish svforge@latest
         run: cd packages/svforge && npm publish --access public --ignore-scripts
@@ -85,21 +61,21 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish email@latest
-        run: cd packages/email && npm publish --tag latest --access public --ignore-scripts
+        run: cd packages/email && npm publish --access public --ignore-scripts
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish oauth@latest
-        run: cd packages/oauth && npm publish --tag latest --access public --ignore-scripts
+        run: cd packages/oauth && npm publish --access public --ignore-scripts
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish uploads@latest
-        run: cd packages/uploads && npm publish --tag latest --access public --ignore-scripts
+        run: cd packages/uploads && npm publish --access public --ignore-scripts
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish blog@latest
-        run: cd packages/blog && npm publish --tag latest --access public --ignore-scripts
+        run: cd packages/blog && npm publish --access public --ignore-scripts
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

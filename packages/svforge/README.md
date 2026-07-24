@@ -12,12 +12,20 @@ cd my-app && bun dev
 # Dashboard template (base + auth + DB + admin)
 bunx sv create my-app --template minimal --types ts --add 'svforge=template:dashboard' --install bun --no-download-check
 cd my-app && bash scripts/setup.sh && bun dev
+
+# Dashboard with the opt-in Playwright browser profile
+bunx sv create my-app --template minimal --types ts --add 'svforge=template:dashboard+testing:playwright' --install bun --no-download-check
+cd my-app && bunx playwright install && bun run test:e2e
 ```
 
 Or add to an existing project:
 ```bash
 bunx sv add svforge   # prompts: base or dashboard
 ```
+
+Dashboard projects include the Vitest baseline by default (`bun run test`).
+The Playwright profile is opt-in with `testing:playwright`; it adds
+`@playwright/test`, the `test:e2e` script, browser configuration, and E2E tests.
 
 ## What you get
 
