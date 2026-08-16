@@ -1,11 +1,10 @@
 import { db } from '$lib/server/db';
 import { user, account, session } from '$lib/server/db/schema';
 import { desc, eq } from 'drizzle-orm';
-import { fail, error, type Actions } from '@sveltejs/kit';
+import { fail, redirect, error, type Actions } from '@sveltejs/kit';
 import { hashPassword } from 'better-auth/crypto';
 import { isAdmin } from '$lib/server/admin';
-import { createUserSchema, updateUserSchema, deleteUserSchema, toggleVerifySchema } from '$lib/server/schemas';
-import { redirect } from '@sveltejs/kit';
+import { createUserSchema, deleteUserSchema, toggleVerifySchema } from '$lib/server/schemas';
 import type { PageServerLoad } from './$types';
 import type { RequestEvent } from '@sveltejs/kit';
 
@@ -91,8 +90,9 @@ export const actions: Actions = {
 				createdAt: new Date(),
 				updatedAt: new Date()
 			});
-		} catch (e: unknown) {
-			return fail(500, { message: e instanceof Error ? e.message : "Failed to create user" || 'Failed to create user' });
+		} catch {
+			// Generic message — never leak e.message internals to the UI (#188).
+			return fail(500, { message: 'Failed to create user' });
 		}
 
 		return { success: true, message: `User ${name} created` };
@@ -158,8 +158,9 @@ export const actions: Actions = {
 				await tx.delete(account).where(eq(account.userId, id));
 				await tx.delete(user).where(eq(user.id, id));
 			});
-		} catch (e: unknown) {
-			return fail(500, { message: e instanceof Error ? e.message : 'Failed to delete user' });
+		} catch {
+			// Generic message — never leak e.message internals to the UI (#188).
+			return fail(500, { message: 'Failed to delete user' });
 		}
 
 		return { success: true, message: 'User deleted' };

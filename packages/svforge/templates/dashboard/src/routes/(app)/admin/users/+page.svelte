@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { invalidateAll } from '$app/navigation';
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 	import { Button, Badge, Input, Card, AvatarInitial, Feedback } from '$lib/components/svforge/ui';
 	import UserPlus from 'phosphor-svelte/lib/UserPlus';
 	import Trash from 'phosphor-svelte/lib/Trash';
@@ -8,7 +8,7 @@
 	import X from 'phosphor-svelte/lib/X';
 
 	let { data } = $props();
-	let currentUserId = $derived($page.data.user?.id);
+	let currentUserId = $derived(page.data.user?.id);
 
 	let search = $state('');
 	let feedback = $state<{ type: 'success' | 'error'; message: string } | null>(null);
@@ -64,11 +64,11 @@
 		const res = await fetch('?/create', { method: 'POST', body: formData });
 		const result = await res.json();
 		if (result.type === 'success') {
-			feedback = { type: 'success', message: result.message || 'User created' };
+			feedback = { type: 'success', message: result.data?.message || 'User created' };
 			closeModal();
 			invalidate();
 		} else {
-			feedback = { type: 'error', message: result.message || 'Failed to create user' };
+			feedback = { type: 'error', message: result.data?.message || 'Failed to create user' };
 		}
 	}
 
@@ -82,11 +82,11 @@
 		const res = await fetch('?/update', { method: 'POST', body: formData });
 		const result = await res.json();
 		if (result.type === 'success') {
-			feedback = { type: 'success', message: result.message || 'User updated' };
+			feedback = { type: 'success', message: result.data?.message || 'User updated' };
 			closeModal();
 			invalidate();
 		} else {
-			feedback = { type: 'error', message: result.message || 'Failed to update user' };
+			feedback = { type: 'error', message: result.data?.message || 'Failed to update user' };
 		}
 	}
 
@@ -98,11 +98,11 @@
 		const res = await fetch('?/delete', { method: 'POST', body: formData });
 		const result = await res.json();
 		if (result.type === 'success') {
-			feedback = { type: 'success', message: result.message || 'User deleted' };
+			feedback = { type: 'success', message: result.data?.message || 'User deleted' };
 			closeModal();
 			invalidate();
 		} else {
-			feedback = { type: 'error', message: result.message || 'Failed to delete user' };
+			feedback = { type: 'error', message: result.data?.message || 'Failed to delete user' };
 		}
 	}
 
@@ -114,8 +114,10 @@
 		const res = await fetch('?/toggleVerify', { method: 'POST', body: formData });
 		const result = await res.json();
 		if (result.type === 'success') {
-			feedback = { type: 'success', message: result.message };
+			feedback = { type: 'success', message: result.data?.message || 'Email verified' };
 			invalidate();
+		} else {
+			feedback = { type: 'error', message: result.data?.message || 'Failed to update verification' };
 		}
 	}
 

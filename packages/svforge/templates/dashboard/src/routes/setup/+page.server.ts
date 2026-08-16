@@ -27,9 +27,9 @@ export const actions: Actions = {
 			await auth.api.signUpEmail({
 				body: { name, email, password }
 			});
-		} catch (e: unknown) {
-			const message = e instanceof Error ? e.message : 'Failed to create admin';
-			return fail(400, { error: message });
+		} catch {
+			// Generic message — never leak e.message internals to the UI (#188).
+			return fail(400, { error: 'Failed to create admin' });
 		}
 
 		throw redirect(302, '/login');

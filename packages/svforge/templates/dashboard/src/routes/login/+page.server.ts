@@ -30,9 +30,9 @@ export const actions: Actions = {
 				headers: request.headers
 			});
 			return { success: true };
-		} catch (e: unknown) {
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-			return fail(401, { message: e instanceof Error ? e.message : "Invalid credentials" || 'Invalid credentials' });
+		} catch {
+			// Generic message — never leak e.message internals to the UI (#188).
+			return fail(401, { message: 'Invalid credentials' });
 		}
 	}
 };
