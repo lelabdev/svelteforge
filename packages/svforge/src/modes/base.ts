@@ -1,4 +1,5 @@
 import type { SvApi } from 'sv';
+import { scaffoldedAgents } from '../scaffolded-agents';
 
 /**
  * Apply Base mode files via sv.file()
@@ -12,4 +13,7 @@ export function applyBaseMode(
 	for (const [path, content] of Object.entries(files)) {
 		sv.file(`src${path}`, () => content);
 	}
+
+	// AI-ready: scaffold an AGENTS.md at the project root (#203)
+	sv.file('AGENTS.md', () => scaffoldedAgents('base'));
 }

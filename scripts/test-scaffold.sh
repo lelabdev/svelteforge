@@ -109,4 +109,11 @@ if [ "$TEMPLATE" = "dashboard-playwright" ]; then
 	test -f e2e/auth.test.ts || { echo "❌ e2e/auth.test.ts missing at project root"; exit 1; }
 fi
 
+# 6. AI-ready: AGENTS.md scaffolded at the project root (#203)
+test -f AGENTS.md || { echo "❌ AGENTS.md missing at project root (#203)"; exit 1; }
+grep -q "preset-tonal" AGENTS.md || { echo "❌ AGENTS.md lacks Skeleton v5 class guidance (#203)"; exit 1; }
+if [ "$TEMPLATE" = "dashboard" ] || [ "$TEMPLATE" = "dashboard-playwright" ]; then
+	grep -q "result.data" AGENTS.md || { echo "❌ dashboard AGENTS.md lacks action-response pattern (#203)"; exit 1; }
+fi
+
 echo "✅ Scaffold test passed for template=$TEMPLATE"
