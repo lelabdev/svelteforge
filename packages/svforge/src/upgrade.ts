@@ -9,6 +9,10 @@
  * and preserves modified files unless `--force` is passed.
  */
 
+import { readFileSync, existsSync, writeFileSync, mkdirSync, copyFileSync, readdirSync, statSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { baseFiles, dashboardFiles } from './templates';
+
 /** A single file in an upgrade operation. */
 export interface UpgradeFile {
 	/** Relative path within the project. */
@@ -37,19 +41,25 @@ export interface UpgradeResult {
 
 /**
  * Known SVForge modules and their recipe files.
- * In a real implementation, these would be bundled with each module package.
+ *
+ * Recipes are generated from the EMBEDDED template manifests (#189): base
+ * ships src/** from templates/base/src, dashboard = base + dashboard overlay.
+ * Module addon recipes (blog, dnd, …) are embedded in their own packages;
+ * the base/dashboard recipes live here since this is the main addon.
  */
-const MODULE_RECIPES: Record<string, { version: string; files: Record<string, string> }> = {
+export const MODULE_RECIPES: Record<string, { version: string; files: Record<string, string> }> = {
 	base: {
 		version: '1.1.0',
-		files: {}
+		files: baseFiles
+	},
+	dashboard: {
+		version: '1.1.0',
+		files: { ...baseFiles, ...dashboardFiles }
 	}
 };
 
-/**
- * Compute a simple checksum of file content to detect modifications.
- */
-function checksum(content: string): string {
+/** Compute a simple checksum of file content to detect modifications. */
+export function checksum(content: string): string {
 	let hash = 0;
 	for (let i = 0; i < content.length; i++) {
 		hash = ((hash << 5) - hash + content.charCodeAt(i)) | 0;
@@ -57,10 +67,33 @@ function checksum(content: string): string {
 	return hash.toString(16);
 }
 
+/** Tracking file: installed version + per-file checksums of the last install. */
+const TRACKING_FILE = '.svforge-versions.json';
+
+interface TrackingState {
+	[module: string]: {
+		version: string;
+		/** path → checksum of the content we installed */
+		fileChecksums?: Record<string, string>;
+	};
+}
+
+function loadTracking(projectRoot: string): TrackingState {
+	try {
+		return JSON.parse(readFileSync(join(projectRoot, TRACKING_FILE), 'utf-8'));
+	} catch {
+		return {};
+	}
+}
+
+function saveTracking(projectRoot: string, state: TrackingState): void {
+	writeFileSync(join(projectRoot, TRACKING_FILE), JSON.stringify(state, null, 2) + '\n');
+}
+
 /**
  * Upgrade an SVForge module in the current project.
  *
- * @param moduleName - Name of the module to upgrade (e.g., "base", "dnd", "tiptap").
+ * @param moduleName - Name of the module to upgrade (e.g., "base", "dashboard").
  * @param projectRoot - Absolute path to the project root.
  * @param options - Force overwrite of locally modified files.
  * @returns Structured upgrade result.
@@ -77,59 +110,58 @@ export async function upgrade(
 		);
 	}
 
-	const fs = require('node:fs');
-	const path = require('node:path');
-
 	const files: UpgradeFile[] = [];
 	let updatedCount = 0;
 	let skippedCount = 0;
 
-	// Read the installed version from .svforge-version or infer null
-	const versionFile = path.join(projectRoot, '.svforge-versions.json');
-	let fromVersion: string | null = null;
-	try {
-		const versions = JSON.parse(fs.readFileSync(versionFile, 'utf-8'));
-		fromVersion = versions[moduleName] ?? null;
-	} catch {
-		// No version tracking file — first install
-	}
+	const tracking = loadTracking(projectRoot);
+	const installed = tracking[moduleName];
+	const fromVersion = installed?.version ?? null;
+	// Checksums of what WE last installed — the baseline to detect user edits (#189).
+	const installedChecksums = installed?.fileChecksums ?? {};
 
-	for (const [relPath, newContent] of Object.entries(recipe.files)) {
-		const fullPath = path.join(projectRoot, relPath);
+	for (const [manifestPath, newContent] of Object.entries(recipe.files)) {
+		// Manifest paths start with "/" and are src-relative (e.g. "/lib/ui/Button.svelte").
+		// In a scaffolded project they live under src/ (#187 layout).
+		const relPath = `src${manifestPath}`;
+		const fullPath = join(projectRoot, relPath);
 
-		if (!fs.existsSync(fullPath)) {
+		if (!existsSync(fullPath)) {
 			// File doesn't exist yet — write it
-			fs.mkdirSync(path.dirname(fullPath), { recursive: true });
-			fs.writeFileSync(fullPath, newContent);
+			mkdirSync(dirname(fullPath), { recursive: true });
+			writeFileSync(fullPath, newContent);
 			files.push({ path: relPath, status: 'updated', message: 'New file created' });
 			updatedCount++;
 			continue;
 		}
 
-		const currentContent = fs.readFileSync(fullPath, 'utf-8');
+		const currentContent = readFileSync(fullPath, 'utf-8');
+		const currentChecksum = checksum(currentContent);
 
 		if (currentContent === newContent) {
 			files.push({ path: relPath, status: 'unchanged', message: 'Already up to date' });
 			continue;
 		}
 
-		// Content differs — check if the user modified it
-		const currentChecksum = checksum(currentContent);
-		const isLocallyModified = currentContent !== newContent;
+		// Detect a LOCAL MODIFICATION: the file differs from what we installed
+		// last time (installedChecksums), not merely from the new template.
+		// Without a baseline (first upgrade), any divergence is a potential edit.
+		const isUserModified =
+			installedChecksums[manifestPath] !== undefined &&
+			currentChecksum !== installedChecksums[manifestPath];
 
-		if (isLocallyModified && !options.force) {
-			// Preserve the user's modifications
+		if (isUserModified && !options.force) {
 			files.push({
 				path: relPath,
 				status: 'skipped',
-				message: `Local modifications detected (checksum: ${currentChecksum}). Use --force to overwrite.`
+				message: 'Local modifications detected. Use --force to overwrite.'
 			});
 			skippedCount++;
 		} else {
 			// Create backup, then overwrite
-			const backupPath = fullPath + '.svforge-backup';
-			fs.copyFileSync(fullPath, backupPath);
-			fs.writeFileSync(fullPath, newContent);
+			const backupPath = `${fullPath}.svforge-backup`;
+			copyFileSync(fullPath, backupPath);
+			writeFileSync(fullPath, newContent);
 			files.push({
 				path: relPath,
 				status: 'updated',
@@ -139,19 +171,16 @@ export async function upgrade(
 		}
 	}
 
-	// Update version tracking
-	try {
-		let versions: Record<string, string> = {};
-		try {
-			versions = JSON.parse(fs.readFileSync(versionFile, 'utf-8'));
-		} catch {
-			// First tracking
+	// Update version tracking with the NEW per-file checksums
+	saveTracking(projectRoot, {
+		...tracking,
+		[moduleName]: {
+			version: recipe.version,
+			fileChecksums: Object.fromEntries(
+				Object.entries(recipe.files).map(([p, c]) => [p, checksum(c)])
+			)
 		}
-		versions[moduleName] = recipe.version;
-		fs.writeFileSync(versionFile, JSON.stringify(versions, null, 2));
-	} catch {
-		// Version tracking is best-effort
-	}
+	});
 
 	return {
 		module: moduleName,

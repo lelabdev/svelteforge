@@ -1,65 +1,99 @@
 import { describe, it, expect } from 'vitest';
-import { existsSync, readFileSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
-import { runBun } from './helpers/bun';
-
-const ROOT = process.cwd();
+import { tmpdir } from 'node:os';
+import { doctor } from '../packages/svforge/src';
 
 /**
- * Tests for #178 — read-only svforge doctor diagnostics.
+ * Behavioral tests for #178/#189 — svforge doctor runs real diagnostics.
  *
- * The doctor command verifies installed SVForge modules, configuration,
- * environment variables, and dependency compatibility without modifying
- * any project files.
+ * Previous tests were grep-only; the svelte.config.js check was obsolete
+ * (modern sv create has no svelte.config.js — it would report ERROR on a
+ * healthy project). These tests call the real doctor() on temp projects.
  */
-describe('svforge doctor (#178)', () => {
-	describe('doctor module exists', () => {
-		it('has a doctor source file', () => {
-			expect(existsSync(join(ROOT, 'packages/svforge/src/doctor.ts'))).toBe(true);
-		});
-
-		it('exports a doctor function', () => {
-			const source = readFileSync(join(ROOT, 'packages/svforge/src/doctor.ts'), 'utf-8');
-			expect(source).toMatch(/export.*function.*doctor|export.*const.*doctor|export.*diagnose/i);
-		});
-
-		it('is read-only (does not contain write operations)', () => {
-			const source = readFileSync(join(ROOT, 'packages/svforge/src/doctor.ts'), 'utf-8');
-			// Must not write to filesystem
-			expect(source).not.toMatch(/writeFile|writeFileSync|appendFile|mkdir|rmdir|unlink/i);
-		});
+describe('svforge doctor behavioral (#178/#189)', () => {
+	it('is read-only — never creates or modifies files', async () => {
+		const dir = mkdtempSync(join(tmpdir(), 'sf-doc-ro-'));
+		try {
+			await doctor(dir);
+			// Temp dir must stay empty
+			const { readdirSync } = await import('node:fs');
+			expect(readdirSync(dir)).toEqual([]);
+		} finally {
+			rmSync(dir, { recursive: true, force: true });
+		}
 	});
 
-	describe('doctor checks', () => {
-		const source = readFileSync(join(ROOT, 'packages/svforge/src/doctor.ts'), 'utf-8');
-
-		it('checks for installed SVForge components', () => {
-			expect(source).toMatch(/svforge|components/i);
-		});
-
-		it('checks for required environment variables', () => {
-			expect(source).toMatch(/env|ENV|environment|DATABASE_URL|AUTH_SECRET/i);
-		});
-
-		it('checks for compatible dependencies', () => {
-			expect(source).toMatch(/dependencies|package\.json|version|svelte/i);
-		});
-
-		it('reports actionable diagnostics with module names', () => {
-			expect(source).toMatch(/module|report|diagnostic|result|status|warn|error|ok|pass|fail/i);
-		});
-
-		it('returns or prints a structured report', () => {
-			expect(source).toMatch(/console\.(log|warn|error)|return.*report|return.*result/i);
-		});
+	it('detects SvelteKit via vite.config.ts (modern format)', async () => {
+		const dir = mkdtempSync(join(tmpdir(), 'sf-doc-vite-'));
+		try {
+			writeFileSync(join(dir, 'vite.config.ts'), 'export default {};');
+			writeFileSync(
+				join(dir, 'package.json'),
+				JSON.stringify({ devDependencies: { '@sveltejs/kit': '^2.0.0' } })
+			);
+			const report = await doctor(dir);
+			const kit = report.results.find((r) => r.module === 'sveltekit');
+			expect(kit?.status).toBe('ok');
+		} finally {
+			rmSync(dir, { recursive: true, force: true });
+		}
 	});
 
-	describe('doctor module builds', () => {
-		it('is included in the dist output', () => {
-			runBun(['run', 'build'], join(ROOT, 'packages/svforge'));
-			// The doctor module should be either bundled or a separate entry
-			const distContent = readFileSync(join(ROOT, 'packages/svforge/dist/index.js'), 'utf-8');
-			expect(distContent.length).toBeGreaterThan(0);
-		});
+	it('still detects SvelteKit via legacy svelte.config.js', async () => {
+		const dir = mkdtempSync(join(tmpdir(), 'sf-doc-svelte-'));
+		try {
+			writeFileSync(join(dir, 'svelte.config.js'), 'export default {};');
+			const report = await doctor(dir);
+			const kit = report.results.find((r) => r.module === 'sveltekit');
+			expect(kit?.status).toBe('ok');
+		} finally {
+			rmSync(dir, { recursive: true, force: true });
+		}
+	});
+
+	it('reports a missing svforge components dir as warn (not error)', async () => {
+		const dir = mkdtempSync(join(tmpdir(), 'sf-doc-warn-'));
+		try {
+			writeFileSync(join(dir, 'vite.config.ts'), 'export default {};');
+			writeFileSync(
+				join(dir, 'package.json'),
+				JSON.stringify({ devDependencies: { '@sveltejs/kit': '^2.0.0' } })
+			);
+			const report = await doctor(dir);
+			const svforge = report.results.find((r) => r.module === 'svforge');
+			expect(svforge?.status).toBe('warn');
+		} finally {
+			rmSync(dir, { recursive: true, force: true });
+		}
+	});
+
+	it('checks env vars from .env', async () => {
+		const dir = mkdtempSync(join(tmpdir(), 'sf-doc-env-'));
+		try {
+			writeFileSync(join(dir, '.env'), 'DATABASE_URL="file:local.db"\n');
+			const report = await doctor(dir);
+			const db = report.results.find((r) => r.message.includes('DATABASE_URL'));
+			expect(db?.status).toBe('ok');
+		} finally {
+			rmSync(dir, { recursive: true, force: true });
+		}
+	});
+
+	it('reports dependency checks from package.json', async () => {
+		const dir = mkdtempSync(join(tmpdir(), 'sf-doc-dep-'));
+		try {
+			writeFileSync(
+				join(dir, 'package.json'),
+				JSON.stringify({
+					devDependencies: { svelte: '^5.0.0', '@skeletonlabs/skeleton-svelte': '^5.0.0' }
+				})
+			);
+			const report = await doctor(dir);
+			expect(report.results.some((r) => r.module === 'svelte' && r.status === 'ok')).toBe(true);
+			expect(report.results.some((r) => r.module === 'skeleton' && r.status === 'ok')).toBe(true);
+		} finally {
+			rmSync(dir, { recursive: true, force: true });
+		}
 	});
 });

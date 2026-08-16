@@ -8,7 +8,7 @@ export { doctor, printReport } from './doctor';
 export type { DiagnosticResult, DoctorReport } from './doctor';
 
 // Export upgrade command for programmatic use
-export { upgrade, printUpgradeResult } from './upgrade';
+export { upgrade, printUpgradeResult, MODULE_RECIPES } from './upgrade';
 export type { UpgradeFile, UpgradeResult } from './upgrade';
 
 export default defineAddon({
