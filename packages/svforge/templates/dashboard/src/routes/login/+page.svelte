@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { goto } from '$app/navigation';
-	import { Button, Input, Card } from '$lib/components/svforge/ui';
+	import { Button, Input, Card, Feedback } from '$lib/components/svforge/ui';
 	import ThemeToggle from '$lib/components/svforge/ui/ThemeToggle.svelte';
 	import type { ActionData } from './$types';
 
@@ -28,7 +28,7 @@
 			</div>
 
 			{#if form?.message}
-				<div class="alert alert-error mb-4">{form.message}</div>
+				<Feedback type="error" message={form.message} class="mb-4" />
 			{/if}
 
 			<form method="POST" use:enhance={() => {

@@ -176,10 +176,10 @@
 						</td>
 						<td class="px-4 py-3">
 							<div class="flex items-center justify-end gap-1">
-								<button class="btn preset-ghost variant-surface p-2 rounded" onclick={() => openEdit(u)} aria-label="Edit user">
+								<button class="btn preset-tonal-surface p-2 rounded" onclick={() => openEdit(u)} aria-label="Edit user">
 									<Pencil size={16} />
 								</button>
-								<button class="btn preset-ghost variant-error p-2 rounded" onclick={() => openDelete(u)} disabled={u.id === currentUserId} aria-label="Delete user">
+								<button class="btn preset-tonal-error p-2 rounded" onclick={() => openDelete(u)} disabled={u.id === currentUserId} aria-label="Delete user">
 									<Trash size={16} />
 								</button>
 							</div>
@@ -203,7 +203,7 @@
 				<h3 class="text-lg font-heading font-bold">
 					{modal === 'create' ? 'Add User' : modal === 'edit' ? 'Edit User' : 'Delete User'}
 				</h3>
-				<button class="btn preset-ghost variant-surface p-1 rounded" onclick={closeModal} aria-label="Close">
+				<button class="btn preset-tonal-surface p-1 rounded" onclick={closeModal} aria-label="Close">
 					<X size={18} />
 				</button>
 			</div>
