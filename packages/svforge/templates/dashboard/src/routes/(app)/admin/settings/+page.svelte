@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { Card, Input, Button, AvatarInitial, Feedback } from '$lib/components/svforge/ui';
+	import { Card, AvatarInitial, Feedback } from '$lib/components/svforge/ui';
+	import { Button, Input } from '$lib/components/svforge/primitives';
 	import Lock from 'phosphor-svelte/lib/Lock';
 	import type { ActionData } from './$types';
 

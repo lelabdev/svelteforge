@@ -7,6 +7,7 @@ Guide pour agents travaillant sur ce repo. **Positionnement d'abord** : tout le 
 SvelteForge est un **boilerplate de démarrage**, PAS une bibliothèque de composants et PAS un clone de shadcn/ui.
 
 - Le template `base` fournit **uniquement les bases** : boutons, inputs, selects, cards, badges, table + l'infra (theme, SEO, layouts, dark mode).
+- **Structure canonique des composants (#242)** : `templates/*/src/lib/components/svforge/` est découpé en `primitives/` (briques simples : Button, Input, Badge…), `ui/` (composés : Card, Alert, Table…), `layout/` (structure de page : Navbar, Footer). C'est le premier registry : un agent cherche là AVANT de créer un composant.
 - Pour tout composant plus riche (accordion, tabs, avatar, tooltip, dialog…), on **n'écrit pas** de composant svforge — on utilise directement les composants officiels de `@skeletonlabs/skeleton-svelte`.
 - Les modules sont **composables et opt-in** : l'utilisateur choisit 2-3 modules selon ses besoins.
 - Le vrai cœur du métier : **vitesse de démarrage**. Un `sv create` + `sv add` = projet production-ready.

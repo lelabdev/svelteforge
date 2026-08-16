@@ -42,8 +42,8 @@ describe('Svelte accessibility and reactivity (#176)', () => {
 
 	describe('unkeyed {#each} loops have keys', () => {
 		const files = [
-			'packages/svforge/templates/base/src/lib/components/layout/Navbar.svelte',
-			'packages/svforge/templates/base/src/lib/components/layout/Footer.svelte',
+			'packages/svforge/templates/base/src/lib/components/svforge/layout/Navbar.svelte',
+			'packages/svforge/templates/base/src/lib/components/svforge/layout/Footer.svelte',
 			'packages/svforge/templates/dashboard/src/routes/(app)/admin/users/+page.svelte',
 			'packages/blog/templates/src/routes/blog/+page.svelte',
 		];

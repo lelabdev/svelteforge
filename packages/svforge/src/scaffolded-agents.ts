@@ -43,7 +43,23 @@ Skeleton v5 utilities are exclusively:
 
 ## Component conventions (\`src/lib/components/svforge/\`)
 
-- Components wrap Skeleton classes + Tailwind only — never raw CSS
+Canonical structure (#242) — the filesystem IS the registry:
+
+- \`primitives/\` — small generic bricks: Button, Input, Select, Textarea, Checkbox, Toggle, Badge
+- \`ui/\` — composed reusable components: Card, Alert, Table, ThemeToggle, Seo, Logo, Sitemap
+- \`layout/\` — page structure: Navbar, Footer
+
+**Before creating a UI component, ALWAYS:**
+1. search \`src/lib/components/svforge/primitives/\`
+2. search \`src/lib/components/svforge/ui/\`
+3. search \`src/lib/components/svforge/layout/\`
+4. check if Skeleton already provides it: \`import { X } from '@skeletonlabs/skeleton-svelte'\`
+5. create only when no reusable option exists
+
+A domain-specific component does NOT belong in the generic design system —
+keep it in its feature area (e.g. \`src/lib/features/...\` or the route folder).
+
+Components wrap Skeleton classes + Tailwind only — never raw CSS
 - \`cn()\` + \`class\` prop on every component (merge/override)
 - \`HTMLAttributes<T>\` from \`svelte/elements\` for native attribute extension
 - \`$bindable()\` declared in the Props interface

@@ -1,5 +1,6 @@
 <script lang="ts">
-import { Card, Badge } from '$lib/components/svforge/ui';
+import { Card } from '$lib/components/svforge/ui';
+import { Badge } from '$lib/components/svforge/primitives';
 let { data } = $props();
 </script>
 
