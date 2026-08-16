@@ -11,8 +11,8 @@ export const load: PageServerLoad = async ({ locals }) => {
 	}
 
 	const [totalUsersResult] = await db.select({ count: sql<number>`count(*)` }).from(user);
-	const [activeSessionsResult] = await db.select({ count: sql<number>`count(*)` }).from(session).where(sql`expires_at > ${Date.now()}`);
-	const [newThisWeekResult] = await db.select({ count: sql<number>`count(*)` }).from(user).where(sql`created_at > ${Date.now() - 7 * 24 * 60 * 60 * 1000}`);
+	const [activeSessionsResult] = await db.select({ count: sql<number>`count(*)` }).from(session).where(sql`expires_at > now()`);
+	const [newThisWeekResult] = await db.select({ count: sql<number>`count(*)` }).from(user).where(sql`created_at > now() - interval '7 days'`);
 
 	const recentUsers = await db.select({
 		id: user.id,

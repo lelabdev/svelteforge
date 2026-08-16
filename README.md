@@ -202,6 +202,13 @@ The docs in this README (modules/presets tables) are **generated from
 `svforge-modules.json`** — the machine-readable contract is the single source of
 truth, the tables cannot drift (`scripts/gen-modules-table.mjs --write`).
 
+## Release
+
+La publication npm (13 modules scoped + `svforge`) est documentée dans
+[`docs/RELEASE.md`](docs/RELEASE.md) : modèle (push `prod` /
+`workflow_dispatch`), ordre scoped → unscoped, exigences token, et état
+vérifié des packages.
+
 ## License
 
 MIT
