@@ -85,6 +85,13 @@ export const MODULES: Record<string, ModuleMeta> = {
 		requires: ['base'],
 		optional: [],
 		files: ['src/posts/', 'src/lib/utils/posts.ts', 'src/routes/blog/']
+	},
+	realtime: {
+		id: 'realtime',
+		description: 'WebSocket transport (publish/subscribe, channels isolés)',
+		requires: ['base'],
+		optional: [],
+		files: ['src/lib/server/realtime/', 'src/lib/realtime/client.ts']
 	}
 };
 

@@ -70,7 +70,8 @@ export const MODULE_CAPABILITIES: Record<string, { capability: string; pattern?:
 	dnd: { capability: 'drag & drop', pattern: 'src/lib/components/svforge/dnd/SortableList.svelte' },
 	tiptap: { capability: 'rich text (Tiptap)', pattern: 'src/lib/components/svforge/tiptap/', note: 'Toolbar + preview' },
 	graph: { capability: 'knowledge graph', pattern: 'src/lib/components/svforge/graph/KnowledgeGraph.svelte' },
-	blog: { capability: 'blog (MDsveX)', pattern: 'src/routes/blog/', note: 'Posts as .md in src/posts/' }
+	blog: { capability: 'blog (MDsveX)', pattern: 'src/routes/blog/', note: 'Posts as .md in src/posts/' },
+	realtime: { capability: 'realtime (WebSocket)', pattern: 'src/lib/server/realtime/', note: 'Publish/subscribe hub + Svelte client' }
 };
 
 /** Build the manifest for a given template + installed modules. */

@@ -1,18 +1,20 @@
 {
-	"name": "svforge-monorepo",
-	"private": true,
-	"type": "module",
-	"workspaces": [
-		"packages/*"
-	],
-	"scripts": {
-		"build": "bun run --filter svforge build",
-		"build:all": "bun run --filter '*' build",
-		"test": "vitest run --no-file-parallelism",
-		"test:watch": "vitest"
-	},
-	"devDependencies": {
-		"sv": "0.15.4",
-		"vitest": "^3.1.1"
-	}
+  "name": "svforge-monorepo",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "bun run --filter svforge build",
+    "build:all": "bun run --filter '*' build",
+    "test": "vitest run --no-file-parallelism",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "sv": "0.15.4",
+    "vitest": "^3.1.1",
+    "ws": "^8.21.3",
+    "@types/ws": "^8.5.14"
+  }
 }
