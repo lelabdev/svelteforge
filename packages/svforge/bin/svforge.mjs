@@ -68,6 +68,24 @@ async function main() {
 		return;
 	}
 
+	if (command === 'context') {
+		// Regenerate the AI context from the real project state (#234):
+		// read .svforge.json, rewrite llms.txt deterministically.
+		const fs = await import('node:fs');
+		const path = await import('node:path');
+		const manifestPath = path.join(projectRoot, '.svforge.json');
+		const llmstxtPath = path.join(projectRoot, 'llms.txt');
+		if (!fs.existsSync(manifestPath)) {
+			console.error('.svforge.json not found — run this in a SvelteForge project root.');
+			process.exitCode = 1;
+			return;
+		}
+		const manifest = fs.readFileSync(manifestPath, 'utf-8');
+		fs.writeFileSync(llmstxtPath, api.regenerateLlmstxt(manifest));
+		console.log('✓ llms.txt regenerated from .svforge.json (#234).');
+		return;
+	}
+
 	if (command === 'upgrade') {
 		const moduleName = args.find((a) => !a.startsWith('-'));
 		const force = args.includes('--force');

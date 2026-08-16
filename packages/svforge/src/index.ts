@@ -20,6 +20,15 @@ export {
 	validateComposition
 } from './module-composition';
 export type { ModuleMeta, Preset } from './module-composition';
+export {
+	buildManifest,
+	renderLlmstxt,
+	mergeManifest,
+	enrichManifest,
+	regenerateLlmstxt,
+	MODULE_CAPABILITIES
+} from './ai-context';
+export type { SvforgeManifest } from './ai-context';
 
 // Export upgrade command for programmatic use
 export { upgrade, printUpgradeResult, MODULE_RECIPES } from './upgrade';
