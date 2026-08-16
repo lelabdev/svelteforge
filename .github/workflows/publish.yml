@@ -12,6 +12,21 @@ jobs:
   publish-latest:
     runs-on: ubuntu-latest
 
+    # PostgreSQL for the real DB scaffold gate (#255/#256)
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: sf_dashboard
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - uses: actions/checkout@v4
 
@@ -41,6 +56,13 @@ jobs:
 
       - name: Scaffold test (dashboard)
         run: bash scripts/test-scaffold.sh dashboard
+
+      # Composition gate (#258): the new foundations must keep composing
+      # against real PostgreSQL before any package is published.
+      - name: Scaffold test (dashboard-foundations)
+        run: bash scripts/test-scaffold.sh dashboard-foundations
+        env:
+          CI: 'true'
 
       - name: Publish ui_toast@latest
         run: cd packages/ui_toast && npm publish --access public --ignore-scripts
@@ -79,6 +101,33 @@ jobs:
 
       - name: Publish blog@latest
         run: cd packages/blog && npm publish --access public --ignore-scripts
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # New foundation modules (#256): published with the other scoped
+      # @svforge/* packages, before the unscoped svforge.
+      - name: Publish realtime@latest
+        run: cd packages/realtime && npm publish --access public --ignore-scripts
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish audit@latest
+        run: cd packages/audit && npm publish --access public --ignore-scripts
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish notifications@latest
+        run: cd packages/notifications && npm publish --access public --ignore-scripts
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish jobs@latest
+        run: cd packages/jobs && npm publish --access public --ignore-scripts
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish chat@latest
+        run: cd packages/chat && npm publish --access public --ignore-scripts
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 

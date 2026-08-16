@@ -8,5 +8,6 @@ dts: { resolve: [] },
 external: ['sv', '@sveltejs/sv-utils'],
 // Stable filenames (no hash) so package.json types field doesn't break
 entryNames: '[name]',
+hash: false,
 outDir: 'dist'
 });

@@ -6,5 +6,6 @@ format: 'esm',
 dts: { resolve: [] },
 external: ['sv', '@sveltejs/sv-utils'],
 entryNames: '[name]',
+hash: false,
 outDir: 'dist'
 });

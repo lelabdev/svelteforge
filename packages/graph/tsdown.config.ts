@@ -7,5 +7,6 @@ export default defineConfig({
 	clean: true,
 
 	// Stable filenames (no hash)
-	entryNames: '[name]'
+	entryNames: '[name]',
+	hash: false
 });
