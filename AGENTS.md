@@ -76,7 +76,7 @@ bash scripts/test-scaffold.sh base      # ou dashboard
 ## Conventions composants (templates)
 
 - **Skeleton uniquement** : les composants wrappent des classes/presets Skeleton + Tailwind, jamais de CSS brut
-- Classes Skeleton valides : `btn`, `input`, `select`, `textarea`, `checkbox`, `badge`, `card`, et presets `preset-filled-*`, `preset-tonal-*`, `preset-outlined-*` (+ suffixes couleurs `-primary-500`, `-surface-400-600`…). **`variant-*` et `preset-ghost` N'EXISTENT PAS** (convention shadcn — source du bug #195)
+- Classes Skeleton valides : `btn`, `input`, `select`, `textarea`, `checkbox`, `badge`, `card`, et presets `preset-filled-*`, `preset-tonal-*`, `preset-outlined-*` (+ suffixes couleurs `-primary-500`, `-surface-400-600`…). **`variant-*` et `preset-ghost` N'EXISTENT PAS en v5** — `variant-*` est l'ancien nommage Skeleton v2, renommé `preset-*` en v3 (cf. #195 : des résidus de l'ancien nommage traînent encore dans le dashboard)
 - **`cn()` + prop `class`** sur chaque composant (merge/override)
 - **`HTMLAttributes<T>`** de `svelte/elements` pour étendre les attributs natifs (`HTMLDivAttributes` n'existe pas)
 - **`$bindable()`** déclaré dans l'interface Props, pas juste déstructuré
