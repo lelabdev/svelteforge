@@ -42,11 +42,6 @@ jobs:
       - name: Scaffold test (dashboard)
         run: bash scripts/test-scaffold.sh dashboard
 
-      - name: Publish svforge@latest
-        run: cd packages/svforge && npm publish --access public --ignore-scripts
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
       - name: Publish ui_toast@latest
         run: cd packages/ui_toast && npm publish --access public --ignore-scripts
         env:
@@ -84,5 +79,14 @@ jobs:
 
       - name: Publish blog@latest
         run: cd packages/blog && npm publish --access public --ignore-scripts
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # Unscoped package — published LAST: it's the one the current NPM_TOKEN
+      # cannot write (E404, ownership ludoloops). Modules go first so a token
+      # with scoped rights still ships them; svforge needs a token with write
+      # access on the unscoped name (#206 Phase 7).
+      - name: Publish svforge@latest
+        run: cd packages/svforge && npm publish --access public --ignore-scripts
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
