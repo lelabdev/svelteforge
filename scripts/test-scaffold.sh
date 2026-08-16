@@ -31,7 +31,10 @@ bunx sv create app --template minimal --types ts --no-install --no-add-ons --no-
 cd app
 
 # 2. Add the LOCAL svforge addon with all options set (no prompts in CI)
-if [ "$TEMPLATE" = "dashboard" ]; then
+#    Profile variants: base, dashboard (vitest), dashboard-playwright
+if [ "$TEMPLATE" = "dashboard-playwright" ]; then
+	ADD_SPEC="file:$REPO_ROOT/packages/svforge=template:dashboard+testing:playwright"
+elif [ "$TEMPLATE" = "dashboard" ]; then
 	ADD_SPEC="file:$REPO_ROOT/packages/svforge=template:dashboard+testing:vitest"
 else
 	ADD_SPEC="file:$REPO_ROOT/packages/svforge=template:base+testing:vitest"
@@ -39,7 +42,7 @@ fi
 bunx sv add "$ADD_SPEC" --install bun --no-download-check
 
 # 3. Dashboard: env vars required at build time (auth.ts / db/index.ts)
-if [ "$TEMPLATE" = "dashboard" ]; then
+if [ "$TEMPLATE" = "dashboard" ] || [ "$TEMPLATE" = "dashboard-playwright" ]; then
 	cat > .env <<'ENV'
 DATABASE_URL="file:local.db"
 ORIGIN=http://localhost:5173
@@ -52,5 +55,14 @@ fi
 
 # 4. Build the scaffolded project — the actual assertion
 bun run build
+
+# 5. Assert testing-profile files land at the project ROOT, not src/ (#186)
+if [ "$TEMPLATE" = "dashboard" ] || [ "$TEMPLATE" = "dashboard-playwright" ]; then
+	test -f vitest.config.ts || { echo "❌ vitest.config.ts missing at project root"; exit 1; }
+fi
+if [ "$TEMPLATE" = "dashboard-playwright" ]; then
+	test -f playwright.config.ts || { echo "❌ playwright.config.ts missing at project root"; exit 1; }
+	test -f e2e/auth.test.ts || { echo "❌ e2e/auth.test.ts missing at project root"; exit 1; }
+fi
 
 echo "✅ Scaffold test passed for template=$TEMPLATE"

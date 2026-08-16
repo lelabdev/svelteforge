@@ -13,17 +13,26 @@ const dashboardRoot = join(ROOT, 'packages/svforge/templates/dashboard');
  */
 describe('dashboard Playwright profile (#181)', () => {
 	describe('config files exist', () => {
-		it('has a playwright config', () => {
-			expect(existsSync(join(dashboardRoot, 'playwright.config.ts'))).toBe(true);
+		it('has a playwright config in the template source', () => {
+			expect(existsSync(join(dashboardRoot, 'src', 'playwright.config.ts'))).toBe(true);
 		});
 
 		it('has e2e test files', () => {
-			expect(existsSync(join(dashboardRoot, 'e2e'))).toBe(true);
+			expect(existsSync(join(dashboardRoot, 'src', 'e2e'))).toBe(true);
+		});
+
+		it('playwright config is embedded in the manifest (#186)', async () => {
+			const { dashboardFiles } = await import('../packages/svforge/src/templates');
+			const keys = Object.keys(dashboardFiles);
+			expect(keys).toContain('/playwright.config.ts');
+			expect(keys).toContain('/e2e/auth.test.ts');
+			expect(keys).toContain('/e2e/navigation.test.ts');
+			expect(keys).toContain('/e2e/user-crud.test.ts');
 		});
 	});
 
 	describe('playwright config content', () => {
-		const config = readFileSync(join(dashboardRoot, 'playwright.config.ts'), 'utf-8');
+		const config = readFileSync(join(dashboardRoot, 'src', 'playwright.config.ts'), 'utf-8');
 
 		it('uses @playwright/test', () => {
 			expect(config).toMatch(/@playwright\/test/);
@@ -39,7 +48,7 @@ describe('dashboard Playwright profile (#181)', () => {
 	});
 
 	describe('e2e test coverage', () => {
-		const e2eDir = join(dashboardRoot, 'e2e');
+		const e2eDir = join(dashboardRoot, 'src', 'e2e');
 		const files: string[] = [];
 		function scanDir(dir: string) {
 			const entries = require('node:fs').readdirSync(dir, { withFileTypes: true });
