@@ -113,6 +113,13 @@ export const MODULES: Record<string, ModuleMeta> = {
 		requires: ['dashboard'],
 		optional: ['realtime', 'notifications', 'email'],
 		files: ['src/lib/server/jobs/']
+	},
+	chat: {
+		id: 'chat',
+		description: 'Composable app chat (conversations, messages, read-state)',
+		requires: ['dashboard'],
+		optional: ['realtime', 'uploads', 'notifications'],
+		files: ['src/lib/server/chat/', 'src/routes/chat/']
 	}
 };
 

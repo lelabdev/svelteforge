@@ -35,6 +35,18 @@
         "sv": "^0.13.0",
       },
     },
+    "packages/chat": {
+      "name": "@svforge/chat",
+      "version": "0.0.1",
+      "devDependencies": {
+        "sv": "^0.15.3",
+        "tsdown": "^0.12.0",
+        "typescript": "^6.0.3",
+      },
+      "peerDependencies": {
+        "sv": "^0.13.0",
+      },
+    },
     "packages/dnd": {
       "name": "@svforge/dnd",
       "version": "0.0.2",
@@ -358,6 +370,8 @@
     "@svforge/audit": ["@svforge/audit@workspace:packages/audit"],
 
     "@svforge/blog": ["@svforge/blog@workspace:packages/blog"],
+
+    "@svforge/chat": ["@svforge/chat@workspace:packages/chat"],
 
     "@svforge/dnd": ["@svforge/dnd@workspace:packages/dnd"],
 
