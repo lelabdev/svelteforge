@@ -113,6 +113,13 @@ fi
 # 4. Build the scaffolded project — the actual assertion
 bun run build
 
+# 4a. Svelte/TypeScript quality gate (#266): run the generated project's own
+# check script on the main scaffolds. dashboard-foundations joins this gate
+# after #265 removes the known UUID number/string drift in DB modules.
+if [ "$TEMPLATE" = "base" ] || [ "$TEMPLATE" = "dashboard" ] || [ "$TEMPLATE" = "dashboard-playwright" ]; then
+	bun run check || { echo "❌ svelte-check failed on $TEMPLATE scaffold (#266)"; exit 1; }
+fi
+
 # Baseline Vitest (#235): vitest.config.ts must land at the PROJECT ROOT on
 # base too (prebuild only embeds templates/base/src/**), and the baseline
 # test must actually run.
