@@ -13,7 +13,7 @@ export default defineAddon({
 		if (!isKit) unsupported('SVForge Blog requires SvelteKit');
 	},
 	run: ({ sv }) => {
-		sv.dependency('mdsvex', 'latest');
+		sv.dependency('mdsvex', '^0.12.8');
 
 		// ── mdsvex integration ──
 		// Modern `sv create` (Kit 2.63 / vite-plugin-svelte 7) no longer
