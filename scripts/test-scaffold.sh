@@ -143,6 +143,8 @@ if [ "$TEMPLATE" = "base" ] || [ "$TEMPLATE" = "dashboard" ] || [ "$TEMPLATE" = 
 	test -f svforge-catalog.json || { echo "❌ svforge-catalog.json missing (#240)"; exit 1; }
 	test -f svforge-check.mjs || { echo "❌ svforge-check.mjs missing (#240)"; exit 1; }
 	test -f svforge-modules.json || { echo "❌ svforge-modules.json missing (#236)"; exit 1; }
+	test -f .svforge.json || { echo "❌ .svforge.json missing (#234)"; exit 1; }
+	test -f llms.txt || { echo "❌ llms.txt missing (#234)"; exit 1; }
 	node svforge-check.mjs 2>&1 | grep -q "Design system is clean" || { echo "❌ svforge check not clean (#240)"; exit 1; }
 fi
 

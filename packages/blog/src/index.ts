@@ -1,6 +1,21 @@
 import { defineAddon, defineAddonOptions } from 'sv';
 import { files } from './templates';
 
+/**
+ * Enrich the project's .svforge.json AI manifest (#234) without overwriting
+ * user edits. Small inline helper — modules are standalone packages.
+ */
+function enrichManifest(content, moduleId) {
+	let manifest = { template: 'base', modules: [] };
+	try {
+		manifest = content && content.trim() ? JSON.parse(content) : manifest;
+	} catch {
+		manifest = { template: 'base', modules: [] };
+	}
+	if (!manifest.modules.includes(moduleId)) manifest.modules.push(moduleId);
+	return `${JSON.stringify(manifest, null, 2)}\n`;
+}
+
 export default defineAddon({
 	id: 'svforge-blog',
 	alias: 'forge-blog',
@@ -78,6 +93,9 @@ export default defineAddon({
 		for (const [path, content] of Object.entries(files)) {
 			sv.file(`src${path}`, () => content);
 		}
+
+		// AI context (#234): declare this module in .svforge.json.
+		sv.file('.svforge.json', (content) => enrichManifest(content, 'blog'));
 	},
 	nextSteps: () => [
 		'@svforge/blog installed!',

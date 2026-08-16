@@ -1,5 +1,6 @@
 import type { SvApi } from 'sv';
 import { scaffoldedAgents } from '../scaffolded-agents';
+import { buildManifest, renderLlmstxt } from '../ai-context';
 
 /**
  * Apply Dashboard mode files via sv.file()
@@ -75,4 +76,9 @@ export function applyDashboardMode(
 
 	// AI-ready: scaffold an AGENTS.md at the project root (#203)
 	sv.file('AGENTS.md', () => scaffoldedAgents('dashboard'));
+
+	// AI context (#234): override the base manifest with the dashboard state.
+	const manifest = buildManifest('dashboard', []);
+	sv.file('.svforge.json', () => `${JSON.stringify(manifest, null, 2)}\n`);
+	sv.file('llms.txt', () => renderLlmstxt(manifest));
 }
