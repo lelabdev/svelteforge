@@ -22,7 +22,7 @@
 	<title>SvelteForge — {m.demo_title()}</title>
 </svelte:head>
 
-<Navbar links={[{ href: '/demo-ui', label: 'Demo' }]} />
+<Navbar links={[{ href: '/demo-ui', label: m.demo_nav() }]} />
 
 <main class="max-w-container mx-auto px-element py-section space-y-section">
 	<h1 class="text-4xl font-heading font-bold">{m.demo_title()}</h1>
@@ -30,63 +30,63 @@
 
 	<!-- Buttons -->
 	<section class="space-y-4">
-		<h2 class="text-2xl font-heading border-b border-surface-200-800 pb-2">Button</h2>
-		<h3 class="text-lg font-heading">Colors (Filled)</h3>
+		<h2 class="text-2xl font-heading border-b border-surface-200-800 pb-2">{m.demo_buttons()}</h2>
+		<h3 class="text-lg font-heading">{m.demo_colors_filled()}</h3>
 		<div class="flex flex-wrap gap-3">
-			<Button>Primary</Button>
-			<Button color="secondary">Secondary</Button>
-			<Button color="tertiary">Tertiary</Button>
-			<Button color="success">Success</Button>
-			<Button color="warning">Warning</Button>
-			<Button color="error">Error</Button>
-			<Button color="surface">Surface</Button>
+			<Button>{m.demo_primary()}</Button>
+			<Button color="secondary">{m.demo_secondary()}</Button>
+			<Button color="tertiary">{m.demo_tertiary()}</Button>
+			<Button color="success">{m.demo_success()}</Button>
+			<Button color="warning">{m.demo_warning()}</Button>
+			<Button color="error">{m.demo_error()}</Button>
+			<Button color="surface">{m.demo_surface()}</Button>
 		</div>
-		<h3 class="text-lg font-heading">Variants</h3>
+		<h3 class="text-lg font-heading">{m.demo_variants()}</h3>
 		<div class="flex flex-wrap gap-3">
-			<Button variant="filled">Filled</Button>
-			<Button variant="outlined">Outlined</Button>
-			<Button variant="tonal">Tonal</Button>
-			<Button variant="ghost">Ghost</Button>
+			<Button variant="filled">{m.demo_filled()}</Button>
+			<Button variant="outlined">{m.demo_outlined()}</Button>
+			<Button variant="tonal">{m.demo_tonal()}</Button>
+			<Button variant="ghost">{m.demo_ghost()}</Button>
 		</div>
-		<h3 class="text-lg font-heading">Sizes</h3>
+		<h3 class="text-lg font-heading">{m.demo_sizes()}</h3>
 		<div class="flex flex-wrap gap-3 items-center">
-			<Button size="sm">Small</Button>
-			<Button size="md">Medium</Button>
-			<Button size="lg">Large</Button>
+			<Button size="sm">{m.demo_small()}</Button>
+			<Button size="md">{m.demo_medium()}</Button>
+			<Button size="lg">{m.demo_large()}</Button>
 		</div>
-		<h3 class="text-lg font-heading">States</h3>
+		<h3 class="text-lg font-heading">{m.demo_states()}</h3>
 		<div class="flex flex-wrap gap-3">
 			<Button loading={loading} onclick={simulateLoading}>
-				{loading ? 'Loading...' : 'Click to Load'}
+				{loading ? m.common_loading() : m.demo_click_to_load()}
 			</Button>
-			<Button href="/">Link Button</Button>
-			<Button disabled>Disabled</Button>
+			<Button href="/">{m.demo_link_btn()}</Button>
+			<Button disabled>{m.demo_disabled()}</Button>
 		</div>
 	</section>
 
 	<!-- Cards -->
 	<section class="space-y-4">
-		<h2 class="text-2xl font-heading border-b border-surface-200-800 pb-2">Card</h2>
+		<h2 class="text-2xl font-heading border-b border-surface-200-800 pb-2">{m.demo_card()}</h2>
 		<div class="grid grid-cols-1 md:grid-cols-3 gap-group">
 			<Card>
-				<p>Flat card with some content.</p>
+				<p>{m.demo_flat_card()}</p>
 			</Card>
 			<Card variant="elevated">
-				<p>Elevated card with shadow.</p>
+				<p>{m.demo_elevated_card()}</p>
 			</Card>
 			<Card variant="outlined">
-				<p>Outlined card with ring border.</p>
+				<p>{m.demo_outlined_card()}</p>
 			</Card>
 		</div>
 		<Card>
 			{#snippet header()}
-				<h3 class="font-heading font-bold">Card with Header & Footer</h3>
+				<h3 class="font-heading font-bold">{m.demo_card_header_footer()}</h3>
 			{/snippet}
-			<p>Content goes here.</p>
+			<p>{m.demo_content_here()}</p>
 			{#snippet footer()}
 				<div class="flex justify-end gap-2">
-					<Button variant="ghost" size="sm">Cancel</Button>
-					<Button size="sm">Save</Button>
+					<Button variant="ghost" size="sm">{m.common_cancel()}</Button>
+					<Button size="sm">{m.common_save()}</Button>
 				</div>
 			{/snippet}
 		</Card>
@@ -94,75 +94,75 @@
 
 	<!-- Badges -->
 	<section class="space-y-4">
-		<h2 class="text-2xl font-heading border-b border-surface-200-800 pb-2">Badge</h2>
-		<h3 class="text-lg font-heading">Filled</h3>
+		<h2 class="text-2xl font-heading border-b border-surface-200-800 pb-2">{m.demo_badge()}</h2>
+		<h3 class="text-lg font-heading">{m.demo_filled()}</h3>
 		<div class="flex flex-wrap gap-2">
-			<Badge>Primary</Badge>
-			<Badge color="secondary">Secondary</Badge>
-			<Badge color="tertiary">Tertiary</Badge>
-			<Badge color="success">Success</Badge>
-			<Badge color="warning">Warning</Badge>
-			<Badge color="error">Error</Badge>
-			<Badge color="surface">Surface</Badge>
+			<Badge>{m.demo_primary()}</Badge>
+			<Badge color="secondary">{m.demo_secondary()}</Badge>
+			<Badge color="tertiary">{m.demo_tertiary()}</Badge>
+			<Badge color="success">{m.demo_success()}</Badge>
+			<Badge color="warning">{m.demo_warning()}</Badge>
+			<Badge color="error">{m.demo_error()}</Badge>
+			<Badge color="surface">{m.demo_surface()}</Badge>
 		</div>
-		<h3 class="text-lg font-heading">Outlined</h3>
+		<h3 class="text-lg font-heading">{m.demo_outlined()}</h3>
 		<div class="flex flex-wrap gap-2">
-			<Badge variant="outlined">Primary</Badge>
-			<Badge variant="outlined" color="secondary">Secondary</Badge>
-			<Badge variant="outlined" color="success">Success</Badge>
-			<Badge variant="outlined" color="warning">Warning</Badge>
-			<Badge variant="outlined" color="error">Error</Badge>
-			<Badge variant="outlined" color="surface">Surface</Badge>
+			<Badge variant="outlined">{m.demo_primary()}</Badge>
+			<Badge variant="outlined" color="secondary">{m.demo_secondary()}</Badge>
+			<Badge variant="outlined" color="success">{m.demo_success()}</Badge>
+			<Badge variant="outlined" color="warning">{m.demo_warning()}</Badge>
+			<Badge variant="outlined" color="error">{m.demo_error()}</Badge>
+			<Badge variant="outlined" color="surface">{m.demo_surface()}</Badge>
 		</div>
-		<h3 class="text-lg font-heading">Tonal</h3>
+		<h3 class="text-lg font-heading">{m.demo_tonal()}</h3>
 		<div class="flex flex-wrap gap-2">
-			<Badge variant="tonal">Primary</Badge>
-			<Badge variant="tonal" color="secondary">Secondary</Badge>
-			<Badge variant="tonal" color="success">Success</Badge>
-			<Badge variant="tonal" color="error">Error</Badge>
+			<Badge variant="tonal">{m.demo_primary()}</Badge>
+			<Badge variant="tonal" color="secondary">{m.demo_secondary()}</Badge>
+			<Badge variant="tonal" color="success">{m.demo_success()}</Badge>
+			<Badge variant="tonal" color="error">{m.demo_error()}</Badge>
 		</div>
-		<h3 class="text-lg font-heading">Sizes</h3>
+		<h3 class="text-lg font-heading">{m.demo_sizes()}</h3>
 		<div class="flex flex-wrap gap-2 items-center">
-			<Badge size="sm">Small</Badge>
-			<Badge size="md">Medium</Badge>
-			<Badge size="lg">Large</Badge>
+			<Badge size="sm">{m.demo_small()}</Badge>
+			<Badge size="md">{m.demo_medium()}</Badge>
+			<Badge size="lg">{m.demo_large()}</Badge>
 		</div>
 	</section>
 
 
 	<!-- Alerts -->
 	<section class="space-y-4">
-		<h2 class="text-2xl font-heading border-b border-surface-200-800 pb-2">Alert</h2>
+		<h2 class="text-2xl font-heading border-b border-surface-200-800 pb-2">{m.demo_alert()}</h2>
 		<div class="space-y-3">
-			<Alert variant="info">This is an informational message.</Alert>
-			<Alert variant="success">Operation completed successfully!</Alert>
-			<Alert variant="warning">Please review before continuing.</Alert>
-			<Alert variant="error">Something went wrong. Please try again.</Alert>
+			<Alert variant="info">{m.demo_alert_info()}</Alert>
+			<Alert variant="success">{m.demo_alert_success()}</Alert>
+			<Alert variant="warning">{m.demo_alert_warning()}</Alert>
+			<Alert variant="error">{m.demo_alert_error()}</Alert>
 		</div>
 	</section>
 
 	<!-- Form -->
 	<section class="space-y-4">
-		<h2 class="text-2xl font-heading border-b border-surface-200-800 pb-2">Form</h2>
+		<h2 class="text-2xl font-heading border-b border-surface-200-800 pb-2">{m.demo_form()}</h2>
 		<Card>
 			<div class="space-y-4">
-				<Input label="Name" placeholder="Enter your name" />
-				<Input label="Email" type="email" placeholder="you@example.com" error="Invalid email" />
-				<Textarea label="Message" placeholder="Write something..." rows={3} />
+				<Input label={m.users_label_name()} placeholder={m.demo_placeholder_name()} />
+				<Input label={m.login_label_email()} type="email" placeholder={m.demo_placeholder_email()} error={m.demo_invalid_email()} />
+				<Textarea label={m.demo_message()} placeholder={m.demo_placeholder_message()} rows={3} />
 				<Select
-					label="Category"
+					label={m.demo_category()}
 					options={[
-						{ value: '', label: 'Select...' },
+						{ value: '', label: m.demo_select_placeholder() },
 						{ value: 'design', label: 'Design' },
 						{ value: 'dev', label: 'Development' },
 						{ value: 'marketing', label: 'Marketing' }
 					]}
 				/>
 				<div class="flex flex-col gap-3">
-					<Checkbox label="I agree to the terms" />
-					<Toggle label="Enable notifications" />
+					<Checkbox label={m.demo_agree_terms()} />
+					<Toggle label={m.demo_enable_notifications()} />
 				</div>
-				<Button>Submit</Button>
+				<Button>{m.demo_submit()}</Button>
 			</div>
 		</Card>
 	</section>
@@ -171,12 +171,12 @@
 
 	<!-- Table -->
 	<section class="space-y-4">
-		<h2 class="text-2xl font-heading border-b border-surface-200-800 pb-2">Table</h2>
+		<h2 class="text-2xl font-heading border-b border-surface-200-800 pb-2">{m.demo_table()}</h2>
 		<Table
 			columns={[
-				{ key: 'name', label: 'Name' },
-				{ key: 'role', label: 'Role' },
-				{ key: 'status', label: 'Status' }
+				{ key: 'name', label: m.demo_col_name() },
+				{ key: 'role', label: m.demo_col_role() },
+				{ key: 'status', label: m.demo_col_status() }
 			]}
 			rows={[
 				{ name: 'Alice', role: 'Developer', status: 'Active' },
@@ -191,9 +191,9 @@
 	     re-implemented here — use the official ones from @skeletonlabs/skeleton-svelte
 	     (they ship keyboard + ARIA support): -->
 	<section class="space-y-4">
-		<h2 class="text-2xl font-heading border-b border-surface-200-800 pb-2">Richer components</h2>
+		<h2 class="text-2xl font-heading border-b border-surface-200-800 pb-2">{m.demo_richer()}</h2>
 		<p class="text-surface-500">
-			Accordion, Tabs, Avatar, Breadcrumb… are provided by
+			{m.demo_richer_desc()}
 			<code class="text-primary-600-400">@skeletonlabs/skeleton-svelte</code> —
 			<code>{skeletonImportExample}</code>
 		</p>
@@ -201,8 +201,8 @@
 
 	<!-- Theme -->
 	<section class="space-y-4">
-		<h2 class="text-2xl font-heading border-b border-surface-200-800 pb-2">Theme</h2>
-		<p class="text-surface-500">Click to toggle light/dark mode:</p>
+		<h2 class="text-2xl font-heading border-b border-surface-200-800 pb-2">{m.demo_theme()}</h2>
+		<p class="text-surface-500">{m.demo_theme_desc()}</p>
 		<ThemeToggle />
 	</section>
 </main>

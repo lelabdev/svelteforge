@@ -1,4 +1,5 @@
 <script lang="ts">
+	import * as m from '$lib/paraglide/messages.js';
 	import Sun from 'phosphor-svelte/lib/Sun';
 	import Moon from 'phosphor-svelte/lib/Moon';
 	import { onMount } from 'svelte';
@@ -39,7 +40,7 @@
 <button
 	onclick={toggle}
 	class="btn hover:preset-tonal-surface p-2 rounded-full {className}"
-	aria-label="Toggle theme"
+	aria-label={m.common_toggle_theme()}
 >
 	{#if isDark}
 		<Moon size={18} />

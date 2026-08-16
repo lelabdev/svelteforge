@@ -1,4 +1,5 @@
 <script lang="ts">
+	import * as m from '$lib/paraglide/messages.js';
 	import { Card } from '$lib/components/svforge/ui';
 	import { Button, Input } from '$lib/components/svforge/primitives';
 	import ThemeToggle from '$lib/components/svforge/ui/ThemeToggle.svelte';
@@ -9,14 +10,14 @@
 </script>
 
 <svelte:head>
-	<title>Setup — SvelteForge</title>
+	<title>{m.setup_title()}</title>
 </svelte:head>
 
 <main class="min-h-screen flex items-center justify-center p-4">
 	<div class="w-full max-w-sm space-y-6">
 		<div class="text-center space-y-2">
-			<h1 class="text-2xl font-heading font-bold">Create Admin</h1>
-			<p class="text-surface-500 text-sm">First user becomes admin automatically.</p>
+			<h1 class="text-2xl font-heading font-bold">{m.setup_create_admin()}</h1>
+			<p class="text-surface-500 text-sm">{m.setup_hint()}</p>
 		</div>
 
 		<Card>
@@ -25,10 +26,10 @@
 					<p class="text-error-500 text-sm">{form.error}</p>
 				{/if}
 
-				<Input name="name" label="Name" placeholder="Admin" required />
-				<Input name="email" label="Email" type="email" placeholder="admin@example.com" required />
-				<Input name="password" label="Password" type="password" placeholder="Min. 8 characters" required />
-				<Button type="submit" class="w-full">Create & Continue</Button>
+				<Input name="name" label={m.users_label_name()} placeholder={m.users_placeholder_name()} required />
+				<Input name="email" label={m.login_label_email()} type="email" placeholder={m.users_placeholder_email()} required />
+				<Input name="password" label={m.login_label_password()} type="password" placeholder={m.common_min_chars()} required />
+				<Button type="submit" class="w-full">{m.setup_submit()}</Button>
 			</form>
 		</Card>
 
@@ -37,7 +38,7 @@
 		</div>
 
 		<p class="text-center text-xs text-surface-500">
-			This page is only available in development mode.
+			{m.setup_dev_only()}
 		</p>
 	</div>
 </main>

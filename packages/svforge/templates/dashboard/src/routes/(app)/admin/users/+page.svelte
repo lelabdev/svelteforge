@@ -2,9 +2,11 @@
 	import type { PageData } from './$types';
 	import { invalidateAll } from '$app/navigation';
 	import { page } from '$app/state';
-	import { Card, AvatarInitial, Feedback } from '$lib/components/svforge/ui';
+	import * as m from '$lib/paraglide/messages.js';
+	import { Card, AvatarInitial, Feedback, Table } from '$lib/components/svforge/ui';
 	import { Badge } from '$lib/components/svforge/primitives';
 	import { Button, Input } from '$lib/components/svforge/primitives';
+	import type { UserRow } from '$lib/types';
 	import UserPlus from 'phosphor-svelte/lib/UserPlus';
 	import Trash from 'phosphor-svelte/lib/Trash';
 	import Pencil from 'phosphor-svelte/lib/Pencil';
@@ -25,6 +27,19 @@
 	let formName = $state('');
 	let formEmail = $state('');
 	let formPassword = $state('');
+
+	// Table slot receives rows as Record<string, unknown> — recover the row type.
+	function asUser(row: Record<string, unknown>): UserRow {
+		return row as unknown as UserRow;
+	}
+
+	// Columns are re-derived so Paraglide labels stay reactive to the locale.
+	let columns = $derived([
+		{ key: 'name', label: m.users_name() },
+		{ key: 'email', label: m.users_email(), class: 'hidden sm:table-cell' },
+		{ key: 'status', label: m.users_status() },
+		{ key: 'actions', label: m.users_actions(), class: 'text-right' }
+	]);
 
 	let filtered = $derived(
 		data.users.filter((u) =>
@@ -67,11 +82,11 @@
 		const res = await fetch('?/create', { method: 'POST', body: formData });
 		const result = await res.json();
 		if (result.type === 'success') {
-			feedback = { type: 'success', message: result.data?.message || 'User created' };
+			feedback = { type: 'success', message: result.data?.message || m.users_created() };
 			closeModal();
 			invalidate();
 		} else {
-			feedback = { type: 'error', message: result.data?.message || 'Failed to create user' };
+			feedback = { type: 'error', message: result.data?.message || m.users_created_failed() };
 		}
 	}
 
@@ -85,11 +100,11 @@
 		const res = await fetch('?/update', { method: 'POST', body: formData });
 		const result = await res.json();
 		if (result.type === 'success') {
-			feedback = { type: 'success', message: result.data?.message || 'User updated' };
+			feedback = { type: 'success', message: result.data?.message || m.users_updated() };
 			closeModal();
 			invalidate();
 		} else {
-			feedback = { type: 'error', message: result.data?.message || 'Failed to update user' };
+			feedback = { type: 'error', message: result.data?.message || m.users_updated_failed() };
 		}
 	}
 
@@ -101,11 +116,11 @@
 		const res = await fetch('?/delete', { method: 'POST', body: formData });
 		const result = await res.json();
 		if (result.type === 'success') {
-			feedback = { type: 'success', message: result.data?.message || 'User deleted' };
+			feedback = { type: 'success', message: result.data?.message || m.users_deleted() };
 			closeModal();
 			invalidate();
 		} else {
-			feedback = { type: 'error', message: result.data?.message || 'Failed to delete user' };
+			feedback = { type: 'error', message: result.data?.message || m.users_deleted_failed() };
 		}
 	}
 
@@ -117,10 +132,10 @@
 		const res = await fetch('?/toggleVerify', { method: 'POST', body: formData });
 		const result = await res.json();
 		if (result.type === 'success') {
-			feedback = { type: 'success', message: result.data?.message || 'Email verified' };
+			feedback = { type: 'success', message: result.data?.message || m.users_verified_ok() };
 			invalidate();
 		} else {
-			feedback = { type: 'error', message: result.data?.message || 'Failed to update verification' };
+			feedback = { type: 'error', message: result.data?.message || m.users_verify_failed() };
 		}
 	}
 
@@ -130,15 +145,15 @@
 </script>
 
 <svelte:head>
-	<title>Users — SvelteForge Admin</title>
+	<title>{m.users_title()}</title>
 </svelte:head>
 
 <div class="space-y-group">
 	<div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-		<h2 class="text-2xl font-heading font-bold">Users</h2>
+		<h2 class="text-2xl font-heading font-bold">{m.users_heading()}</h2>
 		<Button onclick={openCreate}>
 			<UserPlus size={16} class="mr-1" />
-			Add User
+			{m.users_add()}
 		</Button>
 	</div>
 
@@ -146,57 +161,43 @@
 		<Feedback type={feedback.type} message={feedback.message} ondismiss={() => (feedback = null)} />
 	{/if}
 
-	<Input placeholder="Search users..." bind:value={search} />
+	<Input placeholder={m.users_search_placeholder()} bind:value={search} />
 
-	<!-- Users table -->
-	<div class="overflow-x-auto rounded-card border border-surface-200-800">
-		<table class="w-full text-sm">
-			<thead class="bg-surface-100-900">
-				<tr>
-					<th class="text-left px-4 py-3 font-medium">Name</th>
-					<th class="text-left px-4 py-3 font-medium hidden sm:table-cell">Email</th>
-					<th class="text-left px-4 py-3 font-medium">Status</th>
-					<th class="text-right px-4 py-3 font-medium">Actions</th>
-				</tr>
-			</thead>
-			<tbody class="divide-y divide-surface-100-800">
-				{#each filtered as u (u.id)}
-					<tr class="hover:hover:bg-surface-900-50 transition-colors">
-						<td class="px-4 py-3">
-							<div class="flex items-center gap-3">
-								<AvatarInitial name={u.name} size="sm" />
-								<div>
-									<p class="font-medium">{u.name}</p>
-									<p class="text-xs text-surface-500 sm:hidden">{u.email}</p>
-								</div>
-							</div>
-						</td>
-						<td class="px-4 py-3 hidden sm:table-cell text-surface-500">{u.email}</td>
-						<td class="px-4 py-3">
-							<button onclick={() => toggleVerify(u)}>
-								<Badge color={u.emailVerified ? 'success' : 'warning'}>
-									{u.emailVerified ? '✅ Verified' : '⏳ Pending'}
-								</Badge>
-							</button>
-						</td>
-						<td class="px-4 py-3">
-							<div class="flex items-center justify-end gap-1">
-								<button class="btn preset-tonal-surface p-2 rounded" onclick={() => openEdit(u)} aria-label="Edit user">
-									<Pencil size={16} />
-								</button>
-								<button class="btn preset-tonal-error p-2 rounded" onclick={() => openDelete(u)} disabled={u.id === currentUserId} aria-label="Delete user">
-									<Trash size={16} />
-								</button>
-							</div>
-						</td>
-					</tr>
-				{/each}
-			</tbody>
-		</table>
-	</div>
+	<!-- CRUD data table: SvelteForge Table primitive (golden reference) -->
+	<Table {columns} rows={filtered}>
+		{#snippet children({ row, col })}
+			{#if col.key === 'name'}
+				{@const user = asUser(row)}
+				<div class="flex items-center gap-3">
+					<AvatarInitial name={user.name} size="sm" />
+					<div>
+						<p class="font-medium">{user.name}</p>
+						<p class="text-xs text-surface-500 sm:hidden">{user.email}</p>
+					</div>
+				</div>
+			{:else if col.key === 'status'}
+				{@const user = asUser(row)}
+				<button onclick={() => toggleVerify(user)} aria-label={user.emailVerified ? m.users_pending() : m.users_verified()}>
+					<Badge color={user.emailVerified ? 'success' : 'warning'}>
+						{user.emailVerified ? m.users_verified() : m.users_pending()}
+					</Badge>
+				</button>
+			{:else if col.key === 'actions'}
+				{@const user = asUser(row)}
+				<div class="flex items-center justify-end gap-1">
+					<button class="btn preset-tonal-surface p-2 rounded" onclick={() => openEdit(user)} aria-label={m.users_edit()}>
+						<Pencil size={16} />
+					</button>
+					<button class="btn preset-tonal-error p-2 rounded" onclick={() => openDelete(user)} disabled={user.id === currentUserId} aria-label={m.users_delete()}>
+						<Trash size={16} />
+					</button>
+				</div>
+			{/if}
+		{/snippet}
+	</Table>
 
 	{#if filtered.length === 0}
-		<p class="text-center text-surface-500 py-section">No users found</p>
+		<p class="text-center text-surface-500 py-section">{m.users_none()}</p>
 	{/if}
 </div>
 
@@ -206,32 +207,32 @@
 		<Card class="w-full max-w-modal" onclick={(e: Event) => e.stopPropagation()}>
 			<div class="flex items-center justify-between mb-4">
 				<h3 class="text-lg font-heading font-bold">
-					{modal === 'create' ? 'Add User' : modal === 'edit' ? 'Edit User' : 'Delete User'}
+					{modal === 'create' ? m.users_modal_create() : modal === 'edit' ? m.users_modal_edit() : m.users_modal_delete()}
 				</h3>
-				<button class="btn preset-tonal-surface p-1 rounded" onclick={closeModal} aria-label="Close">
+				<button class="btn preset-tonal-surface p-1 rounded" onclick={closeModal} aria-label={m.users_close()}>
 					<X size={18} />
 				</button>
 			</div>
 
 			{#if modal === 'create' || modal === 'edit'}
 				<form class="space-y-4" onsubmit={(e) => { e.preventDefault(); modal === 'create' ? submitCreate() : submitEdit(); }}>
-					<Input label="Name" bind:value={formName} placeholder="John Doe" required />
-					<Input label="Email" type="email" bind:value={formEmail} placeholder="john@example.com" required />
+					<Input label={m.users_label_name()} bind:value={formName} placeholder={m.users_placeholder_name()} required />
+					<Input label={m.users_label_email()} type="email" bind:value={formEmail} placeholder={m.users_placeholder_email()} required />
 					{#if modal === 'create'}
-						<Input label="Password" type="password" bind:value={formPassword} placeholder="Min 8 characters" required />
+						<Input label={m.users_label_password()} type="password" bind:value={formPassword} placeholder={m.common_min_chars()} required />
 					{/if}
 					<div class="flex justify-end gap-2 pt-2">
-						<Button variant="ghost" onclick={closeModal}>Cancel</Button>
-						<Button type="submit">{modal === 'create' ? 'Create' : 'Save'}</Button>
+						<Button variant="ghost" onclick={closeModal}>{m.common_cancel()}</Button>
+						<Button type="submit">{modal === 'create' ? m.users_create() : m.common_save()}</Button>
 					</div>
 				</form>
 			{:else if modal === 'delete' && deleteTarget}
 				<p class="text-surface-500 mb-4">
-					Are you sure you want to delete <strong>{deleteTarget.name}</strong>? This action cannot be undone.
+					{m.users_delete_confirm({ name: deleteTarget.name })}
 				</p>
 				<div class="flex justify-end gap-2">
-					<Button variant="ghost" onclick={closeModal}>Cancel</Button>
-					<Button color="error" onclick={submitDelete}>Delete</Button>
+					<Button variant="ghost" onclick={closeModal}>{m.common_cancel()}</Button>
+					<Button color="error" onclick={submitDelete}>{m.users_delete_btn()}</Button>
 				</div>
 			{/if}
 		</Card>

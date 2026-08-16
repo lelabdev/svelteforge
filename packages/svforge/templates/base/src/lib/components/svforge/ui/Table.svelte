@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { cn } from '$lib/utils/cn';
+	import type { Snippet } from 'svelte';
 	import type { HTMLAttributes } from 'svelte/elements';
 
 	interface Column {
@@ -8,13 +9,15 @@
 		class?: string;
 	}
 
-	interface Props extends HTMLAttributes<HTMLDivElement> {
+	interface Props extends Omit<HTMLAttributes<HTMLDivElement>, 'children'> {
 		columns: Column[];
-		rows: Record<string, string>[];
+		rows: Record<string, unknown>[];
 		class?: string;
+		/** Optional per-cell renderer for rich cells (avatar, badge, actions…). */
+		children?: Snippet<[{ row: Record<string, unknown>; col: Column }]>;
 	}
 
-	let { columns, rows, class: className = '', ...rest }: Props = $props();
+	let { columns, rows, class: className = '', children, ...rest }: Props = $props();
 </script>
 
 <div class={cn('overflow-x-auto rounded-card border border-surface-200-800', className)} {...rest}>
@@ -33,7 +36,11 @@
 				<tr class="hover:bg-surface-50-900 transition-colors">
 					{#each columns as col}
 						<td class="px-element py-3 text-sm {col.class}">
-							{row[col.key]}
+							{#if children}
+								{@render children({ row, col })}
+							{:else}
+								{String(row[col.key] ?? '')}
+							{/if}
 						</td>
 					{/each}
 				</tr>

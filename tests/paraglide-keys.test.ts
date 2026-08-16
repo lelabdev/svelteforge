@@ -70,4 +70,28 @@ describe('Paraglide key freshness (#271)', () => {
 		expect([...frKeys].filter((k) => !enKeys.has(k))).toEqual([]);
 		expect([...enKeys].filter((k) => !frKeys.has(k))).toEqual([]);
 	});
+
+	it('dashboard templates contain no hard-coded UI copy (#267)', () => {
+		// Known English UI strings from the pre-#267 dashboard must never come
+		// back as literals in dashboard template sources — copy goes through
+		// Paraglide (m.*). Server data (fail() messages) is out of scope.
+		const dashRoot = join(ROOT, 'packages/svforge/templates/dashboard/src');
+		const sentinels = [
+			'Add User',
+			'Welcome back',
+			'Sign in to your account',
+			'Create Admin',
+			'Update Password',
+			'Toggle sidebar',
+			'No users found',
+			'Manage Users',
+			'Recent Users'
+		];
+		const offenders: string[] = [];
+		for (const file of walk(dashRoot)) {
+			const src = readFileSync(file, 'utf-8').replace(/<!--[\s\S]*?-->/g, '');
+			for (const s of sentinels) if (src.includes(s)) offenders.push(`${file}: ${s}`);
+		}
+		expect(offenders).toEqual([]);
+	});
 });
