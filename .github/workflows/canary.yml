@@ -25,7 +25,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        scaffold: [base, dashboard, dashboard-playwright, base-blog]
+        scaffold: [base, dashboard, dashboard-playwright, base-blog, base-modules]
     steps:
       - uses: actions/checkout@v4
 

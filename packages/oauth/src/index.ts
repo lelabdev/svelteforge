@@ -1,3 +1,5 @@
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
 import { defineAddon, defineAddonOptions } from 'sv';
 import { files } from './templates';
 
@@ -10,8 +12,13 @@ export default defineAddon({
 	// options object (Object.entries(undefined) in promptAddonQuestions).
 	options: defineAddonOptions().build(),
 
-	setup: ({ unsupported, isKit }) => {
+	setup: ({ unsupported, isKit, cwd }) => {
 		if (!isKit) unsupported('SVForge OAuth requires SvelteKit');
+		// OAuthButtons imports $lib/client/auth — provided only by the svforge
+		// dashboard template. Install svforge (template:dashboard) first (#190).
+		if (!existsSync(join(cwd, 'src/lib/client/auth.ts'))) {
+			unsupported('SVForge OAuth requires the svforge dashboard template (src/lib/client/auth.ts missing — run `sv add svforge=template:dashboard` first)');
+		}
 	},
 
 	run: ({ sv }) => {

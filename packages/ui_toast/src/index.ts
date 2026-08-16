@@ -15,6 +15,11 @@ export default defineAddon({
 	},
 
 	run: ({ sv }) => {
+		// Toaster/toaster.ts import @skeletonlabs/skeleton-svelte — must be a
+		// real dependency (peerDependencies installs nothing in the copy-sources
+		// model) (#190).
+		sv.dependency('@skeletonlabs/skeleton-svelte', '^5.0.0');
+
 		for (const [path, content] of Object.entries(files)) {
 			sv.file(`src${path}`, () => content);
 		}
