@@ -1,0 +1,44 @@
+{
+  "name": "@svforge/notifications",
+  "version": "0.0.1",
+  "type": "module",
+  "description": "SVForge Notifications \u2014 persistent business notifications (read/unread)",
+  "author": "Ludo (https://lelab.dev)",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lelabdev/svelteforge.git",
+    "directory": "packages/email"
+  },
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist/"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "sv": "^0.13.0"
+  },
+  "devDependencies": {
+    "sv": "^0.15.3",
+    "tsdown": "^0.12.0",
+    "typescript": "^6.0.3"
+  },
+  "scripts": {
+    "prebuild": "bun scripts/prebuild.ts",
+    "build": "bun run prebuild && bunx tsdown",
+    "prepublishOnly": "bun run build"
+  },
+  "keywords": [
+    "sv-add",
+    "svforge",
+    "notifications",
+    "inbox",
+    "svelte",
+    "sveltekit"
+  ]
+}
