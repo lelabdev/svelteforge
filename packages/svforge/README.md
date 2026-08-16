@@ -45,7 +45,7 @@ The Playwright profile is opt-in with `testing:playwright`; it adds
 Everything in Base, plus:
 
 - **Better Auth** — email/password, session management
-- **Drizzle ORM** — PostgreSQL with user/session/account/verification schema
+- **Drizzle ORM + PostgreSQL** (`pg-core` + `postgres` driver) — user/session/account/verification schema + app tables
 - **Admin dashboard** — stats, user management (CRUD), settings
 - **Zod validation** — type-safe schemas on all server actions
 - **Setup script** — `bash scripts/setup.sh` (generates secret, inits DB)
@@ -53,23 +53,51 @@ Everything in Base, plus:
 
 ## Module Addons
 
-Composable opt-in modules — pick 2–3 as needed:
+Composable opt-in modules — pick 2–3 as needed. **Requires** = template to scaffold first (`base` or `dashboard`); **Optional integrations** compose with other modules:
 
-| Package | What it adds | Requires |
-|---------|-------------|----------|
-| `@svforge/ui_toast` | Toast notifications (Skeleton Toast) | base |
-| `@svforge/dnd` | Drag & drop sortable lists | base |
-| `@svforge/tiptap` | Rich text editor (Tiptap, toolbar + preview) | base |
-| `@svforge/graph` | Knowledge graph visualization (force-graph) | base |
-| `@svforge/email` | Transactional emails (Resend) | base |
-| `@svforge/oauth` | Social auth buttons (Google, GitHub) | **dashboard** |
-| `@svforge/uploads` | File uploads (S3/R2, presigned, security test pack opt-in) | base |
-| `@svforge/blog` | MDsveX blog (posts + list + detail) | base |
+<!-- MODULES-TABLE:START -->
+| Package | What it adds | Requires | Optional integrations |
+|---------|--------------|----------|----------------------|
+| `@svforge/ui_toast` | Toast notifications (Skeleton Toast) | base | — |
+| `@svforge/dnd` | Drag & drop sortable lists | base | — |
+| `@svforge/tiptap` | Rich text editor (Tiptap, toolbar + preview) | base | — |
+| `@svforge/graph` | Knowledge graph visualization (force-graph) | base | — |
+| `@svforge/email` | Transactional emails (Resend) | base | — |
+| `@svforge/oauth` | Social auth buttons (Google, GitHub) | **dashboard** | — |
+| `@svforge/uploads` | File uploads (S3/R2, presigned, security test pack opt-in) | base | testpack |
+| `@svforge/blog` | MDsveX blog (posts + list + detail) | base | — |
+| `@svforge/realtime` | WebSocket transport (publish/subscribe, channels isolés) | base | — |
+| `@svforge/audit` | Business action audit trail (append-only) | **dashboard** | — |
+| `@svforge/notifications` | Persistent business notifications (read/unread) | **dashboard** | realtime, email |
+| `@svforge/jobs` | Background job foundation (retry, progress, backend encapsulé) | **dashboard** | realtime, notifications, email |
+| `@svforge/chat` | Composable app chat (conversations, messages, read-state) | **dashboard** | realtime, uploads, notifications |
+<!-- MODULES-TABLE:END -->
+
+Presets are composition recipes (`npx svforge preset <name>`):
+
+<!-- PRESETS-TABLE:START -->
+| Preset | Description | Requires | Composition |
+|--------|-------------|----------|-------------|
+| `saas` | Dashboard SaaS de départ : auth + admin + email + uploads | **dashboard** | email + uploads (optional: tiptap, oauth, dnd) |
+| `community` | Site communautaire : base + blog + toast | base | blog + ui_toast (optional: tiptap, graph) |
+<!-- PRESETS-TABLE:END -->
 
 ```bash
 npx sv add @svforge/ui_toast
 npx sv add @svforge/uploads
+npx sv add @svforge/chat
+npx sv add @svforge/jobs
 ```
+
+The machine-readable contract (`svforge-modules.json`) is the single source of truth — this table is generated, see `scripts/gen-modules-table.mjs`.
+
+## AI-ready workflow
+
+Every scaffold is agent-ready: `AGENTS.md` (conventions), `.svforge.json`
+(machine-readable manifest: template, stack, modules, capabilities, patterns),
+`llms.txt` (LLM summary), `svforge-catalog.json` + `svforge-check.mjs`
+(design-system harness). Modules merge their capability into the manifest and
+`llms.txt` at install time.
 
 ## License
 

@@ -106,6 +106,16 @@ type RealtimeEvent<T = unknown> = { channel: string; event: string; payload: T }
 - `ws` — WebSocket server
 - `@types/ws` (dev)
 
+## Limits (v1)
+
+- Single hub per process — no horizontal scaling of connections in v1 (one
+  instance / dev server). Channels give isolation, not multi-process fan-out.
+- No message persistence — realtime is transport only; durable state belongs to
+  the business modules (notifications, chat, jobs…).
+- Heartbeats: the client auto-reconnects with backoff; server-side auth is the
+  `authorize` callback you provide.
+- WSS (TLS) behind a reverse proxy is your wiring responsibility (option A).
+
 ## License
 
 MIT
