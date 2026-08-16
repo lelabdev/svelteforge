@@ -82,7 +82,7 @@ describe('module addon options guard (#185)', () => {
 			const source = readFileSync(join(ROOT, `packages/${mod}/src/index.ts`), 'utf-8');
 			expect(source).toMatch(/import \{[^}]*defineAddonOptions[^}]*\} from 'sv'/);
 			// Options may be empty (.build() right away) or have .add(...) entries
-			expect(source).toMatch(/options: defineAddonOptions\(\s*\)(?:\.add|\.build)/);
+			expect(source).toMatch(/options: defineAddonOptions\(\s*\)\s*(?:\.add|\.build)/);
 		});
 	}
 });
