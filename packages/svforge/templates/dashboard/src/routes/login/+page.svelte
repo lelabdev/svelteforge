@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { goto } from '$app/navigation';
+	import * as m from '$lib/paraglide/messages.js';
 	import { Card, Feedback } from '$lib/components/svforge/ui';
 	import { Button, Input } from '$lib/components/svforge/primitives';
 	import ThemeToggle from '$lib/components/svforge/ui/ThemeToggle.svelte';
@@ -13,7 +14,7 @@
 </script>
 
 <svelte:head>
-	<title>Login — SvelteForge</title>
+	<title>{m.login_title()}</title>
 </svelte:head>
 
 <main class="min-h-screen flex items-center justify-center bg-surface-50-950 p-element">
@@ -24,8 +25,8 @@
 
 		<Card variant="elevated">
 			<div class="text-center mb-6">
-				<h1 class="text-2xl font-heading font-bold">Welcome back</h1>
-				<p class="text-surface-500 mt-1">Sign in to your account</p>
+				<h1 class="text-2xl font-heading font-bold">{m.login_welcome_back()}</h1>
+				<p class="text-surface-500 mt-1">{m.login_signin_hint()}</p>
 			</div>
 
 			{#if form?.message}
@@ -44,10 +45,10 @@
 					}
 				};
 			}} class="space-y-4">
-				<Input label="Email" type="email" name="email" bind:value={email} placeholder="you@example.com" required />
-				<Input label="Password" type="password" name="password" bind:value={password} placeholder="••••••••" required />
+				<Input label={m.login_label_email()} type="email" name="email" bind:value={email} placeholder={m.login_placeholder_email()} required />
+				<Input label={m.login_label_password()} type="password" name="password" bind:value={password} placeholder="••••••••" required />
 				<Button type="submit" class="w-full" disabled={loading}>
-					{loading ? 'Signing in...' : 'Sign In'}
+					{loading ? m.login_signing_in() : m.login_sign_in()}
 				</Button>
 			</form>
 		</Card>

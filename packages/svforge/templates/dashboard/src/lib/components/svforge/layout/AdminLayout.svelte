@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { cn } from '$lib/utils/cn';
+	import * as m from '$lib/paraglide/messages.js';
 	import type { Snippet } from 'svelte';
 	import type { HTMLAttributes } from 'svelte/elements';
 	import Users from 'phosphor-svelte/lib/Users';
@@ -23,9 +24,9 @@
 
 	let {
 		items = [
-			{ href: '/admin', label: 'Dashboard', icon: ChartBar },
-			{ href: '/admin/users', label: 'Users', icon: Users },
-			{ href: '/admin/settings', label: 'Settings', icon: Gear }
+			{ href: '/admin', label: m.layout_dashboard(), icon: ChartBar },
+			{ href: '/admin/users', label: m.layout_users(), icon: Users },
+			{ href: '/admin/settings', label: m.layout_settings(), icon: Gear }
 		],
 		currentPath = '',
 		user = null,
@@ -52,23 +53,25 @@
 	<aside class="hidden lg:flex flex-col border-r border-surface-200-800 bg-surface-50-950 transition-all {collapsed ? 'w-16' : 'w-56'}">
 		<div class="flex items-center justify-between p-3 border-b border-surface-200-800">
 			{#if !collapsed}
-				<a href="/admin" class="text-lg font-heading font-bold text-primary-600-400">Admin</a>
+				<a href="/admin" class="text-lg font-heading font-bold text-primary-600-400">{m.layout_admin()}</a>
 			{/if}
 			<button
 				class="btn preset-tonal-surface p-1 rounded"
 				onclick={() => (collapsed = !collapsed)}
-				aria-label="Toggle sidebar"
+				aria-label={m.layout_toggle_sidebar()}
+				aria-expanded={!collapsed}
 			>
 				<Menu size={18} />
 			</button>
 		</div>
 
-		<nav class="flex-1 p-2 space-y-1">
+		<nav class="flex-1 p-2 space-y-1" aria-label={m.layout_menu()}>
 			{#each items as item}
 				{@const Icon = item.icon}
 				<a
 					href={item.href}
 					class={navClass(item.href)}
+					aria-current={currentPath === item.href ? 'page' : undefined}
 				>
 					<Icon size={20} />
 					{#if !collapsed}<span class="text-sm font-medium">{item.label}</span>{/if}
@@ -86,17 +89,17 @@
 		<!-- Top bar -->
 		<header class="sticky top-0 z-50 bg-surface-50-950/80 backdrop-blur-md border-b border-surface-200-800 px-element py-3 flex items-center justify-between">
 			<div class="flex items-center gap-3">
-				<button class="lg:hidden btn preset-tonal-surface p-2 rounded" onclick={() => (mobileOpen = !mobileOpen)} aria-label="Menu">
+				<button class="lg:hidden btn preset-tonal-surface p-2 rounded" onclick={() => (mobileOpen = !mobileOpen)} aria-label={m.layout_menu()} aria-expanded={mobileOpen}>
 					{#if mobileOpen}<X size={20} />{:else}<Menu size={20} />{/if}
 				</button>
-				<h1 class="font-heading font-bold text-lg">Dashboard</h1>
+				<h1 class="font-heading font-bold text-lg">{m.layout_dashboard()}</h1>
 			</div>
 			<div class="flex items-center gap-3">
 				<ThemeToggle class="lg:hidden" />
 				{#if user}
 					<span class="text-sm text-surface-500 hidden sm:block">{user.name}</span>
 					{#if onSignOut}
-						<button class="btn preset-tonal-surface p-2 rounded" onclick={onSignOut} aria-label="Sign out">
+						<button class="btn preset-tonal-surface p-2 rounded" onclick={onSignOut} aria-label={m.layout_sign_out()}>
 							<SignOut size={18} />
 						</button>
 					{/if}
@@ -108,16 +111,17 @@
 		{#if mobileOpen}
 			<button
 				type="button"
-				aria-label="Close menu"
+				aria-label={m.layout_close_menu()}
 				class="lg:hidden fixed inset-0 z-40 w-full bg-black/50 cursor-default"
 				onclick={() => (mobileOpen = false)}
 			></button>
-			<aside class="lg:hidden fixed left-0 top-0 z-50 h-full w-56 bg-surface-50-950 border-r border-surface-200-800 p-3 space-y-1 shadow-xl">
+			<aside class="lg:hidden fixed left-0 top-0 z-50 h-full w-56 bg-surface-50-950 border-r border-surface-200-800 p-3 space-y-1 shadow-xl" aria-label={m.layout_menu()}>
 					{#each items as item}
 						{@const Icon = item.icon}
 						<a
 							href={item.href}
 							class={navClass(item.href)}
+							aria-current={currentPath === item.href ? 'page' : undefined}
 							onclick={() => (mobileOpen = false)}
 						>
 							<Icon size={20} />

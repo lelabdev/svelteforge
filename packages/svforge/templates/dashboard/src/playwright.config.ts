@@ -18,7 +18,10 @@ export default defineConfig({
 	reporter: 'html',
 	use: {
 		baseURL: 'http://localhost:4173',
-		trace: 'on-first-retry'
+		trace: 'on-first-retry',
+		// Dashboard UI copy is i18n via Paraglide; the E2E selectors target the
+		// English strings, so pin the browser locale (#267).
+		locale: 'en-US'
 	},
 	projects: [
 		{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }

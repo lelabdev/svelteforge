@@ -1,5 +1,6 @@
 <script lang="ts">
     import { cn } from '$lib/utils/cn';
+    import * as m from '$lib/paraglide/messages.js';
     import Check from 'phosphor-svelte/lib/Check';
     import Warning from 'phosphor-svelte/lib/Warning';
     import X from 'phosphor-svelte/lib/X';
@@ -17,7 +18,7 @@
     {#if type === 'success'}<Check size={18} />{:else}<Warning size={18} />{/if}
     <span class="text-sm">{message}</span>
     {#if ondismiss}
-    <button class="ml-auto" onclick={ondismiss} aria-label="Dismiss"><X size={14} /></button>
+    <button class="ml-auto" onclick={ondismiss} aria-label={m.common_dismiss()}><X size={14} /></button>
     {/if}
 </div>
 {/if}

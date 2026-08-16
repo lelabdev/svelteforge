@@ -140,6 +140,15 @@ const DASHBOARD = `
 - **DB**: Drizzle + PostgreSQL. Schema in \`src/lib/server/db/schema.ts\`, config \`drizzle.config.ts\` at the root (dialect postgresql). Env in \`.env\` (copy \`.env.example\` — local / Docker / managed connection strings).
 - **Validation**: zod schemas in \`src/lib/server/schemas.ts\`.
 - **Setup**: \`bash scripts/setup.sh\` creates \`.env\`, generates \`BETTER_AUTH_SECRET\`, pushes the schema.
+### Golden references (#267) — imitate these screens when building new UI
+
+The admin screens are canonical examples agents should copy:
+
+- **\`/admin/users\`** — CRUD data table: the SvelteForge \`Table\` primitive (columns + \`children\` slot for avatar/badge/actions), search filter, create/edit modal (\`Card\` + \`Input\`), delete confirmation, \`Feedback\` for success/error, empty state. Never hand-roll a raw \`<table>\` (see catalogue \`avoid\`).
+- **\`/admin\`** — stats cards (\`Card variant=\"elevated\"\`) + recent list with \`Badge\` status.
+- **\`/admin/settings\`** — form with client-side validation + \`Feedback\`.
+- **\`AdminLayout\`** — sidebar/mobile drawer with \`aria-expanded\`, \`aria-current\`, labelled navigation.
+- **All UI copy is i18n via Paraglide**: import \`* as m from '$lib/paraglide/messages.js'\` and call \`m.key()\` — never hard-code user-visible text. Keys live in \`messages/fr.json\` + \`messages/en.json\` (keep parity).
 `;
 
 export function scaffoldedAgents(template: 'base' | 'dashboard'): string {

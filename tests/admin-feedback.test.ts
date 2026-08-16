@@ -39,7 +39,9 @@ describe('admin action feedback (#188)', () => {
 	});
 
 	it('toggleVerify has an error branch', () => {
-		expect(page).toMatch(/Failed to update verification/);
+		// #267: the fallback copy is i18n via Paraglide (m.users_verify_failed)
+		// instead of hard-coded English — the branch must still exist.
+		expect(page).toMatch(/m\.users_verify_failed\(\)/);
 	});
 
 	it('never exposes raw e.message to the UI (server actions)', () => {

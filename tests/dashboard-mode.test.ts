@@ -103,4 +103,15 @@ describe('dashboard testing profiles', () => {
 		expect(sv.files.has('src/drizzle.config.ts')).toBe(false);
 		expect(sv.files.has('src/.env.example')).toBe(false);
 	});
+
+	it('scaffolds AGENTS.md with dashboard golden references (#267)', () => {
+		const sv = fakeSv();
+		applyDashboardMode(sv, baseFiles, dashboardFiles, 'vitest');
+
+		const agents = sv.files.get('AGENTS.md') ?? '';
+		expect(agents).toMatch(/Golden references \(#267\)/);
+		expect(agents).toMatch(/\/admin\/users/);
+		expect(agents).toMatch(/messages\/fr\.json/);
+		expect(agents).toMatch(/never hard-code user-visible text/);
+	});
 });
