@@ -78,10 +78,11 @@ describe('module addon options guard (#185)', () => {
 	const modules = ['blog', 'ui_toast', 'dnd', 'tiptap', 'graph', 'email', 'oauth', 'uploads'];
 
 	for (const mod of modules) {
-		it(`${mod} defines options: defineAddonOptions().build()`, () => {
+		it(`${mod} defines options (sv >= 0.15 crash guard)`, () => {
 			const source = readFileSync(join(ROOT, `packages/${mod}/src/index.ts`), 'utf-8');
 			expect(source).toMatch(/import \{[^}]*defineAddonOptions[^}]*\} from 'sv'/);
-			expect(source).toMatch(/options: defineAddonOptions\(\)\.build\(\)/);
+			// Options may be empty (.build() right away) or have .add(...) entries
+			expect(source).toMatch(/options: defineAddonOptions\(\s*\)\s*(?:\.add|\.build)/);
 		});
 	}
 });
