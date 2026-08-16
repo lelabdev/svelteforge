@@ -28,4 +28,12 @@ const handleBetterAuth: Handle = async ({ event, resolve }) => {
 	return svelteKitHandler({ event, resolve, auth, building });
 };
 
-export const handle: Handle = handleParaglide;
+// `sequence` is not exported by the @sveltejs/kit runtime in 2.57 (types
+// only) — compose the two handles manually. handleBetterAuth MUST run or
+// locals.session/locals.user stay undefined and every protected route
+// redirects to /login (regression found during #268 screenshots).
+export const handle: Handle = async ({ event, resolve }) =>
+	paraglideMiddleware(event.request, async ({ request, locale }) => {
+		event.request = request;
+		return handleBetterAuth({ event, resolve });
+	});
