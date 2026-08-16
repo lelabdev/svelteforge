@@ -1,6 +1,25 @@
 import { defineAddon, defineAddonOptions } from 'sv';
 import { files } from './templates';
 
+/**
+ * Merge Paraglide catalog entries into an existing messages/{locale}.json
+ * (#239). Never overwrites existing keys; preserves the $schema header.
+ */
+function mergeMessages(content: string, additions: Record<string, string>): string {
+	let catalog: Record<string, unknown> = {};
+	if (content && content.trim()) {
+		try {
+			catalog = JSON.parse(content);
+		} catch {
+			catalog = {};
+		}
+	}
+	for (const [key, value] of Object.entries(additions)) {
+		catalog[key] = value;
+	}
+	return `${JSON.stringify(catalog, null, 2)}\n`;
+}
+
 export default defineAddon({
 	id: 'svforge-uploads',
 	alias: 'forge-uploads',
@@ -38,6 +57,21 @@ export default defineAddon({
 			if (path === '/routes/api/upload/upload-security.test.ts' && !options.testpack) continue;
 			sv.file(`src${path}`, () => content);
 		}
+
+		// Paraglide messages (#239): merge FR/EN uploads copy into the project
+		// catalogs without overwriting existing keys.
+		sv.file('messages/fr.json', (content) =>
+			mergeMessages(content, {
+				uploads_uploading: 'Téléversement…',
+				uploads_failed: 'Échec du téléversement'
+			})
+		);
+		sv.file('messages/en.json', (content) =>
+			mergeMessages(content, {
+				uploads_uploading: 'Uploading…',
+				uploads_failed: 'Upload failed'
+			})
+		);
 	},
 
 	nextSteps: ({ options }) => [

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import * as m from '$lib/paraglide/messages.js';
 	let { onUpload }: { onUpload?: (url: string) => void } = $props();
 
 	let uploading = $state(false);
@@ -25,7 +26,7 @@
 				body: file,
 				headers: { 'Content-Type': file.type }
 			});
-			if (!uploadRes.ok) throw new Error('Upload failed');
+			if (!uploadRes.ok) throw new Error(m.uploads_failed());
 
 			onUpload?.(key);
 		} catch (err: any) {
@@ -38,6 +39,6 @@
 
 <div>
 	<input type="file" onchange={handleFile} disabled={uploading} />
-	{#if uploading}<span>Uploading...</span>{/if}
+	{#if uploading}<span>{m.uploads_uploading()}</span>{/if}
 	{#if error}<p style="color: red">{error}</p>{/if}
 </div>

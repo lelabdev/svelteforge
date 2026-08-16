@@ -8,6 +8,7 @@ SvelteForge est un **boilerplate de démarrage**, PAS une bibliothèque de compo
 
 - Le template `base` fournit **uniquement les bases** : boutons, inputs, selects, cards, badges, table + l'infra (theme, SEO, layouts, dark mode).
 - **Structure canonique des composants (#242)** : `templates/*/src/lib/components/svforge/` est découpé en `primitives/` (briques simples : Button, Input, Badge…), `ui/` (composés : Card, Alert, Table…), `layout/` (structure de page : Navbar, Footer). C'est le premier registry : un agent cherche là AVANT de créer un composant.
+- **i18n Paraglide FR/EN (#239)** : le base scaffoldé embarque Paraglide (compiler-first, baseLocale fr) + `messages/{fr,en}.json`. Toute copy UI statique passe par `m.*` ; toute clé ajoutée doit exister en FR **et** EN (parité testée). Les modules fusionnent leurs messages dans les catalogues du projet sans écraser.
 - Pour tout composant plus riche (accordion, tabs, avatar, tooltip, dialog…), on **n'écrit pas** de composant svforge — on utilise directement les composants officiels de `@skeletonlabs/skeleton-svelte`.
 - Les modules sont **composables et opt-in** : l'utilisateur choisit 2-3 modules selon ses besoins.
 - Le vrai cœur du métier : **vitesse de démarrage**. Un `sv create` + `sv add` = projet production-ready.

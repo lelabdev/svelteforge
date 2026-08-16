@@ -12,6 +12,9 @@ const dashboardFiles = dashboardOverlay;
 // Root-level files (drizzle.config.ts, .env.example, scripts/setup.sh, static/robots.txt)
 // are embedded here and written at the PROJECT ROOT by the dashboard mode (#187).
 const dashboardRootFiles = readDirRecursively(join(__dirname, '../templates/dashboard/root'));
+// Base root-level files (Paraglide: messages/, project.inlang/) written at the
+// PROJECT ROOT by the base mode (#239) — same delivery model as dashboard root.
+const baseRootFiles = readDirRecursively(join(__dirname, '../templates/base/root'));
 
 const output = `// AUTO-GENERATED - DO NOT EDIT
 // Run bun run prebuild to regenerate
@@ -21,6 +24,8 @@ export const baseFiles = ${JSON.stringify(baseFiles, null, 2)};
 export const dashboardFiles = ${JSON.stringify(dashboardFiles, null, 2)};
 
 export const dashboardRootFiles = ${JSON.stringify(dashboardRootFiles, null, 2)};
+
+export const baseRootFiles = ${JSON.stringify(baseRootFiles, null, 2)};
 `;
 
 writeFileSync(join(__dirname, '../src/templates.ts'), output);
@@ -29,3 +34,4 @@ console.log('✅ Generated src/templates.ts');
 console.log(`   ${Object.keys(baseFiles).length} base files`);
 console.log(`   ${Object.keys(dashboardFiles).length} dashboard files`);
 console.log(`   ${Object.keys(dashboardRootFiles).length} dashboard root files`);
+console.log(`   ${Object.keys(baseRootFiles).length} base root files`);

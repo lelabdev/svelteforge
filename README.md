@@ -14,6 +14,7 @@ A `sv` community addon that scaffolds production-ready SvelteKit boilerplates po
 | Layouts (navbar, footer, seo, sitemap) | ❌ | ✅ |
 | Admin dashboard + auth + DB (dashboard template) | ❌ | ✅ |
 | Test baseline (vitest / playwright) | ❌ | ✅ |
+| i18n Paraglide FR/EN (compiler-first) | ❌ | ✅ |
 | AI-ready AGENTS.md scaffolded | ❌ | ✅ |
 
 ## Screenshots

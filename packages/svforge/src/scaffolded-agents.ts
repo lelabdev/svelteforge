@@ -80,6 +80,23 @@ bun run check    # svelte-check
 bun run test     # vitest (dashboard: baseline auth/admin tests)
 \`\`\`
 
+## i18n (Paraglide FR/EN — #239)
+
+This project ships **Paraglide** (compiler-first i18n) with **fr** (baseLocale) and **en**.
+
+MUST:
+- use Paraglide for static user-facing UI copy: \`import * as m from '$lib/paraglide/messages.js'\`
+- add/update BOTH \`messages/fr.json\` and \`messages/en.json\` for every UI copy change
+- reuse existing message keys when semantics are identical (\`common_save\`, \`common_cancel\`…)
+- use domain-oriented message names (\`users_create\`, not \`blue_button_text\`)
+
+MUST NOT:
+- hardcode static user-facing copy in Svelte components without a justified exception
+- create another i18n/message abstraction
+- update only one locale — a feature is not done until both fr and en exist
+
+Editorial content (blog/MDsveX, CMS/DB) does NOT belong in the catalogs.
+
 ## LLM resources (offline knowledge is likely v4 = obsolete)
 
 If you need Skeleton or Svelte specifics, fetch the FRESH docs rather than

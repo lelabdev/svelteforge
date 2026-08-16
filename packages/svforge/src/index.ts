@@ -1,5 +1,5 @@
 import { defineAddon, defineAddonOptions } from 'sv';
-import { baseFiles, dashboardFiles, dashboardRootFiles } from './templates';
+import { baseFiles, dashboardFiles, dashboardRootFiles, baseRootFiles } from './templates';
 import { applyBaseMode } from './modes/base';
 import { applyDashboardMode } from './modes/dashboard';
 
@@ -78,9 +78,13 @@ export default defineAddon({
 
 		// ── Apply mode-specific files ──
 		if (template === 'dashboard') {
+			// Dashboard inherits base: root files (Paraglide messages/),
+			// vite.config plugin wiring, deps and test script come from the
+			// base mode first, then dashboard-specific files overlay (#239).
+			applyBaseMode(sv, {}, baseRootFiles);
 			applyDashboardMode(sv, baseFiles, dashboardFiles, testing, dashboardRootFiles);
 		} else {
-			applyBaseMode(sv, baseFiles);
+			applyBaseMode(sv, baseFiles, baseRootFiles);
 		}
 	},
 

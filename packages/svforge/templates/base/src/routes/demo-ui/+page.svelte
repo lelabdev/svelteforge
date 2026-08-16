@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { Alert, Card, Table, ThemeToggle } from '$lib/components/svforge/ui';
 	import { Badge, Button, Checkbox, Input, Select, Textarea, Toggle } from '$lib/components/svforge/primitives';
+	import * as m from '$lib/paraglide/messages.js';
 	import { Navbar } from '$lib/components/svforge/layout';
 	import { Footer } from '$lib/components/svforge/layout';
 
@@ -13,14 +14,14 @@
 </script>
 
 <svelte:head>
-	<title>SvelteForge — Component Demo</title>
+	<title>SvelteForge — {m.demo_title()}</title>
 </svelte:head>
 
 <Navbar links={[{ href: '/demo-ui', label: 'Demo' }]} />
 
 <main class="max-w-container mx-auto px-element py-section space-y-section">
-	<h1 class="text-4xl font-heading font-bold">Component Demo</h1>
-	<p class="text-surface-500">All SvelteForge components with variants. Theme changes apply instantly.</p>
+	<h1 class="text-4xl font-heading font-bold">{m.demo_title()}</h1>
+	<p class="text-surface-500">{m.demo_subtitle()}</p>
 
 	<!-- Buttons -->
 	<section class="space-y-4">
@@ -201,4 +202,4 @@
 	</section>
 </main>
 
-<Footer links={[{ href: '/demo-ui', label: 'Components' }]} />
+<Footer links={[{ href: '/demo-ui', label: m.nav_components() }]} />

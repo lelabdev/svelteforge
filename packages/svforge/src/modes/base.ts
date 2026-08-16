@@ -11,11 +11,16 @@ const ROOT_FILES = new Set(['/vitest.config.ts']);
  */
 export function applyBaseMode(
 	sv: SvApi,
-	files: Record<string, string>
+	files: Record<string, string>,
+	rootFiles: Record<string, string> = {}
 ): void {
 	// Baseline Vitest (#235): deliver the runnable test baseline. The
 	// devDependency + script mirror the template package.json (vitest ^3.1.1).
 	sv.devDependency('vitest', '^3.1.1');
+
+	// Paraglide i18n (#239): compiler-first FR/EN messages, official Svelte
+	// integration. The vite plugin generates src/lib/paraglide at build time.
+	sv.dependency('@inlang/paraglide-js', '^2.24.0');
 
 	// Add a runnable test script to the generated project.
 	sv.file('package.json', (content: string) => {
@@ -28,10 +33,30 @@ export function applyBaseMode(
 		return `${JSON.stringify(pkg, null, 2)}\n`;
 	});
 
+	// Paraglide (#239): wire the vite plugin into the project's vite.config.ts.
+	sv.file('vite.config.ts', (content) => {
+		if (content.includes('paraglideVitePlugin')) return content;
+		let updated = content;
+		if (!updated.includes("from '@inlang/paraglide-js'")) {
+			updated = `import { paraglideVitePlugin } from '@inlang/paraglide-js';\n${updated}`;
+		}
+		updated = updated.replace(
+			/plugins:\s*\[/,
+			'plugins: [paraglideVitePlugin({ project: \'./project.inlang\', outdir: \'./src/lib/paraglide\' }), '
+		);
+		return updated;
+	});
+
 	// Write all base template files
 	for (const [path, content] of Object.entries(files)) {
 		const dest = ROOT_FILES.has(path) ? path.slice(1) : `src${path}`;
 		sv.file(dest, () => content);
+	}
+
+	// Write root-level project files (messages/, project.inlang/) at the
+	// project root (#239) — same delivery model as the dashboard root files.
+	for (const [path, content] of Object.entries(rootFiles)) {
+		sv.file(path.slice(1), () => content);
 	}
 
 	// AI-ready: scaffold an AGENTS.md at the project root (#203)
