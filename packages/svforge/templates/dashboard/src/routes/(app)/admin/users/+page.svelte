@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { PageData } from './$types';
 	import { invalidateAll } from '$app/navigation';
 	import { page } from '$app/state';
 	import { Button, Badge, Input, Card, AvatarInitial, Feedback } from '$lib/components/svforge/ui';
@@ -7,7 +8,7 @@
 	import Pencil from 'phosphor-svelte/lib/Pencil';
 	import X from 'phosphor-svelte/lib/X';
 
-	let { data } = $props();
+	let { data }: { data: PageData } = $props();
 	let currentUserId = $derived(page.data.user?.id);
 
 	let search = $state('');
@@ -24,7 +25,7 @@
 	let formPassword = $state('');
 
 	let filtered = $derived(
-		data.users.filter((u: any) =>
+		data.users.filter((u) =>
 			u.name.toLowerCase().includes(search.toLowerCase()) ||
 			u.email.toLowerCase().includes(search.toLowerCase())
 		)
@@ -37,14 +38,14 @@
 		modal = 'create';
 	}
 
-	function openEdit(u: any) {
+	function openEdit(u: { id: string; name: string; email: string }) {
 		editUser = { id: u.id, name: u.name, email: u.email };
 		formName = u.name;
 		formEmail = u.email;
 		modal = 'edit';
 	}
 
-	function openDelete(u: any) {
+	function openDelete(u: { id: string; name: string }) {
 		deleteTarget = { id: u.id, name: u.name };
 		modal = 'delete';
 	}
@@ -106,7 +107,7 @@
 		}
 	}
 
-	async function toggleVerify(u: any) {
+	async function toggleVerify(u: { id: string; emailVerified: boolean }) {
 		const formData = new FormData();
 		formData.set('id', u.id);
 		formData.set('verified', String(u.emailVerified));
