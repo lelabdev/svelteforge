@@ -92,6 +92,7 @@ For anything else, reach for [`@skeletonlabs/skeleton-svelte`](https://skeleton.
 - **Monorepo**: Bun workspaces, one package per module
 - **Build**: `tsdown` bundles each addon into a single ESM file; `prebuild` embeds template files as strings
 - **Base is intentionally small**: essentials only — richer components come from Skeleton
+- **Design-system harness (#240)**: every scaffold ships `svforge-catalog.json` (machine-readable catalog) + `svforge-check.mjs` (`node svforge-check.mjs` — flags second UI kits and duplicated Skeleton primitives as ERROR)
 
 ## Development
 

@@ -6,6 +6,13 @@ import { applyDashboardMode } from './modes/dashboard';
 // Export doctor diagnostics for programmatic use
 export { doctor, printReport } from './doctor';
 export type { DiagnosticResult, DoctorReport } from './doctor';
+export {
+	checkDesignSystem,
+	SVFORGE_CATALOG,
+	SKELETON_PRIMITIVES,
+	FORBIDDEN_UI_KITS
+} from './design-system';
+export type { CatalogEntry, Severity } from './design-system';
 
 // Export upgrade command for programmatic use
 export { upgrade, printUpgradeResult, MODULE_RECIPES } from './upgrade';

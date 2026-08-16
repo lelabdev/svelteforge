@@ -1,9 +1,11 @@
 #!/usr/bin/env node
 /**
- * SVForge CLI — doctor (diagnostics) and upgrade (module upgrades).
+ * SVForge CLI — doctor (diagnostics), check (design-system harness) and
+ * upgrade (module upgrades).
  *
- * Exposed via the `svforge` bin (#189):
+ * Exposed via the `svforge` bin (#189, #240):
  *   npx svforge doctor
+ *   npx svforge check
  *   npx svforge upgrade <module> [--force]
  */
 import { createRequire } from 'node:module';
@@ -22,6 +24,27 @@ async function main() {
 		const report = await api.doctor(projectRoot);
 		api.printReport(report);
 		process.exitCode = report.healthy ? 0 : 1;
+		return;
+	}
+
+	if (command === 'check') {
+		// Design-system harness (#240): ERROR blocks, WARN is informational.
+		const results = await api.checkDesignSystem(projectRoot);
+		const errors = results.filter((r: { status: string }) => r.status === 'error');
+		const warnings = results.filter((r: { status: string }) => r.status === 'warn');
+		console.log('\n SVForge check (design system)\n');
+		for (const r of results) {
+			const icon = r.status === 'ok' ? '✓' : r.status === 'warn' ? '⚠' : '✗';
+			console.log(`  ${icon} [${r.module}] ${r.status.toUpperCase()}: ${r.message}`);
+		}
+		if (errors.length) {
+			console.log(`\n✗ ${errors.length} design-system violation(s). Fix them before proceeding.`);
+		} else if (warnings.length) {
+			console.log(`\n⚠ ${warnings.length} warning(s) — review, not blocking.`);
+		} else {
+			console.log('\n✓ Design system is clean.');
+		}
+		process.exitCode = errors.length ? 1 : 0;
 		return;
 	}
 
@@ -45,7 +68,7 @@ async function main() {
 		return;
 	}
 
-	console.error('Usage: svforge <doctor|upgrade>');
+	console.error('Usage: svforge <doctor|check|upgrade>');
 	process.exitCode = 1;
 }
 
