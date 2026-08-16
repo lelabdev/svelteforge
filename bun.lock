@@ -73,6 +73,18 @@
         "sv": "^0.13.0",
       },
     },
+    "packages/notifications": {
+      "name": "@svforge/notifications",
+      "version": "0.0.1",
+      "devDependencies": {
+        "sv": "^0.15.3",
+        "tsdown": "^0.12.0",
+        "typescript": "^6.0.3",
+      },
+      "peerDependencies": {
+        "sv": "^0.13.0",
+      },
+    },
     "packages/oauth": {
       "name": "@svforge/oauth",
       "version": "0.0.1",
@@ -340,6 +352,8 @@
     "@svforge/email": ["@svforge/email@workspace:packages/email"],
 
     "@svforge/graph": ["@svforge/graph@workspace:packages/graph"],
+
+    "@svforge/notifications": ["@svforge/notifications@workspace:packages/notifications"],
 
     "@svforge/oauth": ["@svforge/oauth@workspace:packages/oauth"],
 

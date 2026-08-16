@@ -1,0 +1,68 @@
+import { describe, it, expect } from 'vitest';
+import { readFileSync, existsSync } from 'node:fs';
+import { join } from 'node:path';
+import { ROOT } from './helpers';
+
+/**
+ * Tests for #230 — persistent notifications module.
+ * Distinct from toasts: user data with history + read/unread state.
+ */
+describe('notifications module (#230)', () => {
+	const apiDir = join(ROOT, 'packages/notifications/templates/src/lib/server/notifications');
+
+	it('ships schema, API, UI bell and mark-all endpoint', () => {
+		expect(existsSync(join(apiDir, 'schema.ts'))).toBe(true);
+		expect(existsSync(join(apiDir, 'index.ts'))).toBe(true);
+		expect(existsSync(join(ROOT, 'packages/notifications/templates/src/lib/components/svforge/ui/NotificationsBell.svelte'))).toBe(true);
+		expect(existsSync(join(ROOT, 'packages/notifications/templates/src/routes/api/notifications/read-all/+server.ts'))).toBe(true);
+	});
+
+	it('model has readAt (read/unread) + history fields', () => {
+		const schema = readFileSync(join(apiDir, 'schema.ts'), 'utf-8');
+		expect(schema).toMatch(/readAt/);
+		expect(schema).toMatch(/createdAt/);
+		expect(schema).toMatch(/userId/);
+		expect(schema).toMatch(/actionUrl/);
+		expect(schema).toMatch(/type/);
+	});
+
+	it('API provides create, list, unreadCount, markAsRead, markAllAsRead', () => {
+		const api = readFileSync(join(apiDir, 'index.ts'), 'utf-8');
+		expect(api).toMatch(/async create/);
+		expect(api).toMatch(/async list/);
+		expect(api).toMatch(/unreadCount/);
+		expect(api).toMatch(/markAsRead/);
+		expect(api).toMatch(/markAllAsRead/);
+		// unread filtering
+		expect(api).toMatch(/onlyUnread/);
+		expect(api).toMatch(/isNull\(notifications\.readAt\)/);
+	});
+
+	it('markAsRead is ownership-checked (userId in WHERE)', () => {
+		const api = readFileSync(join(apiDir, 'index.ts'), 'utf-8');
+		expect(api).toMatch(/eq\(notifications\.id, notificationId\), eq\(notifications\.userId, userId\)/);
+	});
+
+	it('bell UI shows unread badge and mark-all action', () => {
+		const bell = readFileSync(join(ROOT, 'packages/notifications/templates/src/lib/components/svforge/ui/NotificationsBell.svelte'), 'utf-8');
+		expect(bell).toMatch(/unreadCount/);
+		expect(bell).toMatch(/read-all/);
+		expect(bell).toMatch(/notif_mark_all/);
+	});
+
+	it('module requires dashboard (DB) and enriches context/messages', () => {
+		const index = readFileSync(join(ROOT, 'packages/notifications/src/index.ts'), 'utf-8');
+		expect(index).toMatch(/template:dashboard/);
+		expect(index).toMatch(/enrichManifest/);
+		expect(index).toMatch(/mergeMessages/);
+		expect(index).toMatch(/notif_title/);
+	});
+
+	it('realtime/email are OPTIONAL (documented, not required)', () => {
+		const readme = readFileSync(join(ROOT, 'packages/notifications/README.md'), 'utf-8');
+		expect(readme).toMatch(/optional/);
+		const index = readFileSync(join(ROOT, 'packages/notifications/src/index.ts'), 'utf-8');
+		expect(index).not.toMatch(/sv\.dependency\('@svforge\/realtime'/);
+		expect(index).not.toMatch(/sv\.dependency\('@svforge\/email'/);
+	});
+});

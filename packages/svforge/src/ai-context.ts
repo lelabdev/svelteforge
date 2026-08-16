@@ -72,7 +72,8 @@ export const MODULE_CAPABILITIES: Record<string, { capability: string; pattern?:
 	graph: { capability: 'knowledge graph', pattern: 'src/lib/components/svforge/graph/KnowledgeGraph.svelte' },
 	blog: { capability: 'blog (MDsveX)', pattern: 'src/routes/blog/', note: 'Posts as .md in src/posts/' },
 	realtime: { capability: 'realtime (WebSocket)', pattern: 'src/lib/server/realtime/', note: 'Publish/subscribe hub + Svelte client' },
-	audit: { capability: 'audit trail', pattern: 'src/lib/server/audit/', note: 'Append-only business action log' }
+	audit: { capability: 'audit trail', pattern: 'src/lib/server/audit/', note: 'Append-only business action log' },
+	notifications: { capability: 'notifications', pattern: 'src/lib/server/notifications/', note: 'Persistent read/unread inbox' }
 };
 
 /** Build the manifest for a given template + installed modules. */

@@ -99,6 +99,13 @@ export const MODULES: Record<string, ModuleMeta> = {
 		requires: ['dashboard'],
 		optional: [],
 		files: ['src/lib/server/audit/', 'src/routes/(app)/admin/audit/']
+	},
+	notifications: {
+		id: 'notifications',
+		description: 'Persistent business notifications (read/unread)',
+		requires: ['dashboard'],
+		optional: ['realtime', 'email'],
+		files: ['src/lib/server/notifications/', 'src/lib/components/svforge/ui/NotificationsBell.svelte', 'src/routes/api/notifications/']
 	}
 };
 
