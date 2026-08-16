@@ -106,6 +106,13 @@ export const MODULES: Record<string, ModuleMeta> = {
 		requires: ['dashboard'],
 		optional: ['realtime', 'email'],
 		files: ['src/lib/server/notifications/', 'src/lib/components/svforge/ui/NotificationsBell.svelte', 'src/routes/api/notifications/']
+	},
+	jobs: {
+		id: 'jobs',
+		description: 'Background job foundation (retry, progress, backend encapsulé)',
+		requires: ['dashboard'],
+		optional: ['realtime', 'notifications', 'email'],
+		files: ['src/lib/server/jobs/']
 	}
 };
 
