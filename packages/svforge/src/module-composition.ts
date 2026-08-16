@@ -92,6 +92,13 @@ export const MODULES: Record<string, ModuleMeta> = {
 		requires: ['base'],
 		optional: [],
 		files: ['src/lib/server/realtime/', 'src/lib/realtime/client.ts']
+	},
+	audit: {
+		id: 'audit',
+		description: 'Business action audit trail (append-only)',
+		requires: ['dashboard'],
+		optional: [],
+		files: ['src/lib/server/audit/', 'src/routes/(app)/admin/audit/']
 	}
 };
 
