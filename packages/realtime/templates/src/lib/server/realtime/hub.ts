@@ -8,6 +8,10 @@ import type { IncomingMessage } from 'node:http';
  * The business layer never depends on the WS implementation: it publishes and
  * subscribes through this stable API. Channels are isolated by an authorize
  * callback so a user cannot subscribe to a scope they may not read.
+ *
+ * Secure by default (#264): without an `authorize` callback every subscription
+ * is refused (deny-all). Open channels explicitly, e.g. `authorize: () => true`
+ * for development or a per-channel rule in production.
  */
 
 export interface RealtimeEvent<T = unknown> {
@@ -24,16 +28,19 @@ export interface RealtimeClient {
 export interface RealtimeServerOptions {
 	/** Extract the authenticated user id from the upgrade request. */
 	authenticate?: (req: IncomingMessage) => Promise<string | null | undefined> | string | null | undefined;
-	/** Authorize a subscription: return false to refuse a channel. */
+	/**
+	 * Authorize a subscription: return false to refuse a channel.
+	 * Defaults to deny-all when not provided (#264) — a hub never accepts a
+	 * channel it was not explicitly told to accept.
+	 */
 	authorize?: (userId: string | undefined, channel: string) => boolean | Promise<boolean>;
-	/** Optional heartbeat interval (ms). */
-	heartbeatMs?: number;
 }
 
 type SocketEntry = { ws: WebSocket; client: RealtimeClient };
 
 /**
- * The realtime hub. Instantiate once in `$lib/server/realtime/hub.ts`.
+ * The realtime hub. Instantiate once in `$lib/server/realtime/index.ts` —
+ * prefer the `createRealtimeHub` factory below.
  */
 export class RealtimeHub {
 	private wss: WebSocketServer | null = null;
@@ -82,24 +89,27 @@ export class RealtimeHub {
 	}
 
 	private async subscribe(ws: WebSocket, client: RealtimeClient, channel: string): Promise<void> {
-		const authorized = this.options.authorize
-			? await this.options.authorize(client.userId, channel)
-			: true;
+		const authorize = this.options.authorize ?? (() => false);
+		const authorized = await authorize(client.userId, channel);
 		if (!authorized) {
-			ws.send(JSON.stringify({ type: 'error', channel, event: 'unauthorized' }));
+			ws.send(JSON.stringify({ type: 'error', channel, error: 'unauthorized' }));
 			return;
 		}
 		client.channels.add(channel);
 		ws.send(JSON.stringify({ type: 'subscribed', channel }));
 	}
 
-	/** Publish an event to all sockets subscribed to the channel. */
-	publish<T>(channel: string, event: string, payload: T): void {
-		const msg = JSON.stringify({ type: 'event', channel, event, payload } satisfies {
-			type: 'event';
-		} & RealtimeEvent<T>);
+	/**
+	 * Publish an event to all sockets subscribed to the channel (#264): the
+	 * single canonical contract is the object form, identical to the envelope
+	 * the client receives.
+	 *
+	 *   await realtime.publish({ channel: `org:${orgId}`, event: 'punch.created', payload: { punchId } });
+	 */
+	publish<T>(event: RealtimeEvent<T>): void {
+		const msg = JSON.stringify({ type: 'event', ...event });
 		for (const { ws, client } of this.sockets.values()) {
-			if (client.channels.has(channel)) {
+			if (client.channels.has(event.channel)) {
 				ws.send(msg);
 			}
 		}
@@ -115,4 +125,17 @@ export class RealtimeHub {
 		this.sockets.clear();
 		this.wss?.close();
 	}
+}
+
+/**
+ * Factory for the shared hub (#264) — configure auth at creation time instead
+ * of mutating a read-only-looking instance:
+ *
+ *   export const realtime = createRealtimeHub({
+ *     authenticate: async (req) => req.headers['x-user-id'] as string | undefined,
+ *     authorize: (userId, channel) => userId != null && channel === `org:${userId}`
+ *   });
+ */
+export function createRealtimeHub(options: RealtimeServerOptions = {}): RealtimeHub {
+	return new RealtimeHub(options);
 }

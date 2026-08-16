@@ -6,6 +6,7 @@
  *   const unsub = rt.subscribe('organization:1', 'punch.created', (payload) => {
  *     invalidate('app:punches');
  *   });
+ *   onDestroy(() => unsub()); // and/or rt.close()
  */
 
 export interface RealtimeEvent<T = unknown> {
@@ -23,6 +24,8 @@ interface ClientOptions {
 	resubscribe?: boolean;
 }
 
+type Handler = (payload: unknown, event: string) => void;
+
 export function createRealtimeClient(url: string, options: ClientOptions = {}) {
 	const { backoffMs = 1000, maxBackoffMs = 30000, resubscribe = true } = options;
 	let ws: WebSocket | null = null;
@@ -30,8 +33,24 @@ export function createRealtimeClient(url: string, options: ClientOptions = {}) {
 	let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 	let closed = false;
 
-	const handlers = new Map<string, Set<(payload: unknown, event: string) => void>>();
-	const channels = new Set<string>();
+	const handlers = new Map<string, Set<Handler>>();
+	/** Channels with at least one handler — the only ones resubscribed on reconnect. */
+	const channelRefs = new Map<string, number>();
+
+	function sendSubscribe(channel: string): void {
+		// Only send on an open socket: the native WebSocket throws while
+		// CONNECTING, and subscriptions registered before open are replayed
+		// from onopen (resubscribe loop).
+		if (ws && ws.readyState === WebSocket.OPEN) {
+			ws.send(JSON.stringify({ type: 'subscribe', channel }));
+		}
+	}
+
+	function sendUnsubscribe(channel: string): void {
+		if (ws && ws.readyState === WebSocket.OPEN) {
+			ws.send(JSON.stringify({ type: 'unsubscribe', channel }));
+		}
+	}
 
 	function connect() {
 		if (closed) return;
@@ -39,7 +58,9 @@ export function createRealtimeClient(url: string, options: ClientOptions = {}) {
 		ws.onopen = () => {
 			attempt = 0;
 			if (resubscribe) {
-				for (const channel of channels) ws?.send(JSON.stringify({ type: 'subscribe', channel }));
+				// Only channels that still have handlers (#264): a channel whose
+				// last handler was removed is never resubscribed.
+				for (const channel of channelRefs.keys()) sendSubscribe(channel);
 			}
 		};
 		ws.onmessage = (e) => {
@@ -63,22 +84,38 @@ export function createRealtimeClient(url: string, options: ClientOptions = {}) {
 	}
 
 	/**
-	 * Subscribe to (channel, event). Returns an unsubscribe function.
+	 * Subscribe to (channel, event). Returns an unsubscribe function that
+	 * removes this handler; when the channel's last handler disappears the
+	 * client stops tracking it and tells the server to unsubscribe (#264).
 	 */
 	function subscribe<T = unknown>(channel: string, event: string, handler: (payload: T, event: string) => void): () => void {
 		const key = `${channel}:${event}`;
 		if (!handlers.has(key)) handlers.set(key, new Set());
-		handlers.get(key)!.add(handler as (payload: unknown, event: string) => void);
-		channels.add(channel);
-		ws?.send(JSON.stringify({ type: 'subscribe', channel }));
+		handlers.get(key)!.add(handler as Handler);
+		const refs = channelRefs.get(channel) ?? 0;
+		channelRefs.set(channel, refs + 1);
+		if (refs === 0) sendSubscribe(channel);
 		return () => {
-			handlers.get(key)?.delete(handler as (payload: unknown, event: string) => void);
+			const set = handlers.get(key);
+			if (!set?.delete(handler as Handler)) return;
+			if (set.size === 0) handlers.delete(key);
+			const remaining = (channelRefs.get(channel) ?? 1) - 1;
+			if (remaining <= 0) {
+				channelRefs.delete(channel);
+				sendUnsubscribe(channel);
+			} else {
+				channelRefs.set(channel, remaining);
+			}
 		};
 	}
 
+	/** Remove every handler of a channel and unsubscribe it from the server. */
 	function unsubscribe(channel: string): void {
-		channels.delete(channel);
-		ws?.send(JSON.stringify({ type: 'unsubscribe', channel }));
+		channelRefs.delete(channel);
+		for (const [key, set] of handlers) {
+			if (key.startsWith(`${channel}:`)) handlers.delete(key);
+		}
+		sendUnsubscribe(channel);
 	}
 
 	function close(): void {
@@ -86,7 +123,7 @@ export function createRealtimeClient(url: string, options: ClientOptions = {}) {
 		if (reconnectTimer) clearTimeout(reconnectTimer);
 		ws?.close();
 		handlers.clear();
-		channels.clear();
+		channelRefs.clear();
 	}
 
 	connect();

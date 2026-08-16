@@ -1,7 +1,8 @@
 # @svforge/realtime
 
 Generic WebSocket transport for SvelteForge projects — publish/subscribe with
-authenticated, channel-isolated connections. No business logic.
+authenticated, channel-isolated connections. No business logic, no dependency
+on Better Auth or any auth library.
 
 ## Install
 
@@ -33,6 +34,49 @@ await realtime.publish({
 });
 ```
 
+`publish` takes a single object `{ channel, event, payload }` — the same
+envelope shape clients receive. There is no positional form.
+
+## Server — configuration (auth)
+
+The shared instance is created in `$lib/server/realtime/index.ts`. Configure
+`authenticate` + `authorize` there at creation time:
+
+```ts
+// $lib/server/realtime/index.ts
+import { createRealtimeHub } from './hub';
+
+export const realtime = createRealtimeHub({
+	// Example: read the user id from a header set by your session layer.
+	// Works standalone — swap it for your real auth (e.g. Better Auth session).
+	authenticate: async (req) => {
+		const header = req.headers['x-user-id'];
+		return typeof header === 'string' ? header : undefined;
+	},
+	// Example: members may join their own organization channel, everyone may
+	// join public channels.
+	authorize: (userId, channel) =>
+		userId != null && (channel === `org:${userId}` || channel.startsWith('public:'))
+});
+
+export type { RealtimeEvent, RealtimeServerOptions } from './hub';
+```
+
+### Secure by default
+
+Without an `authorize` callback, **every subscription is refused** (deny-all)
+and the client receives `{ type: 'error', error: 'unauthorized' }`. A hub
+never accepts a channel it was not explicitly told to accept. For a local
+prototype, open channels explicitly:
+
+```ts
+export const realtime = createRealtimeHub({ authorize: () => true });
+```
+
+The `RealtimeHub` constructor accepts the same options
+(`new RealtimeHub({ authenticate, authorize })`) — the factory is the
+recommended entry point for the shared instance.
+
 ## Server — wiring
 
 The hub needs an HTTP server. Two options:
@@ -49,27 +93,13 @@ realtime.attach(server);
 
 ### Option B — standalone port (portable)
 
-Start the WS server on its own port (e.g. in `hooks.server.ts` init):
+Start the WS server on its own port (e.g. in a server bootstrap):
 
 ```ts
 import { realtime } from '$lib/server/realtime';
 
 // in +layout.server.ts or a server bootstrap:
 if (import.meta.env.PROD) realtime.listen(3001);
-```
-
-Configure authentication + channel authorization:
-
-```ts
-// $lib/server/realtime/index.ts
-realtime.authorize = async (userId, channel) => {
-	// only members of an organization may subscribe to its channel
-	if (channel.startsWith('organization:')) {
-		const orgId = channel.split(':')[1];
-		return await userBelongsToOrg(userId, orgId);
-	}
-	return true;
-};
 ```
 
 ## Client — subscribe
@@ -89,11 +119,18 @@ realtime.authorize = async (userId, channel) => {
 </script>
 ```
 
+`subscribe` returns an unsubscribe function that removes **this** handler.
+When the last handler of a channel disappears, the client stops tracking the
+channel, tells the server to `unsubscribe`, and never resubscribes it after a
+reconnect. `rt.unsubscribe(channel)` removes every handler of a channel and
+unsubscribes it. Only channels that still have handlers are resubscribed after
+a reconnection.
+
 ## What's included
 
-- `$lib/server/realtime/hub.ts` — `RealtimeHub` (publish, subscribe, isolation, heartbeat-ready)
-- `$lib/server/realtime/index.ts` — shared `realtime` instance
-- `$lib/realtime/client.ts` — Svelte client (auto-reconnect with backoff, typed envelopes)
+- `$lib/server/realtime/hub.ts` — `RealtimeHub` + `createRealtimeHub` (publish, subscribe, isolation)
+- `$lib/server/realtime/index.ts` — shared `realtime` instance (configure auth here)
+- `$lib/realtime/client.ts` — Svelte client (auto-reconnect with backoff, typed envelopes, ref-counted channels)
 
 ## Envelope
 
@@ -112,8 +149,7 @@ type RealtimeEvent<T = unknown> = { channel: string; event: string; payload: T }
   instance / dev server). Channels give isolation, not multi-process fan-out.
 - No message persistence — realtime is transport only; durable state belongs to
   the business modules (notifications, chat, jobs…).
-- Heartbeats: the client auto-reconnects with backoff; server-side auth is the
-  `authorize` callback you provide.
+- No server-side heartbeat in v1 — the client auto-reconnects with backoff.
 - WSS (TLS) behind a reverse proxy is your wiring responsibility (option A).
 
 ## License
