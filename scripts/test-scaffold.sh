@@ -93,6 +93,16 @@ fi
 # 4. Build the scaffolded project — the actual assertion
 bun run build
 
+# Base Vitest baseline (#235): config at root, example test delivered, scripts/deps
+# injected into the real generated project, and the test suite must actually run.
+if [ "$TEMPLATE" = "base" ]; then
+	test -f vitest.config.ts || { echo "❌ base vitest.config.ts missing at project root (#235)"; exit 1; }
+	test -f src/lib/example.test.ts || { echo "❌ base example.test.ts missing (#235)"; exit 1; }
+	grep -q '"test": "vitest run"' package.json || { echo "❌ base test script missing (#235)"; exit 1; }
+	grep -q '"vitest"' package.json || { echo "❌ base vitest dependency missing (#235)"; exit 1; }
+	bun run test || { echo "❌ base Vitest baseline failed (#235)"; exit 1; }
+fi
+
 # Blog: assert the welcome.md post is actually compiled by mdsvex (not parsed
 # as raw Svelte — the #185 regression) by checking the build output.
 if [ "$TEMPLATE" = "base-blog" ]; then
