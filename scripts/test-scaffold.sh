@@ -93,6 +93,14 @@ fi
 # 4. Build the scaffolded project — the actual assertion
 bun run build
 
+# Baseline Vitest (#235): vitest.config.ts must land at the PROJECT ROOT on
+# base too (prebuild only embeds templates/base/src/**), and the baseline
+# test must actually run.
+if [ "$TEMPLATE" = "base" ]; then
+	test -f vitest.config.ts || { echo "❌ vitest.config.ts missing at project root (#235)"; exit 1; }
+	bun run test || { echo "❌ baseline vitest failed on base scaffold (#235)"; exit 1; }
+fi
+
 # Blog: assert the welcome.md post is actually compiled by mdsvex (not parsed
 # as raw Svelte — the #185 regression) by checking the build output.
 if [ "$TEMPLATE" = "base-blog" ]; then
