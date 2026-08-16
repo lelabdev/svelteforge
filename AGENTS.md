@@ -33,7 +33,7 @@ packages/
 ├── scripts/prebuild-utils.ts   ← readDirRecursively (tri déterministe) — partagé
 ├── scripts/test-scaffold.sh    ← scaffold réel : sv create + sv add + build (utilisé par #191)
 ├── tests/                      ← vitest racine (bun run test)
-└── docs/ (dans packages/svforge) — dumps llms-*.txt : ⚠️ era v4, à régénérer (#198)
+└── docs/ (dans packages/svforge) — dumps llms-*.txt (Skeleton v5, Svelte 5) — régénérer via `bash packages/svforge/scripts/fetch-llms-docs.sh` (fraîcheur vérifiée par `tests/llms-docs-freshness.test.ts`)
 ```
 
 ### ⚠️ LE gotcha du repo : le prebuild n'embarque que `src/**`
@@ -95,7 +95,7 @@ bash scripts/test-scaffold.sh base      # ou dashboard
 - `HTMLAttributes<HTMLImageElement>` n'inclut pas `src`/`alt` — les définir explicitement dans Props
 - Réponses d'actions SvelteKit en JSON : `{ type, data }` — le message est à `result.data.message`, pas `result.message` (#188)
 - Les messages d'erreur des catch : fallback générique, pas `e.message` brut exposé à l'UI (#188)
-- `docs/llms-skeleton.txt` (v4) est obsolète — ne pas s'y référer pour v5 tant que non régénéré (#198). Docs v5 en ligne : `skeleton.dev/llms.txt` et `skeleton.dev/llms-full.txt`
+- Les dumps `packages/svforge/docs/llms-*.txt` servent de référence hors-ligne (Skeleton v5 + Svelte 5/Kit 2). Si le test de fraîcheur échoue (dump > 190 jours) : `bash packages/svforge/scripts/fetch-llms-docs.sh` puis committer le résultat
 
 ## Point d'entrée docs
 
