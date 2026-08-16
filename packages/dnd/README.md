@@ -5,7 +5,7 @@ Drag & drop sortable lists for SVForge projects. Uses @thisux/sveltednd (native 
 ## Installation
 
 ```bash
-bunx sv add @svforge/dnd
+npx sv add @svforge/dnd
 ```
 
 ## Usage
@@ -35,4 +35,4 @@ bunx sv add @svforge/dnd
 ## Dependencies
 
 - `@thisux/sveltednd` — native Svelte 5 drag & drop library
-- `@skeletonlabs/skeleton-svelte` >= 4.0.0 (peer)
+- `@skeletonlabs/skeleton-svelte` ^5.0.0 (peer, classes de thème Skeleton — requiert le template svforge `base`)

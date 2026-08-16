@@ -5,7 +5,7 @@ Notification toasts for SVForge projects. Wraps Skeleton UI Toast.
 ## Installation
 
 ```bash
-bunx sv add @svforge/ui_toast
+npx sv add @svforge/ui_toast
 ```
 
 ## Usage
@@ -39,4 +39,4 @@ toaster.info({ title: 'Info' });
 
 ## Dependencies
 
-- `@skeletonlabs/skeleton-svelte` >= 4.0.0 (peer)
+- `@skeletonlabs/skeleton-svelte` ^5.0.0 (peer)

@@ -5,7 +5,7 @@ Transactional emails for SVForge projects via Resend. Adds a `sendEmail()` helpe
 ## Installation
 
 ```bash
-bunx sv add @svforge/email
+npx sv add @svforge/email
 ```
 
 ## Setup
