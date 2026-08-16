@@ -4,6 +4,30 @@ A `sv` community addon that scaffolds production-ready SvelteKit boilerplates po
 
 **Not a component library. Not a shadcn clone.** SvelteForge gives you the essentials — buttons, inputs, selects, cards, theme, SEO, layouts — so you start fast and own everything. Need richer components (dialogs, tabs, tooltips…)? Use the official `@skeletonlabs/skeleton-svelte` components directly. Need more? Pick 2–3 opt-in modules, not a framework.
 
+## What SvelteForge adds to `sv create`
+
+| | `sv create` (plain) | SvelteForge |
+|---|---|---|
+| SvelteKit + TypeScript + Vite | ✅ | ✅ |
+| Theme (light/dark, oklch, fonts) | ❌ | ✅ |
+| UI kit essentials (btn, input, card, badge, table, alert) | ❌ | ✅ |
+| Layouts (navbar, footer, seo, sitemap) | ❌ | ✅ |
+| Admin dashboard + auth + DB (dashboard template) | ❌ | ✅ |
+| Test baseline (vitest / playwright) | ❌ | ✅ |
+| AI-ready AGENTS.md scaffolded | ❌ | ✅ |
+
+## Screenshots
+
+**Login** | **Dashboard admin**
+:---:|:---:
+![Login](docs/screenshots/login.png) | ![Dashboard](docs/screenshots/dashboard.png)
+
+**User management**
+
+![Users](docs/screenshots/users.png)
+
+> Screenshots are generated from a fresh scaffold of the dashboard template.
+
 ## Quick Start
 
 ```bash
@@ -110,3 +134,9 @@ See `CONTRIBUTING.md` for the TDD workflow (Red → Green → Refactor) and `AGE
 ## License
 
 MIT
+
+## Links
+
+- **Source & docs**: [github.com/lelabdev/svelteforge](https://github.com/lelabdev/svelteforge)
+- **Skeleton UI**: [skeleton.dev](https://skeleton.dev)
+- **Svelte**: [svelte.dev](https://svelte.dev)
