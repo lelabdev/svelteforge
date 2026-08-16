@@ -59,4 +59,37 @@ describe('base Vitest baseline (#235)', () => {
 			expect(script).toMatch(/baseline vitest failed on base scaffold/);
 		});
 	});
+
+	describe('svelte-check cleanliness (#271)', () => {
+		it('base mode declares @types/node (Paraglide server.js imports async_hooks)', () => {
+			const base = readFileSync(join(ROOT, 'packages/svforge/src/modes/base.ts'), 'utf-8');
+			expect(base).toMatch(/devDependency\('@types\/node'/);
+		});
+
+		it('the generated check script compiles Paraglide before svelte-check', () => {
+			const base = readFileSync(join(ROOT, 'packages/svforge/src/modes/base.ts'), 'utf-8');
+			expect(base).toMatch(/paraglide-js compile --project \.\/project\.inlang --outdir \.\/src\/lib\/paraglide/);
+			expect(base).toMatch(/svelte-check --tsconfig \.\/tsconfig\.json/);
+		});
+
+		it('FR and EN catalogs declare home_title (used by +page.svelte)', () => {
+			const fr = JSON.parse(
+				readFileSync(join(baseRoot, 'root/messages/fr.json'), 'utf-8')
+			);
+			const en = JSON.parse(
+				readFileSync(join(baseRoot, 'root/messages/en.json'), 'utf-8')
+			);
+			expect(fr.home_title).toBeTruthy();
+			expect(en.home_title).toBeTruthy();
+		});
+
+		it('demo-ui code sample is a string constant, not a Svelte expression', () => {
+			const demo = readFileSync(
+				join(baseRoot, 'src/routes/demo-ui/+page.svelte'),
+				'utf-8'
+			);
+			expect(demo).toMatch(/skeletonImportExample/);
+			expect(demo).not.toContain('import {{ Accordion');
+		});
+	});
 });

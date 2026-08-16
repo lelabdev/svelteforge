@@ -48,7 +48,7 @@ describe('admin users +page.server — authorization', () => {
 
 	it('rejects non-admin users with 403', async () => {
 		const { isAdmin } = await import('$lib/server/admin');
-		isAdmin.mockResolvedValue(false);
+		vi.mocked(isAdmin).mockResolvedValue(false);
 
 		const mod = await import('./+page.server');
 		await expect(
@@ -77,7 +77,7 @@ describe('admin users +page.server — validation', () => {
 
 	it('returns 400 for missing fields on create', async () => {
 		const { isAdmin } = await import('$lib/server/admin');
-		isAdmin.mockResolvedValue(true);
+		vi.mocked(isAdmin).mockResolvedValue(true);
 
 		const mod = await import('./+page.server');
 		const formData = new FormData();
@@ -89,7 +89,7 @@ describe('admin users +page.server — validation', () => {
 			request: { formData: async () => formData }
 		} as any);
 
-		expect(result.status).toBe(400);
+		expect((result as { status: number }).status).toBe(400);
 	});
 });
 
@@ -100,11 +100,11 @@ describe('admin users +page.server — user management', () => {
 
 	it('allows admin to toggle verification (success)', async () => {
 		const { isAdmin } = await import('$lib/server/admin');
-		isAdmin.mockResolvedValue(true);
+		vi.mocked(isAdmin).mockResolvedValue(true);
 
 		const { db } = await import('$lib/server/db');
 		// Mock that user exists
-		db.select.mockReturnValueOnce({
+		(db.select as any).mockReturnValueOnce({
 			from: vi.fn(() => ({
 				where: vi.fn(() => ({ limit: vi.fn(() => []) })),
 				orderBy: vi.fn(() => [])

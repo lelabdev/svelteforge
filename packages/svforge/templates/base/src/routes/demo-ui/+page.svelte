@@ -5,6 +5,11 @@
 	import { Navbar } from '$lib/components/svforge/layout';
 	import { Footer } from '$lib/components/svforge/layout';
 
+	// Literal example shown in a <code> block — a string constant so Svelte
+	// never parses the braces as an expression (#271).
+	const skeletonImportExample =
+		"import { Accordion, Tabs, Avatar } from '@skeletonlabs/skeleton-svelte';";
+
 	let loading = $state(false);
 
 	function simulateLoading() {
@@ -190,7 +195,7 @@
 		<p class="text-surface-500">
 			Accordion, Tabs, Avatar, Breadcrumb… are provided by
 			<code class="text-primary-600-400">@skeletonlabs/skeleton-svelte</code> —
-			<code>import {{ Accordion, Tabs, Avatar }} from '@skeletonlabs/skeleton-svelte';</code>
+			<code>{skeletonImportExample}</code>
 		</p>
 	</section>
 

@@ -106,8 +106,13 @@
 
 		<!-- Mobile sidebar overlay -->
 		{#if mobileOpen}
-			<div class="lg:hidden fixed inset-0 z-40 bg-black/50" onclick={() => (mobileOpen = false)}>
-				<aside class="w-56 h-full bg-surface-50-950 border-r border-surface-200-800 p-3 space-y-1" onclick={(e: Event) => e.stopPropagation()}>
+			<button
+				type="button"
+				aria-label="Close menu"
+				class="lg:hidden fixed inset-0 z-40 w-full bg-black/50 cursor-default"
+				onclick={() => (mobileOpen = false)}
+			></button>
+			<aside class="lg:hidden fixed left-0 top-0 z-50 h-full w-56 bg-surface-50-950 border-r border-surface-200-800 p-3 space-y-1 shadow-xl">
 					{#each items as item}
 						{@const Icon = item.icon}
 						<a
@@ -120,7 +125,6 @@
 						</a>
 					{/each}
 				</aside>
-			</div>
 		{/if}
 
 		<!-- Content -->
