@@ -1,4 +1,6 @@
 <script lang="ts">
+	import * as m from '$lib/paraglide/messages.js';
+
 	interface Props {
 		loading: boolean;
 		isActive: (type: string, attrs?: Record<string, unknown>) => boolean;
@@ -32,20 +34,20 @@
 	type Btn = { label: string; title: string; action: () => void; check: string; checkAttrs?: Record<string, unknown> };
 
 	const formatBtns: Btn[] = $derived([
-		{ label: 'B', title: 'Bold', action: onToggleBold, check: 'bold' },
-		{ label: 'I', title: 'Italic', action: onToggleItalic, check: 'italic' },
-		{ label: 'U', title: 'Underline', action: onToggleUnderline, check: 'underline' },
-		{ label: 'S', title: 'Strikethrough', action: onToggleStrike, check: 'strike' },
+		{ label: 'B', title: m.tiptap_bold(), action: onToggleBold, check: 'bold' },
+		{ label: 'I', title: m.tiptap_italic(), action: onToggleItalic, check: 'italic' },
+		{ label: 'U', title: m.tiptap_underline(), action: onToggleUnderline, check: 'underline' },
+		{ label: 'S', title: m.tiptap_strikethrough(), action: onToggleStrike, check: 'strike' },
 	]);
 
 	const blockBtns: Btn[] = $derived([
-		{ label: '❝', title: 'Blockquote', action: onToggleBlockquote, check: 'blockquote' },
-		{ label: '</>', title: 'Code block', action: onToggleCode, check: 'codeBlock' },
+		{ label: '❝', title: m.tiptap_blockquote(), action: onToggleBlockquote, check: 'blockquote' },
+		{ label: '</>', title: m.tiptap_code_block(), action: onToggleCode, check: 'codeBlock' },
 	]);
 
 	const listBtns: Btn[] = $derived([
-		{ label: '• List', title: 'Bullet list', action: onToggleBulletList, check: 'bulletList' },
-		{ label: '1. List', title: 'Ordered list', action: onToggleOrderedList, check: 'orderedList' },
+		{ label: '• List', title: m.tiptap_bullet_list(), action: onToggleBulletList, check: 'bulletList' },
+		{ label: '1. List', title: m.tiptap_ordered_list(), action: onToggleOrderedList, check: 'orderedList' },
 	]);
 </script>
 
@@ -53,7 +55,7 @@
 	{#if loading}
 		<div class="flex items-center gap-2 px-3 py-1 text-sm text-surface-500">
 			<div class="w-4 h-4 border-2 border-surface-300-700 border-t-primary-500 rounded-full animate-spin"></div>
-			<span class="text-xs uppercase tracking-widest">Loading...</span>
+			<span class="text-xs uppercase tracking-widest">{m.tiptap_loading()}</span>
 		</div>
 	{:else}
 		<!-- Format -->
@@ -75,8 +77,8 @@
 				type="button"
 				onclick={() => onSetHeading(level as 1 | 2 | 3)}
 				class="px-2.5 py-1.5 text-xs font-bold rounded transition-colors hover:bg-surface-200-800 {isActive('heading', { level }) ? 'bg-primary-500 text-white' : 'text-surface-700-300'}"
-				aria-label="Heading {level}"
-				title="Heading {level}"
+				aria-label={m.tiptap_heading({ level })}
+				title={m.tiptap_heading({ level })}
 			>H{level}</button>
 		{/each}
 
@@ -113,8 +115,8 @@
 			type="button"
 			onclick={onSetLink}
 			class="px-2.5 py-1.5 text-xs rounded transition-colors hover:bg-surface-200-800 {isActive('link') ? 'bg-primary-500 text-white' : 'text-surface-700-300'}"
-			aria-label="Link"
-			title="Insert link"
+			aria-label={m.tiptap_link()}
+			title={m.tiptap_insert_link()}
 		>🔗</button>
 	{/if}
 </div>

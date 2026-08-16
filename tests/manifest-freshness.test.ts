@@ -46,6 +46,12 @@ describe('manifest freshness — templates.ts matches templates/ (#206)', () => 
 		expect(onDisk, STALE_MESSAGE).toEqual(dashboardRootFiles);
 	});
 
+	it('svforge: baseRootFiles matches templates/base/root (#239)', async () => {
+		const { baseRootFiles } = await import('../packages/svforge/src/templates');
+		const onDisk = readDirRecursively(join(ROOT, 'packages/svforge/templates/base/root'));
+		expect(onDisk, STALE_MESSAGE).toEqual(baseRootFiles);
+	});
+
 	for (const pkg of modulePackages) {
 		it(`${pkg}: files matches templates/src`, async () => {
 			const { files } = await import(`../packages/${pkg}/src/templates`);

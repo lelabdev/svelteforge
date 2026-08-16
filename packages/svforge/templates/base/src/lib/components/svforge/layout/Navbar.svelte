@@ -4,6 +4,7 @@
 	import type { HTMLAttributes } from 'svelte/elements';
 	import ThemeToggle from '$lib/components/svforge/ui/ThemeToggle.svelte';
 	import Logo from '$lib/components/svforge/ui/Logo.svelte';
+	import * as m from '$lib/paraglide/messages.js';
 	import Menu from 'phosphor-svelte/lib/List';
 	import X from 'phosphor-svelte/lib/X';
 
@@ -42,7 +43,7 @@
 		<button
 			class="md:hidden btn hover:preset-tonal-surface p-2 rounded-full"
 			onclick={() => (mobileOpen = !mobileOpen)}
-			aria-label="Toggle menu"
+			aria-label={m.nav_toggle_menu()}
 		>
 			{#if mobileOpen}
 				<X size={20} />

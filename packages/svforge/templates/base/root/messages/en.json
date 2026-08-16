@@ -1,0 +1,22 @@
+{
+	"$schema": "https://inlang.com/schema/inlang-message-format",
+	"common_save": "Save",
+	"common_cancel": "Cancel",
+	"common_loading": "Loading…",
+	"common_error": "Something went wrong",
+	"nav_components": "Components",
+	"nav_home": "Home",
+	"nav_toggle_menu": "Toggle menu",
+	"home_welcome": "Welcome to",
+	"home_subtitle": "A modern SvelteKit starter kit built on Skeleton UI with Tailwind CSS.",
+	"home_view_components": "View Components",
+	"home_github": "GitHub",
+	"home_card_stack_title": "Modern Stack",
+	"home_card_stack_desc": "SvelteKit + Tailwind v4 + Skeleton UI v5. Always up to date.",
+	"home_card_custom_title": "Customizable",
+	"home_card_custom_desc": "Full theme system with oklch colors. Make it yours.",
+	"home_card_ready_title": "Production Ready",
+	"home_card_ready_desc": "Prettier, ESLint, TypeScript, responsive. Ship with confidence.",
+	"demo_title": "Component Demo",
+	"demo_subtitle": "All SvelteForge components with variants. Theme changes apply instantly."
+}

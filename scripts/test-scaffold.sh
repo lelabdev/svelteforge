@@ -129,6 +129,15 @@ if [ "$TEMPLATE" = "base" ] || [ "$TEMPLATE" = "dashboard" ] || [ "$TEMPLATE" = 
 	fi
 fi
 
+# 5c. Paraglide FR/EN baseline delivered (#239)
+if [ "$TEMPLATE" = "base" ] || [ "$TEMPLATE" = "dashboard" ] || [ "$TEMPLATE" = "dashboard-playwright" ]; then
+	test -f messages/fr.json || { echo "❌ messages/fr.json missing (#239)"; exit 1; }
+	test -f messages/en.json || { echo "❌ messages/en.json missing (#239)"; exit 1; }
+	test -f project.inlang/settings.json || { echo "❌ project.inlang/settings.json missing (#239)"; exit 1; }
+	test -f src/hooks.server.ts || { echo "❌ hooks.server.ts missing (#239)"; exit 1; }
+	grep -q "paraglideVitePlugin" vite.config.ts || { echo "❌ paraglide plugin missing in vite.config.ts (#239)"; exit 1; }
+fi
+
 # 6. AI-ready: AGENTS.md scaffolded at the project root (#203)
 test -f AGENTS.md || { echo "❌ AGENTS.md missing at project root (#203)"; exit 1; }
 grep -q "preset-tonal" AGENTS.md || { echo "❌ AGENTS.md lacks Skeleton v5 class guidance (#203)"; exit 1; }
