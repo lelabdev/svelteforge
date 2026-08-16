@@ -1,0 +1,112 @@
+import { defineAddon, defineAddonOptions } from 'sv';
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
+import { files } from './templates';
+
+/**
+ * Enrich the project's .svforge.json AI manifest (#234) without overwriting
+ * user edits. Small inline helper — modules are standalone packages.
+ */
+function enrichManifest(content: string, moduleId: string): string {
+	let manifest: { template: string; modules: string[] } = { template: 'base', modules: [] };
+	try {
+		manifest = content && content.trim() ? JSON.parse(content) : manifest;
+	} catch {
+		manifest = { template: 'base', modules: [] };
+	}
+	if (!manifest.modules.includes(moduleId)) manifest.modules.push(moduleId);
+	return `${JSON.stringify(manifest, null, 2)}\n`;
+}
+
+/**
+ * Merge Paraglide catalog entries into an existing messages/{locale}.json
+ * (#239). Never overwrites existing keys.
+ */
+function mergeMessages(content: string, additions: Record<string, string>): string {
+	let catalog: Record<string, unknown> = {};
+	if (content && content.trim()) {
+		try {
+			catalog = JSON.parse(content);
+		} catch {
+			catalog = {};
+		}
+	}
+	for (const [key, value] of Object.entries(additions)) {
+		catalog[key] = value;
+	}
+	return `${JSON.stringify(catalog, null, 2)}\n`;
+}
+
+export default defineAddon({
+	id: 'svforge-audit',
+	alias: 'forge-audit',
+	shortDescription: 'SVForge Audit — business action audit trail (append-only)',
+	homepage: 'https://github.com/lelabdev/svelteforge',
+	options: defineAddonOptions().build(),
+
+	setup: ({ unsupported, isKit }) => {
+		if (!isKit) unsupported('SVForge Audit requires SvelteKit');
+	},
+
+	run: ({ sv, cancel, cwd }) => {
+		// audit/index.ts imports $lib/server/db — provided only by the svforge
+		// dashboard template (Drizzle). Checked in run() so `sv add
+		// svforge=template:dashboard audit` in ONE call works (setup() of all
+		// addons runs before any run()).
+		if (!existsSync(join(cwd, 'src/lib/server/db/index.ts'))) {
+			cancel('SVForge Audit requires the svforge dashboard template (src/lib/server/db missing — run `sv add svforge=template:dashboard` first)');
+			return;
+		}
+
+		for (const [path, content] of Object.entries(files)) {
+			sv.file(`src${path}`, () => content);
+		}
+
+		// Audit schema must be registered in the Drizzle schema barrel.
+		sv.file('src/lib/server/db/schema.ts', (content) => {
+			if (!content || content.includes('audit')) return content;
+			return `import { auditLogs } from '$lib/server/audit/schema';\n${content}\nexport { auditLogs };\n`;
+		});
+
+		// Paraglide messages (#239): audit UI copy merged FR/EN.
+		sv.file('messages/fr.json', (content) =>
+			mergeMessages(content, {
+				audit_title: 'Journal d’audit',
+				audit_subtitle: 'Qui a fait quoi, sur quelle entité, quand.',
+				audit_action: 'Action',
+				audit_entity: 'Entité',
+				audit_when: 'Quand',
+				audit_actor: 'Acteur',
+				audit_empty: 'Aucune entrée d’audit.',
+				common_filter: 'Filtrer',
+				common_previous: 'Précédent',
+				common_next: 'Suivant'
+			})
+		);
+		sv.file('messages/en.json', (content) =>
+			mergeMessages(content, {
+				audit_title: 'Audit log',
+				audit_subtitle: 'Who did what, on which entity, when.',
+				audit_action: 'Action',
+				audit_entity: 'Entity',
+				audit_when: 'When',
+				audit_actor: 'Actor',
+				audit_empty: 'No audit entries.',
+				common_filter: 'Filter',
+				common_previous: 'Previous',
+				common_next: 'Next'
+			})
+		);
+
+		// AI context (#234): declare this module in .svforge.json.
+		sv.file('.svforge.json', (content) => enrichManifest(content, 'audit'));
+	},
+
+	nextSteps: () => [
+		'@svforge/audit installed!',
+		'Record: import { audit } from "$lib/server/audit";',
+		'  await audit.record({ actorId: user.id, action: "punch.corrected", entityType: "punch", entityId: punch.id });',
+		'Read: await audit.forEntity("punch", punchId); await audit.byActor(userId);',
+		'Admin view: /admin/audit (pagination + filters)'
+	]
+});
