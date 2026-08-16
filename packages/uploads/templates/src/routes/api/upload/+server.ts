@@ -5,16 +5,32 @@ import { env } from '$env/dynamic/private';
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 
-/** Maximum upload size in bytes (10 MB). */
+/**
+ * Maximum upload size in bytes (10 MB).
+ *
+ * NOTE (#193): on a presigned PUT, the ContentLength is signed into the URL
+ * but is NOT enforced by S3 at upload time — a client that obtained the URL
+ * can PUT a file of arbitrary size. This limit is therefore BEST-EFFORT at
+ * the presigning stage. For a hard limit, use a presigned POST policy with
+ * a `content-length-range` condition (contraignant côté S3), or verify with
+ * HeadObject after upload.
+ */
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
-/** Allowed MIME types for uploads. */
+/**
+ * Allowed MIME types for uploads.
+ *
+ * NOTE (#193): image/svg+xml is deliberately EXCLUDED — an SVG can contain
+ * embedded scripts. If the upload bucket is served from the same origin as
+ * the app, displaying such a file executes script in the app's origin
+ * (stored XSS). If SVG uploads are required, serve the bucket from a
+ * dedicated domain and sanitize the SVG server-side before serving.
+ */
 const ALLOWED_MIME_TYPES = [
 	'image/jpeg',
 	'image/png',
 	'image/gif',
 	'image/webp',
-	'image/svg+xml',
 	'application/pdf',
 	'text/plain',
 	'application/json'

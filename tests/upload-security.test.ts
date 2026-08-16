@@ -55,4 +55,17 @@ describe('presigned upload endpoint security (#170)', () => {
 			expect(keyLine[0]).not.toMatch(/\$\{filename\}/);
 		}
 	});
+
+	it('excludes SVG from the allowlist (stored XSS) (#193)', () => {
+		// image/svg+xml is a stored-XSS vector when served same-origin.
+		// The ALLOWED_MIME_TYPES array (not the comments) must not list it.
+		const code = source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
+		expect(code).not.toMatch(/svg[+\/]xml/);
+		expect(source).toMatch(/deliberately EXCLUDED/);
+	});
+
+	it('documents that the size limit is best-effort on presigned PUT (#193)', () => {
+		// ContentLength on a presigned PUT is signed but NOT enforced by S3
+		expect(source).toMatch(/BEST-EFFORT|not enforced by S3|content-length-range/);
+	});
 });
