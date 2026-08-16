@@ -66,23 +66,56 @@ cd my-project && npx playwright install && bun run test:e2e
 
 ## Modules
 
-| Package | What it adds | Requires |
-|---------|-------------|----------|
-| `@svforge/ui_toast` | Toast notifications (Skeleton Toast) | base |
-| `@svforge/dnd` | Drag & drop sortable lists (@thisux/sveltednd) | base |
-| `@svforge/tiptap` | Rich text editor (Tiptap) | base |
-| `@svforge/graph` | Knowledge graph visualization (force-graph) | base |
-| `@svforge/email` | Transactional emails (Resend) | base |
-| `@svforge/oauth` | Social auth (Google, GitHub) | **dashboard** |
-| `@svforge/uploads` | File uploads (S3/R2, presigned) | base |
-| `@svforge/blog` | Blog/CMS (MDsveX) | base |
+<!-- MODULES-TABLE:START -->
+| Package | What it adds | Requires | Optional integrations |
+|---------|--------------|----------|----------------------|
+| `@svforge/ui_toast` | Toast notifications (Skeleton Toast) | base | — |
+| `@svforge/dnd` | Drag & drop sortable lists | base | — |
+| `@svforge/tiptap` | Rich text editor (Tiptap, toolbar + preview) | base | — |
+| `@svforge/graph` | Knowledge graph visualization (force-graph) | base | — |
+| `@svforge/email` | Transactional emails (Resend) | base | — |
+| `@svforge/oauth` | Social auth buttons (Google, GitHub) | **dashboard** | — |
+| `@svforge/uploads` | File uploads (S3/R2, presigned, security test pack opt-in) | base | testpack |
+| `@svforge/blog` | MDsveX blog (posts + list + detail) | base | — |
+| `@svforge/realtime` | WebSocket transport (publish/subscribe, channels isolés) | base | — |
+| `@svforge/audit` | Business action audit trail (append-only) | **dashboard** | — |
+| `@svforge/notifications` | Persistent business notifications (read/unread) | **dashboard** | realtime, email |
+| `@svforge/jobs` | Background job foundation (retry, progress, backend encapsulé) | **dashboard** | realtime, notifications, email |
+| `@svforge/chat` | Composable app chat (conversations, messages, read-state) | **dashboard** | realtime, uploads, notifications |
+<!-- MODULES-TABLE:END -->
+
 
 Install modules into an existing project:
 
 ```bash
-npx sv add @svforge/ui_toast
-npx sv add @svforge/tiptap
+npx sv add @svforge/realtime
+npx sv add @svforge/audit
+npx sv add @svforge/notifications
+npx sv add @svforge/jobs
+npx sv add @svforge/chat
 ```
+
+**Requires** is the template you must scaffold first (`base` or `dashboard`).
+**Optional integrations** compose with other modules without re-implementing
+infrastructure (e.g. `notifications` can push via `realtime`/`email`, `chat`
+can attach files via `uploads`).
+
+### Example composition — app chat with live updates
+
+```bash
+# dashboard (auth + admin + DB PostgreSQL) + chat + realtime + uploads + notifications
+npx sv create my-app --template minimal --types ts \
+  --add 'svforge=template:dashboard+testing:vitest' \
+  --add '@svforge/chat @svforge/realtime @svforge/uploads @svforge/notifications' \
+  --install bun --no-download-check
+cd my-app && bash scripts/setup.sh && bun dev
+```
+
+- `/chat` — conversations, messages, read-state (membership-enforced server-side)
+- `realtime` — live `message.created` pushes on `conversation:{id}`
+- `uploads` — attachments via the existing presigned endpoint (no second upload system)
+- `notifications` — alert non-active participants
+- Works without realtime too (classic form/refetch)
 
 For anything else, reach for [`@skeletonlabs/skeleton-svelte`](https://skeleton.dev) — 30+ production components (accordion, tabs, dialog, date-picker…) that pair naturally with the base kit.
 
@@ -90,11 +123,12 @@ For anything else, reach for [`@skeletonlabs/skeleton-svelte`](https://skeleton.
 
 Presets are **composition recipes** (meta-packages) — they never duplicate module code. Get the recipe with `svforge preset <name>`, then run it with `sv add`:
 
-| Preset | Composition |
-|--------|-------------|
-| `saas` | dashboard + email + uploads (optional: tiptap, oauth, dnd) |
-| `community` | base + blog + ui_toast (optional: tiptap, graph) |
-
+<!-- PRESETS-TABLE:START -->
+| Preset | Description | Requires | Composition |
+|--------|-------------|----------|-------------|
+| `saas` | Dashboard SaaS de départ : auth + admin + email + uploads | **dashboard** | email + uploads (optional: tiptap, oauth, dnd) |
+| `community` | Site communautaire : base + blog + toast | base | blog + ui_toast (optional: tiptap, graph) |
+<!-- PRESETS-TABLE:END -->
 ```bash
 npx svforge preset saas
 # → sv add svforge=template:dashboard+testing:vitest @svforge/email @svforge/uploads
@@ -145,7 +179,28 @@ See `CONTRIBUTING.md` for the TDD workflow (Red → Green → Refactor) and `AGE
 - **Skeleton UI v5** (design system) — see [skeleton.dev](https://skeleton.dev)
 - **Tailwind CSS v4**
 - **TypeScript**, **Bun**
-- **Better Auth** + **Drizzle ORM** (dashboard template)
+- **Better Auth** + **Drizzle ORM** (**PostgreSQL** — dashboard template, `pg-core` + `postgres` driver)
+
+## AI-ready workflow
+
+Every scaffold is **agent-ready by default** — a second developer, human or AI, can
+start contributing without reverse-engineering the stack:
+
+- **`AGENTS.md`** — scaffolded at the project root: conventions, component search
+  order (primitives → ui → layout → Skeleton → create), auth/admin guards, DB rules
+- **`.svforge.json`** — machine-readable manifest: template, stack (framework, UI,
+  i18n, test, auth, ORM, database), installed modules, capabilities, canonical
+  patterns (written by the dashboard/base mode and enriched by every module)
+- **`llms.txt`** — LLM-friendly summary generated from the manifest (regenerate
+  anytime with `svforge context` in the monorepo; modules merge their capability
+  inline in generated projects)
+- **`svforge-catalog.json`** + **`svforge-check.mjs`** — machine-readable component
+  catalog + design-system check (`node svforge-check.mjs`; ERROR on second UI kits,
+  WARN on non-canonical placement)
+
+The docs in this README (modules/presets tables) are **generated from
+`svforge-modules.json`** — the machine-readable contract is the single source of
+truth, the tables cannot drift (`scripts/gen-modules-table.mjs --write`).
 
 ## License
 

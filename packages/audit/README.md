@@ -69,6 +69,14 @@ the application level.
 - `$lib/server/audit/index.ts` — `audit.record` / `forEntity` / `byActor` / `list`
 - `src/routes/(app)/admin/audit/` — paginated admin view (FR/EN via Paraglide)
 
+## Limits (v1)
+
+- Append-only at the application level only — there is no retention policy /
+  pruning in v1. Add a cleanup job when volume grows.
+- `metadata` is a JSONB free-form map: keep it small and non-sensitive (see
+  confidentiality above).
+- List endpoint is a simple page-based read; no search/indexing in v1.
+
 ## License
 
 MIT

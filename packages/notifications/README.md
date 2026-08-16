@@ -79,6 +79,13 @@ For specific types only (never all notifications): a job/route can check the
 - `$lib/components/svforge/ui/NotificationsBell.svelte` — bell + badge + list
 - `src/routes/api/notifications/read-all/+server.ts` — mark-all endpoint
 
+## Limits (v1)
+
+- No push (web push / FCM) in v1 — delivery is in-app (bell) or via optional
+  `realtime`/`email` integrations you wire yourself.
+- `message` is plain text (no rich content / HTML).
+- No per-notification preference engine (opt-in/out per type) in v1.
+
 ## License
 
 MIT
