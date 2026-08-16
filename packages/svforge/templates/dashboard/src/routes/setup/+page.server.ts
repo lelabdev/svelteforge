@@ -14,7 +14,7 @@ export const actions: Actions = {
 		const parsed = setupSchema.safeParse({
 			name: formData.get('name'),
 			email: formData.get('email'),
-			password: formData.get(' + 'password')
+			password: formData.get('password')
 		});
 
 		if (!parsed.success) {
