@@ -1,4 +1,5 @@
 import type { SvApi } from 'sv';
+import { scaffoldedAgents } from '../scaffolded-agents';
 
 /**
  * Apply Dashboard mode files via sv.file()
@@ -71,4 +72,7 @@ export function applyDashboardMode(
 	for (const [path, content] of Object.entries(rootFiles)) {
 		sv.file(path.slice(1), () => content);
 	}
+
+	// AI-ready: scaffold an AGENTS.md at the project root (#203)
+	sv.file('AGENTS.md', () => scaffoldedAgents('dashboard'));
 }
