@@ -31,7 +31,7 @@ bunx sv create app --template minimal --types ts --no-install --no-add-ons --no-
 cd app
 
 # 2. Add the LOCAL svforge addon with all options set (no prompts in CI)
-#    Profile variants: base, dashboard (vitest), dashboard-playwright
+#    Profile variants: base, dashboard (vitest), dashboard-playwright, base-blog
 if [ "$TEMPLATE" = "dashboard-playwright" ]; then
 	ADD_SPEC="file:$REPO_ROOT/packages/svforge=template:dashboard+testing:playwright"
 elif [ "$TEMPLATE" = "dashboard" ]; then
@@ -40,6 +40,17 @@ else
 	ADD_SPEC="file:$REPO_ROOT/packages/svforge=template:base+testing:vitest"
 fi
 bunx sv add "$ADD_SPEC" --install bun --no-download-check
+
+# Blog module on top of base (#185): mdsvex must integrate via vite.config.ts
+# (no svelte.config.js in modern sv create) and the scaffold must build.
+if [ "$TEMPLATE" = "base-blog" ]; then
+	bunx sv add "file:$REPO_ROOT/packages/blog" --install bun --no-download-check
+	# mdsvex wired in vite.config.ts?
+	grep -q "mdsvex" vite.config.ts || { echo "❌ mdsvex missing in vite.config.ts (#185)"; exit 1; }
+	grep -q "extensions: \['.svelte', '.md'\]" vite.config.ts || { echo "❌ .md extension missing (#185)"; exit 1; }
+	# welcome.md post delivered and compiled by mdsvex
+	test -f src/posts/welcome.md || { echo "❌ src/posts/welcome.md missing"; exit 1; }
+fi
 
 # 3. Dashboard: env vars required at build time (auth.ts / db/index.ts)
 #    Now that drizzle.config.ts + .env.example + setup.sh are scaffolded (#187),
@@ -56,6 +67,13 @@ fi
 
 # 4. Build the scaffolded project — the actual assertion
 bun run build
+
+# Blog: assert the welcome.md post is actually compiled by mdsvex (not parsed
+# as raw Svelte — the #185 regression) by checking the build output.
+if [ "$TEMPLATE" = "base-blog" ]; then
+	grep -rl "Welcome to your blog" .svelte-kit/output/server/ >/dev/null \
+		|| { echo "❌ welcome.md not compiled by mdsvex (#185)"; exit 1; }
+fi
 
 # 5. Assert testing-profile files land at the project ROOT, not src/ (#186)
 if [ "$TEMPLATE" = "dashboard" ] || [ "$TEMPLATE" = "dashboard-playwright" ]; then

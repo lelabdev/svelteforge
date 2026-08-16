@@ -1,4 +1,4 @@
-import { defineAddon } from 'sv';
+import { defineAddon, defineAddonOptions } from 'sv';
 import { files } from './templates';
 
 export default defineAddon({
@@ -6,6 +6,9 @@ id: 'svforge-uploads',
 alias: 'forge-uploads',
 shortDescription: 'SVForge Uploads — file uploads to S3/R2',
 homepage: 'https://github.com/lelabdev/svelteforge',
+	// Empty options required: sv >= 0.15 crashes on addons without an
+	// options object (Object.entries(undefined) in promptAddonQuestions).
+	options: defineAddonOptions().build(),
 
 setup: ({ unsupported, isKit }) => {
 if (!isKit) unsupported('SVForge Uploads requires SvelteKit');
