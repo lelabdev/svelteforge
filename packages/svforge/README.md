@@ -1,26 +1,28 @@
 # SVForge
 
-**sv community addon** — SvelteKit starter boilerplate built on Skeleton UI v4 and Tailwind CSS v4. Ships with a clean UI kit, layouts, theme, and optional admin dashboard with Better Auth + Drizzle ORM.
+**sv community addon** — SvelteKit starter boilerplate built on Skeleton UI v5 and Tailwind CSS v4. Ships with a clean UI kit, layouts, theme, and optional admin dashboard with Better Auth + Drizzle ORM.
+
+**Not a component library. Not a shadcn clone.** SvelteForge gives you the essentials — buttons, inputs, selects, cards, badges, theme, SEO, layouts — so you start fast and own everything. For richer components (dialog, tabs, tooltip, date-picker…), use the official [`@skeletonlabs/skeleton-svelte`](https://skeleton.dev) components directly.
 
 ## Install
 
 ```bash
 # Base template (UI kit + layouts + theme)
-bunx sv create my-app --template minimal --types ts --add svforge --install bun --no-download-check
+npx sv create my-app --template minimal --types ts --add svforge --install bun --no-download-check
 cd my-app && bun dev
 
 # Dashboard template (base + auth + DB + admin)
-bunx sv create my-app --template minimal --types ts --add 'svforge=template:dashboard' --install bun --no-download-check
+npx sv create my-app --template minimal --types ts --add 'svforge=template:dashboard' --install bun --no-download-check
 cd my-app && bash scripts/setup.sh && bun dev
 
 # Dashboard with the opt-in Playwright browser profile
-bunx sv create my-app --template minimal --types ts --add 'svforge=template:dashboard+testing:playwright' --install bun --no-download-check
-cd my-app && bunx playwright install && bun run test:e2e
+npx sv create my-app --template minimal --types ts --add 'svforge=template:dashboard+testing:playwright' --install bun --no-download-check
+cd my-app && npx playwright install && bun run test:e2e
 ```
 
 Or add to an existing project:
 ```bash
-bunx sv add svforge   # prompts: base or dashboard
+npx sv add svforge   # prompts: base or dashboard
 ```
 
 Dashboard projects include the Vitest baseline by default (`bun run test`).
@@ -31,10 +33,10 @@ The Playwright profile is opt-in with `testing:playwright`; it adds
 
 ### Base Template
 
-- **15+ UI components** — Button, Card, Badge, Avatar, Alert, Input, Select, Textarea, Checkbox, Toggle, Accordion, Tabs, Table, Breadcrumb
-- **3 layout components** — Navbar, Footer, ThemeToggle
-- **3 utilities** — Logo, Seo, generateSitemap()
-- **SVForge theme** — custom oklch color palette with 7 color families
+- **UI kit** — Button, Card, Badge, Alert, Input, Select, Textarea, Checkbox, Toggle, Table
+- **Layout** — Navbar, Footer, ThemeToggle
+- **Utils** — Logo, Seo, generateSitemap(), cn()
+- **SVForge theme** — custom oklch color palette with 7 color families (Skeleton v5 format)
 - **Dark/light mode** — auto-detects system preference, manual toggle
 - **Demo page** at `/demo-ui`
 
@@ -51,12 +53,23 @@ Everything in Base, plus:
 
 ## Module Addons
 
-| Package | What it adds |
-|---------|-------------|
-| `@svforge/ui_toast` | Toast notifications |
-| `@svforge/dnd` | Drag & drop sortable lists |
-| `@svforge/tiptap` | Rich text editor |
-| `@svforge/graph` | Knowledge graph visualization |
+Composable opt-in modules — pick 2–3 as needed:
+
+| Package | What it adds | Requires |
+|---------|-------------|----------|
+| `@svforge/ui_toast` | Toast notifications (Skeleton Toast) | base |
+| `@svforge/dnd` | Drag & drop sortable lists | base |
+| `@svforge/tiptap` | Rich text editor (Tiptap, toolbar + preview) | base |
+| `@svforge/graph` | Knowledge graph visualization (force-graph) | base |
+| `@svforge/email` | Transactional emails (Resend) | base |
+| `@svforge/oauth` | Social auth buttons (Google, GitHub) | **dashboard** |
+| `@svforge/uploads` | File uploads (S3/R2, presigned, security test pack opt-in) | base |
+| `@svforge/blog` | MDsveX blog (posts + list + detail) | base |
+
+```bash
+npx sv add @svforge/ui_toast
+npx sv add @svforge/uploads
+```
 
 ## License
 

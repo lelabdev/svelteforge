@@ -5,7 +5,7 @@ Rich text editor for SVForge projects. Powered by Tiptap with a built-in toolbar
 ## Installation
 
 ```bash
-bunx sv add @svforge/tiptap
+npx sv add @svforge/tiptap
 ```
 
 ## Usage
@@ -84,4 +84,5 @@ Bold, Italic, Underline, Strikethrough, H1-H3, Bullet list, Ordered list, Blockq
 - `@tiptap/starter-kit` — bold, italic, lists, code, blockquote, etc.
 - `@tiptap/extension-underline` — underline formatting
 - `@tiptap/extension-link` — link support
-- `@skeletonlabs/skeleton-svelte` >= 4.0.0 (peer)
+
+> Requiert le template svforge `base` pour les classes de thème Skeleton (`surface-*`, `primary-*`). Pas d'import runtime de `@skeletonlabs/skeleton-svelte`.

@@ -4,6 +4,7 @@ import { join } from 'node:path';
 
 const ROOT = process.cwd();
 const UPLOAD_ENDPOINT = join(ROOT, 'packages/uploads/templates/src/routes/api/upload/+server.ts');
+const S3_CLIENT = join(ROOT, 'packages/uploads/templates/src/lib/server/s3.ts');
 
 /**
  * Regression tests for #170 — the presigned upload endpoint must be secured.
@@ -15,6 +16,20 @@ const UPLOAD_ENDPOINT = join(ROOT, 'packages/uploads/templates/src/routes/api/up
  */
 describe('presigned upload endpoint security (#170)', () => {
 	const source = readFileSync(UPLOAD_ENDPOINT, 'utf-8');
+	const s3Source = readFileSync(S3_CLIENT, 'utf-8');
+
+	it('lazy-inits the S3 client (no top-level env throw) (#237)', () => {
+		// A top-level throw in s3.ts breaks `vite build` on any fresh scaffold
+		// (postbuild evaluates server modules). Env vars must be read lazily.
+		expect(s3Source).toMatch(/function getS3/);
+		expect(s3Source).not.toMatch(/if \(!env\.S3_.*\) throw/);
+		expect(s3Source).toMatch(/\?\?=/);
+	});
+
+	it('endpoint uses getS3() not the eager singleton', () => {
+		expect(source).toMatch(/getS3\(\)/);
+		expect(source).not.toMatch(/import \{ s3 \} from/);
+	});
 
 	it('requires authentication before issuing a presigned URL', () => {
 		// Must check locals.user or session before any signing

@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock the S3 client and env so the endpoint logic is testable without AWS.
 vi.mock('$lib/server/s3', () => ({
-	s3: {}
+	getS3: () => ({})
 }));
 
 vi.mock('@aws-sdk/s3-request-presigner', () => ({

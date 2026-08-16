@@ -5,7 +5,7 @@ SVForge Uploads — file uploads to S3/R2 with presigned URLs.
 ## Install
 
 ```bash
-npx sv add svforge-uploads
+npx sv add @svforge/uploads
 ```
 
 ## What it does

@@ -5,7 +5,7 @@ MDsveX blog module for SvelteForge. Adds a fully-functional blog with post list 
 ## Install
 
 ```bash
-npx sv add svforge-blog
+npx sv add @svforge/blog
 ```
 
 This will:

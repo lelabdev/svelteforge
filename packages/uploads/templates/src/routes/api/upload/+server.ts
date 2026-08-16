@@ -1,6 +1,6 @@
 import { PutObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import { s3 } from '$lib/server/s3';
+import { getS3 } from '$lib/server/s3';
 import { env } from '$env/dynamic/private';
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
@@ -101,6 +101,6 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		ContentLength: size
 	});
 
-	const url = await getSignedUrl(s3, command, { expiresIn: 60 });
+	const url = await getSignedUrl(getS3(), command, { expiresIn: 60 });
 	return json({ url, key });
 };

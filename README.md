@@ -65,16 +65,16 @@ cd my-project && npx playwright install && bun run test:e2e
 
 ## Modules
 
-| Package | What it adds |
-|---------|-------------|
-| `@svforge/ui_toast` | Toast notifications (Skeleton Toast) |
-| `@svforge/dnd` | Drag & drop sortable lists (@thisux/sveltednd) |
-| `@svforge/tiptap` | Rich text editor (Tiptap) |
-| `@svforge/graph` | Knowledge graph visualization (force-graph) |
-| `@svforge/email` | Transactional emails (Resend) |
-| `@svforge/oauth` | Social auth (Google, GitHub) |
-| `@svforge/uploads` | File uploads (S3/R2, presigned) |
-| `@svforge/blog` | Blog/CMS (MDsveX) |
+| Package | What it adds | Requires |
+|---------|-------------|----------|
+| `@svforge/ui_toast` | Toast notifications (Skeleton Toast) | base |
+| `@svforge/dnd` | Drag & drop sortable lists (@thisux/sveltednd) | base |
+| `@svforge/tiptap` | Rich text editor (Tiptap) | base |
+| `@svforge/graph` | Knowledge graph visualization (force-graph) | base |
+| `@svforge/email` | Transactional emails (Resend) | base |
+| `@svforge/oauth` | Social auth (Google, GitHub) | **dashboard** |
+| `@svforge/uploads` | File uploads (S3/R2, presigned) | base |
+| `@svforge/blog` | Blog/CMS (MDsveX) | base |
 
 Install modules into an existing project:
 
