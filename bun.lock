@@ -23,14 +23,14 @@
     },
     "packages/dnd": {
       "name": "@svforge/dnd",
-      "version": "0.0.1",
+      "version": "0.0.2",
       "devDependencies": {
         "sv": "^0.15.3",
         "tsdown": "^0.12.0",
         "typescript": "^6.0.3",
       },
       "peerDependencies": {
-        "@skeletonlabs/skeleton-svelte": ">=4.0.0",
+        "@skeletonlabs/skeleton-svelte": "^5.0.0",
         "sv": "^0.13.0",
       },
     },
@@ -55,7 +55,7 @@
         "typescript": "^6.0.3",
       },
       "peerDependencies": {
-        "@skeletonlabs/skeleton-svelte": ">=4.0.0",
+        "@skeletonlabs/skeleton-svelte": "^5.0.0",
         "sv": "^0.13.0",
       },
     },
@@ -73,7 +73,7 @@
     },
     "packages/svforge": {
       "name": "svforge",
-      "version": "1.1.0",
+      "version": "1.2.0",
       "devDependencies": {
         "sv": "^0.15.3",
         "tsdown": "^0.12.0",
@@ -85,27 +85,27 @@
     },
     "packages/tiptap": {
       "name": "@svforge/tiptap",
-      "version": "0.0.1",
+      "version": "0.0.2",
       "devDependencies": {
         "sv": "^0.15.3",
         "tsdown": "^0.12.0",
         "typescript": "^6.0.3",
       },
       "peerDependencies": {
-        "@skeletonlabs/skeleton-svelte": ">=4.0.0",
+        "@skeletonlabs/skeleton-svelte": "^5.0.0",
         "sv": "^0.13.0",
       },
     },
     "packages/ui_toast": {
       "name": "@svforge/ui_toast",
-      "version": "0.0.1",
+      "version": "0.0.2",
       "devDependencies": {
         "sv": "^0.15.3",
         "tsdown": "^0.12.0",
         "typescript": "^6.0.3",
       },
       "peerDependencies": {
-        "@skeletonlabs/skeleton-svelte": ">=4.0.0",
+        "@skeletonlabs/skeleton-svelte": "^5.0.0",
         "sv": "^0.13.0",
       },
     },

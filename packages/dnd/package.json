@@ -1,8 +1,8 @@
 {
 	"name": "@svforge/dnd",
-	"version": "0.0.1",
+	"version": "0.0.2",
 	"type": "module",
-	"description": "SVForge Drag & Drop — sortable lists via @thisux/sveltednd",
+	"description": "SVForge Drag & Drop \u2014 sortable lists via @thisux/sveltednd",
 	"author": "Ludo (https://lelab.dev)",
 	"repository": {
 		"type": "git",
