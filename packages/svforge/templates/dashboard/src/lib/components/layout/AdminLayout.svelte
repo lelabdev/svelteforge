@@ -55,7 +55,7 @@
 				<a href="/admin" class="text-lg font-heading font-bold text-primary-600-400">Admin</a>
 			{/if}
 			<button
-				class="btn preset-ghost variant-surface p-1 rounded"
+				class="btn preset-tonal-surface p-1 rounded"
 				onclick={() => (collapsed = !collapsed)}
 				aria-label="Toggle sidebar"
 			>
@@ -86,7 +86,7 @@
 		<!-- Top bar -->
 		<header class="sticky top-0 z-50 bg-surface-50-950/80 backdrop-blur-md border-b border-surface-200-800 px-element py-3 flex items-center justify-between">
 			<div class="flex items-center gap-3">
-				<button class="lg:hidden btn preset-ghost variant-surface p-2 rounded" onclick={() => (mobileOpen = !mobileOpen)} aria-label="Menu">
+				<button class="lg:hidden btn preset-tonal-surface p-2 rounded" onclick={() => (mobileOpen = !mobileOpen)} aria-label="Menu">
 					{#if mobileOpen}<X size={20} />{:else}<Menu size={20} />{/if}
 				</button>
 				<h1 class="font-heading font-bold text-lg">Dashboard</h1>
@@ -96,7 +96,7 @@
 				{#if user}
 					<span class="text-sm text-surface-500 hidden sm:block">{user.name}</span>
 					{#if onSignOut}
-						<button class="btn preset-ghost variant-surface p-2 rounded" onclick={onSignOut} aria-label="Sign out">
+						<button class="btn preset-tonal-surface p-2 rounded" onclick={onSignOut} aria-label="Sign out">
 							<SignOut size={18} />
 						</button>
 					{/if}

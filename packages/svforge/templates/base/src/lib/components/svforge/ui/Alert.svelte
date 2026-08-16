@@ -20,7 +20,7 @@
 		error: 'preset-tonal-error'
 	};
 
-	let classes = $derived(cn('alert', presets[variant], className));
+	let classes = $derived(cn('card p-2', presets[variant], className));
 </script>
 
 <div class={classes} {...rest}>
