@@ -4,8 +4,9 @@ export default defineConfig({
 	entry: ['src/index.ts'],
 	format: 'esm',
 	dts: { resolve: [] },
-	external: ['sv', '@sveltejs/sv-utils'],
+	outDir: 'dist',
+	deps: { neverBundle: ['sv', '@sveltejs/sv-utils'] },
 	entryNames: '[name]',
 	hash: false,
-	outDir: 'dist'
+	outExtensions: () => ({ js: '.js', dts: '.d.ts' })
 });

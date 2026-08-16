@@ -2,7 +2,7 @@
   "name": "@svforge/realtime",
   "version": "0.0.1",
   "type": "module",
-  "description": "SVForge Realtime \u2014 generic WebSocket transport (publish/subscribe)",
+  "description": "SVForge Realtime — generic WebSocket transport (publish/subscribe)",
   "author": "Ludo (https://lelab.dev)",
   "repository": {
     "type": "git",
@@ -25,7 +25,7 @@
   },
   "devDependencies": {
     "sv": "^0.15.3",
-    "tsdown": "^0.12.0",
+    "tsdown": "^0.22.14",
     "typescript": "^6.0.3"
   },
   "scripts": {

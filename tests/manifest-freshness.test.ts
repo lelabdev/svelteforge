@@ -54,7 +54,7 @@ describe('manifest freshness — templates.ts matches templates/ (#206)', () => 
 
 	for (const pkg of modulePackages) {
 		it(`${pkg}: files matches templates/src`, async () => {
-			const { files } = await import(`../packages/${pkg}/src/templates`);
+			const { files } = await import(`../packages/${pkg}/src/templates.ts`);
 			const onDisk = readDirRecursively(join(ROOT, `packages/${pkg}/templates/src`));
 			expect(onDisk, STALE_MESSAGE).toEqual(files);
 		});
