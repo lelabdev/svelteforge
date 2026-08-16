@@ -36,11 +36,11 @@ packages/
 └── docs/ (dans packages/svforge) — dumps llms-*.txt (Skeleton v5, Svelte 5) — régénérer via `bash packages/svforge/scripts/fetch-llms-docs.sh` (fraîcheur vérifiée par `tests/llms-docs-freshness.test.ts`)
 ```
 
-### ⚠️ LE gotcha du repo : le prebuild n'embarque que `src/**`
+### ⚠️ LE gotcha du repo : le prebuild n'embarque que `src/**` (+ `root/**` pour le dashboard)
 
-`prebuild.ts` fait `readDirRecursively(templates/{base,dashboard}/src)`. **Tout fichier posé ailleurs dans le template (racine, `static/`, `scripts/`) n'est jamais livré au scaffold** — silencieusement. Deux règles :
+`prebuild.ts` fait `readDirRecursively(templates/{base,dashboard}/src)` (+ `templates/dashboard/root` pour les fichiers à écrire à la RACINE du projet scaffoldé : `drizzle.config.ts`, `.env.example`, `scripts/setup.sh`, `static/robots.txt` — #187). **Tout fichier posé ailleurs dans le template (racine, `static/`, `scripts/`) n'est jamais livré au scaffold** — silencieusement. Deux règles :
 
-1. Un template file doit vivre sous `templates/*/src/**`.
+1. Un template file doit vivre sous `templates/*/src/**` (ou `templates/dashboard/root/**` si destination = racine du projet).
 2. Après TOUTE modification d'un fichier de `templates/`, relancer le prebuild du package (`bun run prebuild` ou `bun run build`) pour régénérer `src/templates.ts` — sinon le scaffold livre l'ancienne version embarquée.
 
 ## Workflow

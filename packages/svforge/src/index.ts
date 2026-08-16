@@ -1,5 +1,5 @@
 import { defineAddon, defineAddonOptions } from 'sv';
-import { baseFiles, dashboardFiles } from './templates';
+import { baseFiles, dashboardFiles, dashboardRootFiles } from './templates';
 import { applyBaseMode } from './modes/base';
 import { applyDashboardMode } from './modes/dashboard';
 
@@ -76,7 +76,7 @@ export default defineAddon({
 
 		// ── Apply mode-specific files ──
 		if (template === 'dashboard') {
-			applyDashboardMode(sv, baseFiles, dashboardFiles, testing);
+			applyDashboardMode(sv, baseFiles, dashboardFiles, testing, dashboardRootFiles);
 		} else {
 			applyBaseMode(sv, baseFiles);
 		}
