@@ -13,6 +13,13 @@ export {
 	FORBIDDEN_UI_KITS
 } from './design-system';
 export type { CatalogEntry, Severity } from './design-system';
+export {
+	MODULES,
+	PRESETS,
+	expandPreset,
+	validateComposition
+} from './module-composition';
+export type { ModuleMeta, Preset } from './module-composition';
 
 // Export upgrade command for programmatic use
 export { upgrade, printUpgradeResult, MODULE_RECIPES } from './upgrade';

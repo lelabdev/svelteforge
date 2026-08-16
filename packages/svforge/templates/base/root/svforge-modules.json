@@ -1,0 +1,79 @@
+{
+	"$comment": "SvelteForge module metadata contract (#236). Each module declares its identity, capabilities, required template and optional integrations. Used by presets and by the AI context (#234).",
+	"templates": {
+		"base": { "description": "UI kit, layouts, theme, SEO, Paraglide FR/EN, Vitest baseline" },
+		"dashboard": { "description": "base + Better Auth + Drizzle + admin (users/settings)" }
+	},
+	"modules": {
+		"ui_toast": {
+			"id": "ui_toast",
+			"description": "Toast notifications (Skeleton Toast)",
+			"requires": ["base"],
+			"optional": [],
+			"files": ["src/lib/components/svforge/ui/Toaster.svelte", "src/lib/components/svforge/ui/toaster.ts"]
+		},
+		"dnd": {
+			"id": "dnd",
+			"description": "Drag & drop sortable lists",
+			"requires": ["base"],
+			"optional": [],
+			"files": ["src/lib/components/svforge/dnd/SortableList.svelte"]
+		},
+		"tiptap": {
+			"id": "tiptap",
+			"description": "Rich text editor (Tiptap, toolbar + preview)",
+			"requires": ["base"],
+			"optional": [],
+			"files": ["src/lib/components/svforge/tiptap/"]
+		},
+		"graph": {
+			"id": "graph",
+			"description": "Knowledge graph visualization (force-graph)",
+			"requires": ["base"],
+			"optional": [],
+			"files": ["src/lib/components/svforge/graph/"]
+		},
+		"email": {
+			"id": "email",
+			"description": "Transactional emails (Resend)",
+			"requires": ["base"],
+			"optional": [],
+			"files": ["src/lib/server/email.ts", "src/lib/server/templates/"]
+		},
+		"oauth": {
+			"id": "oauth",
+			"description": "Social auth buttons (Google, GitHub)",
+			"requires": ["dashboard"],
+			"optional": [],
+			"files": ["src/lib/components/svforge/ui/OAuthButtons.svelte"]
+		},
+		"uploads": {
+			"id": "uploads",
+			"description": "File uploads (S3/R2, presigned, security test pack opt-in)",
+			"requires": ["base"],
+			"optional": ["testpack"],
+			"files": ["src/lib/components/svforge/uploads/", "src/lib/server/s3.ts", "src/routes/api/upload/"]
+		},
+		"blog": {
+			"id": "blog",
+			"description": "MDsveX blog (posts + list + detail)",
+			"requires": ["base"],
+			"optional": [],
+			"files": ["src/posts/", "src/lib/utils/posts.ts", "src/routes/blog/"]
+		}
+	},
+	"presets": {
+		"saas": {
+			"description": "Dashboard SaaS de départ : auth + admin + email + uploads",
+			"requires": ["dashboard"],
+			"modules": ["email", "uploads"],
+			"optional": ["tiptap", "oauth", "dnd"]
+		},
+		"community": {
+			"description": "Site communautaire : base + blog + toast",
+			"requires": ["base"],
+			"modules": ["blog", "ui_toast"],
+			"optional": ["tiptap", "graph"]
+		}
+	}
+}
