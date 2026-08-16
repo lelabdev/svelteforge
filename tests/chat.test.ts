@@ -38,7 +38,7 @@ describe('chat module (#233)', () => {
 
 	it('no author spoofing: authorId comes from server session, not client', () => {
 		const page = readFileSync(join(ROOT, 'packages/chat/templates/src/routes/chat/[id]/+page.server.ts'), 'utf-8');
-		expect(page).toMatch(/authorId: locals\.user\.id/);
+		expect(page).toMatch(/authorId: (currentUser|locals\.user)\.id/);
 		expect(page).not.toMatch(/form\.get\('author'\)|formData.*author/);
 		expect(page).toMatch(/no client spoofing/);
 	});

@@ -3,7 +3,7 @@
 	import { enhance } from '$app/forms';
 	import { Button } from '$lib/components/svforge/primitives';
 
-	let { data, form }: { data: ReturnType<typeof import('./$types').load>; form: any } = $props();
+	let { data, form }: { data: import('./$types').PageData; form: any } = $props();
 	const messages = $derived(data.messages);
 	const conversationId = $derived(data.conversationId);
 </script>

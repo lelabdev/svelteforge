@@ -60,7 +60,7 @@ export class RealtimeHub {
 	}
 
 	private async handleConnection(ws: WebSocket, req: IncomingMessage): Promise<void> {
-		const userId = this.options.authenticate ? await this.options.authenticate(req) : undefined;
+		const userId = this.options.authenticate ? ((await this.options.authenticate(req)) ?? undefined) : undefined;
 		const client: RealtimeClient = { userId, channels: new Set() };
 		this.sockets.set(ws, { ws, client });
 
