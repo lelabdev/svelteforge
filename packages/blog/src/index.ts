@@ -29,16 +29,20 @@ export default defineAddon({
 					"import { mdsvex } from 'mdsvex';\n$&"
 				);
 			}
-			// sveltekit({...}) on one line: plugins: [sveltekit()]
-			updated = updated.replace(
-				/plugins:\s*\[\s*sveltekit\(\)\s*\]/,
-				"plugins: [sveltekit({ extensions: ['.svelte', '.md'], preprocess: mdsvex({ extensions: ['.md'] }) })]"
-			);
-			// sveltekit({ ... }) already has options: inject extensions + preprocess
-			updated = updated.replace(
-				/sveltekit\(\{/,
-				"sveltekit({\n\t\t\textensions: ['.svelte', '.md'],\n\t\t\tpreprocess: mdsvex({ extensions: ['.md'] }),"
-			);
+			const integration = "extensions: ['.svelte', '.md'], preprocess: mdsvex({ extensions: ['.md'] })";
+			if (/sveltekit\(\)/.test(updated)) {
+				// sveltekit() without options (single-line plugin entry)
+				updated = updated.replace(
+					/sveltekit\(\)/,
+					`sveltekit({ ${integration} })`
+				);
+			} else if (/sveltekit\(\{/.test(updated)) {
+				// sveltekit({ ... }) already has options — inject after the opening brace
+				updated = updated.replace(
+					/sveltekit\(\{\s*\n?/,
+					`sveltekit({\n\t\t\textensions: ['.svelte', '.md'],\n\t\t\tpreprocess: mdsvex({ extensions: ['.md'] }),\n\t\t\t`
+				);
+			}
 			return updated;
 		});
 

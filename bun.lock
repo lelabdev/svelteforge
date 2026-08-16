@@ -5,6 +5,7 @@
     "": {
       "name": "svforge-monorepo",
       "devDependencies": {
+        "sv": "0.15.4",
         "vitest": "^3.1.1",
       },
     },
