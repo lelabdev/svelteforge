@@ -42,15 +42,16 @@ fi
 bunx sv add "$ADD_SPEC" --install bun --no-download-check
 
 # 3. Dashboard: env vars required at build time (auth.ts / db/index.ts)
+#    Now that drizzle.config.ts + .env.example + setup.sh are scaffolded (#187),
+#    run the REAL setup script instead of hand-writing .env.
 if [ "$TEMPLATE" = "dashboard" ] || [ "$TEMPLATE" = "dashboard-playwright" ]; then
-	cat > .env <<'ENV'
-DATABASE_URL="file:local.db"
-ORIGIN=http://localhost:5173
-BETTER_AUTH_SECRET=ci-test-secret-not-for-production-32ch
-ENV
-	# DB schema push is best-effort: drizzle.config.ts is not scaffolded yet (#187)
-	bunx drizzle-kit generate >/dev/null 2>&1 || true
-	bunx drizzle-kit push >/dev/null 2>&1 || true
+	# Verify the previously-missing root files were delivered (#187)
+	test -f drizzle.config.ts || { echo "❌ drizzle.config.ts missing at project root (#187)"; exit 1; }
+	test -f .env.example || { echo "❌ .env.example missing at project root (#187)"; exit 1; }
+	test -f scripts/setup.sh || { echo "❌ scripts/setup.sh missing at project root (#187)"; exit 1; }
+	test -f static/robots.txt || { echo "❌ static/robots.txt missing at project root (#187)"; exit 1; }
+	bash scripts/setup.sh >/dev/null 2>&1 || { echo "❌ setup.sh failed"; exit 1; }
+	test -f .env || { echo "❌ setup.sh did not create .env"; exit 1; }
 fi
 
 # 4. Build the scaffolded project — the actual assertion

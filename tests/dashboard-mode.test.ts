@@ -35,6 +35,12 @@ const dashboardFiles = {
 	'/vitest.config.ts': 'vitest-config',
 	'/e2e/auth.test.ts': 'e2e'
 };
+const rootFiles = {
+	'/drizzle.config.ts': 'drizzle-config',
+	'/.env.example': 'env-example',
+	'/scripts/setup.sh': 'setup-script',
+	'/static/robots.txt': 'robots'
+};
 
 describe('dashboard testing profiles', () => {
 	it('includes Vitest and excludes Playwright files by default', () => {
@@ -72,5 +78,20 @@ describe('dashboard testing profiles', () => {
 		expect(sv.files.has('src/playwright.config.ts')).toBe(false);
 		expect(sv.files.has('src/vitest.config.ts')).toBe(false);
 		expect(sv.files.has('src/e2e/auth.test.ts')).toBe(false);
+	});
+
+	it('writes root-level files at the project root (#187)', () => {
+		const sv = fakeSv();
+		applyDashboardMode(sv, baseFiles, dashboardFiles, 'vitest', rootFiles);
+
+		// drizzle.config.ts, .env.example, scripts/setup.sh, static/robots.txt
+		// must land at the project root — prebuild only ships templates/src/**,
+		// so without the root/ embed they were never scaffolded (#187).
+		expect(sv.files.has('drizzle.config.ts')).toBe(true);
+		expect(sv.files.has('.env.example')).toBe(true);
+		expect(sv.files.has('scripts/setup.sh')).toBe(true);
+		expect(sv.files.has('static/robots.txt')).toBe(true);
+		expect(sv.files.has('src/drizzle.config.ts')).toBe(false);
+		expect(sv.files.has('src/.env.example')).toBe(false);
 	});
 });

@@ -12,7 +12,8 @@ export function applyDashboardMode(
 	sv: any,
 	baseFiles: Record<string, string>,
 	dashboardFiles: Record<string, string>,
-	testing: 'vitest' | 'playwright' = 'vitest'
+	testing: 'vitest' | 'playwright' = 'vitest',
+	rootFiles: Record<string, string> = {}
 ): void {
 	// Dashboard-specific runtime dependencies
 	sv.dependency('drizzle-orm', '^0.45.2');
@@ -60,5 +61,11 @@ export function applyDashboardMode(
 		const isRoot = ROOT_FILES.has(path) || path.startsWith('/e2e/');
 		const dest = isRoot ? path.slice(1) : `src${path}`;
 		sv.file(dest, () => content);
+	}
+
+	// Finally, write root-level project files (drizzle.config.ts, .env.example,
+	// scripts/setup.sh, static/robots.txt) at the project root (#187).
+	for (const [path, content] of Object.entries(rootFiles)) {
+		sv.file(path.slice(1), () => content);
 	}
 }
