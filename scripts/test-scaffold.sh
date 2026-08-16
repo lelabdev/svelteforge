@@ -26,8 +26,13 @@ cd "$REPO_ROOT/packages/svforge"
 bun run build
 
 # 1. Create a fresh SvelteKit project (same baseline as end users)
+#    SV_CMD controls the CLI version: pinned workspace sv (PR CI, deterministic,
+#    #191) vs ecosystem `bunx sv` (canary, latest, #205).
+if [ -z "${SV_CMD:-}" ]; then
+	SV_CMD="$REPO_ROOT/node_modules/.bin/sv"
+fi
 cd "$TMP_DIR"
-bunx sv create app --template minimal --types ts --no-install --no-add-ons --no-download-check
+$SV_CMD create app --template minimal --types ts --no-install --no-add-ons --no-download-check
 cd app
 
 # 2. Add the LOCAL svforge addon with all options set (no prompts in CI)
@@ -39,12 +44,12 @@ elif [ "$TEMPLATE" = "dashboard" ]; then
 else
 	ADD_SPEC="file:$REPO_ROOT/packages/svforge=template:base+testing:vitest"
 fi
-bunx sv add "$ADD_SPEC" --install bun --no-download-check
+$SV_CMD add "$ADD_SPEC" --install bun --no-download-check
 
 # Blog module on top of base (#185): mdsvex must integrate via vite.config.ts
 # (no svelte.config.js in modern sv create) and the scaffold must build.
 if [ "$TEMPLATE" = "base-blog" ]; then
-	bunx sv add "file:$REPO_ROOT/packages/blog" --install bun --no-download-check
+	$SV_CMD add "file:$REPO_ROOT/packages/blog" --install bun --no-download-check
 	# mdsvex wired in vite.config.ts?
 	grep -q "mdsvex" vite.config.ts || { echo "❌ mdsvex missing in vite.config.ts (#185)"; exit 1; }
 	grep -q "extensions: \['.svelte', '.md'\]" vite.config.ts || { echo "❌ .md extension missing (#185)"; exit 1; }

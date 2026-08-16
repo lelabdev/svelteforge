@@ -1,0 +1,92 @@
+name: Ecosystem Canary
+
+# Weekly drift detector (#205): re-runs the scaffolds against ecosystem
+# `latest` versions (sv, Skeleton, SvelteKit) to catch external drift
+# BEFORE users do. Unlike the PR CI (#191, pinned), this job is
+# informational: a failure opens an issue instead of blocking dev.
+#
+# The two biggest incidents in this repo were external drift:
+# - sv/Kit 2.63 dropped svelte.config.js (#185)
+# - Skeleton v5 renamed theme tokens (#194)
+# A pinned CI never detects these — this canary does, within 7 days.
+
+on:
+  schedule:
+    - cron: '0 6 * * 1' # Monday 06:00 UTC
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  canary:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        scaffold: [base, dashboard, dashboard-playwright, base-blog]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile --ignore-scripts
+
+      - name: Build all packages
+        run: bun run --filter '*' build
+
+      - name: Run tests
+        run: bun x vitest run --no-file-parallelism
+
+      - name: Scaffold canary (${{ matrix.scaffold }})
+        id: scaffold
+        env:
+          SV_CMD: 'bunx sv' # ecosystem latest — that's the whole point (#205)
+        run: |
+          set +e
+          bash scripts/test-scaffold.sh ${{ matrix.scaffold }} > /tmp/canary.log 2>&1
+          status=$?
+          set -e
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          if [ $status -ne 0 ]; then
+            echo "--- last 40 lines ---"
+            tail -40 /tmp/canary.log
+          fi
+
+      - name: Open drift issue on failure
+        if: steps.scaffold.outputs.status != '0'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const log = fs.readFileSync('/tmp/canary.log', 'utf-8').slice(-2000);
+            const body = [
+              '## Écosystème drift détecté — canary hebdo (#205)',
+              '',
+              `Le scaffold \`${{ matrix.scaffold }}\` a échoué contre les versions \`latest\` de l'écosystème (sv, Skeleton, SvelteKit).`,
+              '',
+              'La CI PR (#191) est épinglée et ne détecte pas ce type de drift — c\'est exactement le but de ce canary.',
+              '',
+              '## Cause probable',
+              '',
+              'sv / Skeleton / Kit ont changé quelque chose. Vérifier :',
+              '- `sv create` a-t-il changé la structure du projet ? (cf. #185 : svelte.config.js supprimé)',
+              '- Skeleton a-t-il renommé/changé des tokens de theme ? (cf. #194 : format v5)',
+              '',
+              '## Log (fin)',
+              '',
+              '```',
+              log,
+              '```'
+            ].join('\n');
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `Écosystème drift détecté : scaffold ${'${{ matrix.scaffold }}'}`,
+              body
+            });
