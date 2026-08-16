@@ -1,0 +1,48 @@
+{
+	"$comment": "SvelteForge design-system catalog (#240). Generated from the canonical structure (#242). Paths are relative to src/lib/components/svforge/.",
+	"designSystem": {
+		"primitives": {
+			"Button": { "path": "primitives/Button.svelte", "useFor": ["actions", "form submits"], "avoid": ["raw button with ad-hoc classes"] },
+			"Badge": { "path": "primitives/Badge.svelte", "useFor": ["status labels", "tags"], "avoid": ["custom span styling"] },
+			"Toggle": { "path": "primitives/Toggle.svelte", "useFor": ["boolean switches"] },
+			"Checkbox": { "path": "primitives/Checkbox.svelte", "useFor": ["multi-select booleans"] },
+			"Input": { "path": "primitives/Input.svelte", "useFor": ["text inputs"], "avoid": ["raw <input>"] },
+			"Select": { "path": "primitives/Select.svelte", "useFor": ["dropdowns"], "avoid": ["raw <select>"] },
+			"Textarea": { "path": "primitives/Textarea.svelte", "useFor": ["multi-line text"], "avoid": ["raw <textarea>"] }
+		},
+		"ui": {
+			"Card": { "path": "ui/Card.svelte", "useFor": ["content blocks", "stat cards"], "avoid": ["custom div + border + shadow"] },
+			"Alert": { "path": "ui/Alert.svelte", "useFor": ["info/success/warning/error"], "avoid": ["alert alert-* classes"] },
+			"Table": { "path": "ui/Table.svelte", "useFor": ["data tables", "CRUD lists"], "avoid": ["raw <table>"] },
+			"Logo": { "path": "ui/Logo.svelte", "useFor": ["brand mark"] },
+			"Seo": { "path": "ui/Seo.svelte", "useFor": ["meta/SEO head"], "avoid": ["hand-written meta spam"] },
+			"ThemeToggle": { "path": "ui/ThemeToggle.svelte", "useFor": ["dark/light switch"], "avoid": ["custom theme switcher"] }
+		},
+		"layout": {
+			"Navbar": { "path": "layout/Navbar.svelte", "useFor": ["top navigation"], "avoid": ["custom header per page"] },
+			"Footer": { "path": "layout/Footer.svelte", "useFor": ["page footer"], "avoid": ["custom footer per page"] }
+		}
+	},
+	"skeletonSource": "@skeletonlabs/skeleton-svelte",
+	"skeletonPrimitives": [
+		"Accordion", "AppBar", "Avatar", "Badge", "Breadcrumb", "Button", "Card",
+		"Checkbox", "Combobox", "DatePicker", "Dialog", "Drawer", "DropdownMenu",
+		"Field", "Input", "Listbox", "Menu", "Popover", "Progress", "RadioGroup",
+		"Select", "Slider", "SegmentedControl", "Stepper", "Tab", "Table",
+		"Textarea", "Toast", "Toggle", "Tooltip"
+	],
+	"rules": {
+		"reuseFirst": "Prefer reuse over invention. Coherence > originality on first pass.",
+		"mustNot": [
+			"install another UI kit",
+			"duplicate a Skeleton/SvelteForge primitive",
+			"hardcode arbitrary colors/radius/spacing when a token exists"
+		]
+	},
+	"goldenPages": {
+		"demo-ui": { "template": "base", "useAs": "canonical composition of all svforge components with variants" },
+		"admin/users": { "template": "dashboard", "useAs": "CRUD list + form patterns" },
+		"admin/settings": { "template": "dashboard", "useAs": "settings form + Save/Cancel actions" },
+		"login": { "template": "dashboard", "useAs": "auth form pattern" }
+	}
+}

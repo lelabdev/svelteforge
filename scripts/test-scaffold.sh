@@ -138,6 +138,13 @@ if [ "$TEMPLATE" = "base" ] || [ "$TEMPLATE" = "dashboard" ] || [ "$TEMPLATE" = 
 	grep -q "paraglideVitePlugin" vite.config.ts || { echo "❌ paraglide plugin missing in vite.config.ts (#239)"; exit 1; }
 fi
 
+# 5d. Design-system harness (#240): catalog delivered + check runs clean
+if [ "$TEMPLATE" = "base" ] || [ "$TEMPLATE" = "dashboard" ] || [ "$TEMPLATE" = "dashboard-playwright" ]; then
+	test -f svforge-catalog.json || { echo "❌ svforge-catalog.json missing (#240)"; exit 1; }
+	test -f svforge-check.mjs || { echo "❌ svforge-check.mjs missing (#240)"; exit 1; }
+	node svforge-check.mjs 2>&1 | grep -q "Design system is clean" || { echo "❌ svforge check not clean (#240)"; exit 1; }
+fi
+
 # 6. AI-ready: AGENTS.md scaffolded at the project root (#203)
 test -f AGENTS.md || { echo "❌ AGENTS.md missing at project root (#203)"; exit 1; }
 grep -q "preset-tonal" AGENTS.md || { echo "❌ AGENTS.md lacks Skeleton v5 class guidance (#203)"; exit 1; }

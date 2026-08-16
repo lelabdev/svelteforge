@@ -59,6 +59,29 @@ Canonical structure (#242) — the filesystem IS the registry:
 A domain-specific component does NOT belong in the generic design system —
 keep it in its feature area (e.g. \`src/lib/features/...\` or the route folder).
 
+## Design-system contract (#240)
+
+**Reuse first**: prefer reuse over invention. A visually less custom interface
+that fully follows the design system is preferred over a bespoke interface
+that introduces new patterns. Coherence > originality on first pass.
+
+MUST:
+- inspect the SvelteForge catalog before writing UI
+- reuse existing SvelteForge components before creating new ones
+- use Skeleton/Skeleton Svelte for UI primitives and interaction patterns
+- use project design tokens for typography, spacing, radius, surfaces, colors
+- keep pages composition-oriented and thin
+
+MUST NOT:
+- install another UI kit
+- create a duplicate Button/Input/Card/Dialog/Tabs/Menu/etc. when Skeleton or SvelteForge already provides it
+- create project-local one-off design primitives without justification
+- hardcode arbitrary colors/radius/spacing when a token/preset exists
+- redesign the global visual language inside a feature PR
+
+Run \`npx svforge check\` before finishing a feature — it flags ERROR
+violations (second UI kit, duplicated primitives) and WARN (arbitrary values).
+
 Components wrap Skeleton classes + Tailwind only — never raw CSS
 - \`cn()\` + \`class\` prop on every component (merge/override)
 - \`HTMLAttributes<T>\` from \`svelte/elements\` for native attribute extension
