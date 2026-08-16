@@ -10,19 +10,18 @@ UI-only starter with components, theme, and layouts. No auth, no database.
 - **Badge** — filled, outlined, tonal variants × 7 colors
 - **Input / Select / Textarea / Checkbox / Toggle** — form components with label + error support
 - **Alert** — info, success, warning, error variants
-- **Accordion** — collapsible sections
-- **Tabs** — tabbed content panels
 - **Table** — sortable column-based table
-- **Breadcrumb** — navigation trail
-- **Avatar** — image-based avatar with ring
 - **Navbar** — responsive sticky nav with mobile menu + theme toggle
 - **Footer** — configurable links + copyright
 - **ThemeToggle** — light/dark toggle with system detection
 - **Logo** — animated gradient text logo
 - **Seo** — Open Graph + Twitter Card meta tags
 - **generateSitemap()** — XML sitemap generator utility
-- **Logo** — animated gradient text logo
-- **Seo** — Open Graph + Twitter Card meta tags
+
+> Richer components (Accordion, Tabs, Avatar, Breadcrumb, dialogs…) are NOT
+> re-implemented here — use the official ones from `@skeletonlabs/skeleton-svelte`
+> (`import { Accordion, Tabs } from '@skeletonlabs/skeleton-svelte'`). They ship
+> keyboard + ARIA support out of the box.
 
 ### Routes
 - `/` — Landing page with hero + feature cards

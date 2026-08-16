@@ -1,7 +1,7 @@
 <script lang="ts">
 	import {
-		Accordion, Alert, Avatar, Badge, Breadcrumb, Button, Card,
-		Checkbox, Input, Select, Table, Tabs, Textarea, ThemeToggle, Toggle
+		Alert, Badge, Button, Card,
+		Checkbox, Input, Select, Table, Textarea, ThemeToggle, Toggle
 	} from '$lib/components/svforge/ui';
 	import { Navbar } from '$lib/components/layout';
 	import { Footer } from '$lib/components/layout';
@@ -125,15 +125,6 @@
 		</div>
 	</section>
 
-	<!-- Avatar -->
-	<section class="space-y-4">
-		<h2 class="text-2xl font-heading border-b border-surface-200-800 pb-2">Avatar</h2>
-		<div class="flex items-center gap-3">
-			<Avatar size="sm" src="https://api.dicebear.com/9.x/avataaars/svg?seed=1" alt="User 1" />
-			<Avatar size="md" src="https://api.dicebear.com/9.x/avataaars/svg?seed=2" alt="User 2" />
-			<Avatar size="lg" src="https://api.dicebear.com/9.x/avataaars/svg?seed=3" alt="User 3" />
-		</div>
-	</section>
 
 	<!-- Alerts -->
 	<section class="space-y-4">
@@ -172,25 +163,7 @@
 		</Card>
 	</section>
 
-	<!-- Accordion -->
-	<section class="space-y-4">
-		<h2 class="text-2xl font-heading border-b border-surface-200-800 pb-2">Accordion</h2>
-		<Accordion items={[
-			{ title: 'What is SvelteForge?', content: 'A SvelteKit starter kit built on Skeleton UI.' },
-			{ title: 'Is it open source?', content: 'Yes, fully open source on GitHub.' },
-			{ title: 'Can I customize the theme?', content: 'Absolutely. All colors and spacing use CSS variables.' }
-		]} />
-	</section>
 
-	<!-- Tabs -->
-	<section class="space-y-4">
-		<h2 class="text-2xl font-heading border-b border-surface-200-800 pb-2">Tabs</h2>
-		<Tabs tabs={[
-			{ label: 'Overview', content: 'This is the overview tab with general information.' },
-			{ label: 'Features', content: 'A list of features and capabilities.' },
-			{ label: 'Pricing', content: 'Free and open source. No pricing page needed!' }
-		]} />
-	</section>
 
 	<!-- Table -->
 	<section class="space-y-4">
@@ -209,14 +182,17 @@
 		/>
 	</section>
 
-	<!-- Breadcrumb -->
+
+	<!-- Richer components: Accordion, Tabs, Avatar, Breadcrumb etc. are NOT
+	     re-implemented here — use the official ones from @skeletonlabs/skeleton-svelte
+	     (they ship keyboard + ARIA support): -->
 	<section class="space-y-4">
-		<h2 class="text-2xl font-heading border-b border-surface-200-800 pb-2">Breadcrumb</h2>
-		<Breadcrumb items={[
-			{ href: '/', label: 'Home' },
-			{ href: '/demo-ui', label: 'Components' },
-			{ label: 'Breadcrumb' }
-		]} />
+		<h2 class="text-2xl font-heading border-b border-surface-200-800 pb-2">Richer components</h2>
+		<p class="text-surface-500">
+			Accordion, Tabs, Avatar, Breadcrumb… are provided by
+			<code class="text-primary-600-400">@skeletonlabs/skeleton-svelte</code> —
+			<code>import {{ Accordion, Tabs, Avatar }} from '@skeletonlabs/skeleton-svelte';</code>
+		</p>
 	</section>
 
 	<!-- Theme -->
