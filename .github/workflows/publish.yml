@@ -33,7 +33,14 @@ jobs:
         run: bun run --filter '*' build
 
       - name: Run tests
-        run: bun x vitest run --no-file-parallelism
+        run: bun x vitest run
+
+      # Scaffold gate (#191): never publish a package whose scaffold cannot build
+      - name: Scaffold test (base)
+        run: bash scripts/test-scaffold.sh base
+
+      - name: Scaffold test (dashboard)
+        run: bash scripts/test-scaffold.sh dashboard --no-file-parallelism
 
       - name: Publish svforge@latest
         run: cd packages/svforge && npm publish --access public --ignore-scripts

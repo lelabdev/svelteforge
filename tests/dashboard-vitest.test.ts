@@ -30,26 +30,39 @@ describe('dashboard Vitest baseline (#180)', () => {
 
 	describe('test files exist', () => {
 		it('has an auth guard test', () => {
-			expect(existsSync(dashboardTemplateFile('routes', '(app)', '+layout.server.test.ts'))).toBe(true);
+			expect(existsSync(dashboardTemplateFile('routes', '(app)', 'layout.server.test.ts'))).toBe(true);
 		});
 
 		it('has an admin authorization test', () => {
-			expect(existsSync(dashboardTemplateFile('routes', '(app)', 'admin', 'users', '+page.server.test.ts'))).toBe(true);
+			expect(existsSync(dashboardTemplateFile('routes', '(app)', 'admin', 'users', 'page.server.test.ts'))).toBe(true);
 		});
 
 		it('has a validation test', () => {
 			const adminTest = readFileSync(
-				dashboardTemplateFile('routes', '(app)', 'admin', 'users', '+page.server.test.ts'),
+				dashboardTemplateFile('routes', '(app)', 'admin', 'users', 'page.server.test.ts'),
 				'utf-8'
 			);
 			expect(adminTest).toMatch(/validation|schema|safeParse|invalid/i);
 		});
 	});
 
+	describe('SvelteKit reserved filenames (#207)', () => {
+		// Files prefixed with + are reserved by SvelteKit in src/routes/ — the build
+		// fails with "Files prefixed with + are reserved" otherwise. Regression test:
+		// colocated test files must never start with +.
+		it('scaffolds no .test.ts file prefixed with + in routes', async () => {
+			const { dashboardFiles } = await import('../packages/svforge/src/templates');
+			const offenders = Object.keys(dashboardFiles).filter(
+				(path) => path.startsWith('/routes/') && /\+[^/]*\.test\.ts$/.test(path)
+			);
+			expect(offenders, `Reserved + test files in manifest: ${offenders.join(', ')}`).toEqual([]);
+		});
+	});
+
 	describe('test coverage', () => {
 		it('covers anonymous access (no session)', () => {
 			const layoutTest = readFileSync(
-				dashboardTemplateFile('routes', '(app)', '+layout.server.test.ts'),
+				dashboardTemplateFile('routes', '(app)', 'layout.server.test.ts'),
 				'utf-8'
 			);
 			expect(layoutTest).toMatch(/anonymous|no session|unauthenticated|locals.*null|!.*session/i);
@@ -57,7 +70,7 @@ describe('dashboard Vitest baseline (#180)', () => {
 
 		it('covers non-admin authorization', () => {
 			const adminTest = readFileSync(
-				dashboardTemplateFile('routes', '(app)', 'admin', 'users', '+page.server.test.ts'),
+				dashboardTemplateFile('routes', '(app)', 'admin', 'users', 'page.server.test.ts'),
 				'utf-8'
 			);
 			expect(adminTest).toMatch(/non.admin|403|forbidden|isAdmin/i);
@@ -65,7 +78,7 @@ describe('dashboard Vitest baseline (#180)', () => {
 
 		it('covers validation failure', () => {
 			const adminTest = readFileSync(
-				dashboardTemplateFile('routes', '(app)', 'admin', 'users', '+page.server.test.ts'),
+				dashboardTemplateFile('routes', '(app)', 'admin', 'users', 'page.server.test.ts'),
 				'utf-8'
 			);
 			expect(adminTest).toMatch(/400|invalid|fail.*parse|missing.*field/i);
@@ -73,7 +86,7 @@ describe('dashboard Vitest baseline (#180)', () => {
 
 		it('covers a successful user-management action', () => {
 			const adminTest = readFileSync(
-				dashboardTemplateFile('routes', '(app)', 'admin', 'users', '+page.server.test.ts'),
+				dashboardTemplateFile('routes', '(app)', 'admin', 'users', 'page.server.test.ts'),
 				'utf-8'
 			);
 			expect(adminTest).toMatch(/success|create|update|delete|toggle/i);
