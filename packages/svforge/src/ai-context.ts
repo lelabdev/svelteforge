@@ -22,6 +22,7 @@ export interface SvforgeManifest {
 		test: 'vitest';
 		auth?: 'better-auth';
 		orm?: 'drizzle';
+		database?: 'postgresql';
 	};
 	modules: string[];
 	capabilities: string[];
@@ -100,7 +101,7 @@ export function buildManifest(template: 'base' | 'dashboard', modules: string[])
 			ui: 'skeleton',
 			i18n: 'paraglide',
 			test: 'vitest',
-			...(template === 'dashboard' ? { auth: 'better-auth', orm: 'drizzle' } : {})
+			...(template === 'dashboard' ? { auth: 'better-auth', orm: 'drizzle', database: 'postgresql' } : {})
 		},
 		modules,
 		capabilities: [...new Set(capabilities)],
@@ -117,6 +118,7 @@ export function renderLlmstxt(manifest: SvforgeManifest): string {
 	lines.push(`Template: ${manifest.template}`);
 	lines.push('Stack: SvelteKit + Skeleton UI v5 + Tailwind v4 + Paraglide FR/EN + Vitest');
 	if (manifest.stack.auth) lines.push(`Auth: ${manifest.stack.auth}  •  ORM: ${manifest.stack.orm}`);
+	if (manifest.stack.database) lines.push(`Database: ${manifest.stack.database}`);
 	lines.push('');
 	lines.push('## Capabilities installed');
 	for (const cap of manifest.capabilities) lines.push(`- ${cap}`);

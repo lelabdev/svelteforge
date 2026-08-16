@@ -17,9 +17,10 @@ Base template + admin dashboard with Better Auth, Drizzle ORM, and user manageme
 - Schemas at `src/lib/server/schemas.ts`
 
 ### Database
-- **Drizzle ORM** with SQLite (libsql)
-- **Schema**: user, session, account, verification tables
+- **Drizzle ORM** with **PostgreSQL** (`drizzle-orm/pg-core` + `postgres` driver)
+- **Schema**: user, session, account, verification tables (Better Auth) + app tables
 - **Auth schema** at `src/lib/server/db/auth.schema.ts`
+- **Conventions**: uuid ids (`defaultRandom()`), `timestamp withTimezone` + `defaultNow()`, `jsonb` for structured data, explicit FK/cascade, composite PKs on join tables
 
 ### Admin Dashboard
 - **Dashboard** at `/admin` — stats (total users, active sessions, new this week)
@@ -42,12 +43,13 @@ Base template + admin dashboard with Better Auth, Drizzle ORM, and user manageme
 
 ## Environment Variables
 
-- `DATABASE_URL` — SQLite path (e.g. `file:local.db`)
+- `DATABASE_URL` — PostgreSQL connection string (local, Docker or managed — see `.env.example` for ready-to-use examples)
 - `ORIGIN` — app URL (e.g. `http://localhost:5173`)
 - `BETTER_AUTH_SECRET` — generate with `openssl rand -base64 32`
 
 ## Next Steps
 
+- **Start PostgreSQL** (local / Docker / managed — see `.env.example`)
 - **Run migrations**: `bunx drizzle-kit push --force`
 - **Create first admin**: Go to `/setup` in dev mode
 - **Add a protected route**: Create file in `src/routes/(app)/your-route/+page.svelte`

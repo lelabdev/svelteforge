@@ -66,7 +66,7 @@ export const chat = {
 	},
 
 	/** Paginated messages of a conversation (membership-checked). */
-	async listMessages(conversationId: number, userId: string, opts: { limit?: number; offset?: number } = {}) {
+	async listMessages(conversationId: string, userId: string, opts: { limit?: number; offset?: number } = {}) {
 		await this.assertMember(conversationId, userId);
 		return db
 			.select()
@@ -78,7 +78,7 @@ export const chat = {
 	},
 
 	/** Send a message as the current author (server-side identity, no spoof). */
-	async sendMessage(input: { conversationId: number; authorId: string; content: string }) {
+	async sendMessage(input: { conversationId: string; authorId: string; content: string }) {
 		if (!input.content?.trim()) throw new Error('Message content is required');
 		await this.assertMember(input.conversationId, input.authorId);
 		const [row] = await db
@@ -94,7 +94,7 @@ export const chat = {
 	},
 
 	/** Mark messages of a conversation as read for a user. */
-	async markRead(conversationId: number, userId: string) {
+	async markRead(conversationId: string, userId: string) {
 		await this.assertMember(conversationId, userId);
 		const msgs = await db
 			.select({ id: messages.id })
@@ -108,7 +108,7 @@ export const chat = {
 		}
 	},
 
-	async getLastMessage(conversationId: number) {
+	async getLastMessage(conversationId: string) {
 		const rows = await db
 			.select()
 			.from(messages)
@@ -119,7 +119,7 @@ export const chat = {
 	},
 
 	/** Unread count for a user in a conversation (message without read entry). */
-	async unreadCount(conversationId: number, userId: string): Promise<number> {
+	async unreadCount(conversationId: string, userId: string): Promise<number> {
 		const msgs = await db
 			.select({ id: messages.id })
 			.from(messages)
@@ -134,7 +134,7 @@ export const chat = {
 	},
 
 	/** Server-side membership check — throws if the user cannot access. */
-	async assertMember(conversationId: number, userId: string): Promise<void> {
+	async assertMember(conversationId: string, userId: string): Promise<void> {
 		const rows = await db
 			.select({ conversationId: conversationParticipants.conversationId })
 			.from(conversationParticipants)

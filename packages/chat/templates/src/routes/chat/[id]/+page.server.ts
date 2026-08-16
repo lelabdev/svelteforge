@@ -4,8 +4,8 @@ import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
 	if (!locals.user) throw redirect(302, '/login');
-	const conversationId = Number(params.id);
-	if (!Number.isInteger(conversationId)) throw error(400, { message: 'Invalid conversation' });
+	const conversationId = params.id; // uuid (#255)
+	
 
 	try {
 		const messages = await chat.listMessages(conversationId, locals.user.id, { limit: 50 });
@@ -19,7 +19,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 export const actions: Actions = {
 	send: async ({ locals, params, request }: RequestEvent) => {
 		if (!locals.user) throw redirect(302, '/login');
-		const conversationId = Number(params.id);
+		const conversationId = params.id; // uuid (#255)
 		const form = await request.formData();
 		const content = String(form.get('content') ?? '').trim();
 		if (!content) return fail(400, { error: 'Message is required' });

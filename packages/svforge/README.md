@@ -45,7 +45,7 @@ The Playwright profile is opt-in with `testing:playwright`; it adds
 Everything in Base, plus:
 
 - **Better Auth** — email/password, session management
-- **Drizzle ORM** — SQLite with user/session/account/verification schema
+- **Drizzle ORM** — PostgreSQL with user/session/account/verification schema
 - **Admin dashboard** — stats, user management (CRUD), settings
 - **Zod validation** — type-safe schemas on all server actions
 - **Setup script** — `bash scripts/setup.sh` (generates secret, inits DB)

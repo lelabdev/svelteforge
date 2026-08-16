@@ -28,6 +28,7 @@ describe('AI context generation (#234)', () => {
 		const m = buildManifest('dashboard', []);
 		expect(m.stack.auth).toBe('better-auth');
 		expect(m.stack.orm).toBe('drizzle');
+		expect(m.stack.database).toBe('postgresql');
 		expect(m.capabilities).toContain('auth');
 		expect(m.capabilities).toContain('db');
 		expect(m.capabilities).toContain('admin');

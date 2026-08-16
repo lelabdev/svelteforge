@@ -88,6 +88,14 @@ if [ "$TEMPLATE" = "dashboard" ] || [ "$TEMPLATE" = "dashboard-playwright" ]; th
 	test -f static/robots.txt || { echo "❌ static/robots.txt missing at project root (#187)"; exit 1; }
 	bash scripts/setup.sh >/dev/null 2>&1 || { echo "❌ setup.sh failed"; exit 1; }
 	test -f .env || { echo "❌ setup.sh did not create .env"; exit 1; }
+
+	# PostgreSQL is real in CI (#255): require the drizzle push to actually
+	# succeed against the service (the dashboard must be usable out of the box).
+	# Local dev without a running DB stays best-effort (setup.sh warns).
+	if [ "${CI:-}" = "true" ]; then
+		bunx drizzle-kit push --force >/tmp/drizzle-push.log 2>&1 \
+			|| { cat /tmp/drizzle-push.log; echo "❌ drizzle-kit push failed against PostgreSQL (#255)"; exit 1; }
+	fi
 fi
 
 # 4. Build the scaffolded project — the actual assertion

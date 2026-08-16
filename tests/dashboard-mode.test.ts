@@ -66,6 +66,15 @@ describe('dashboard testing profiles', () => {
 		expect(JSON.parse(sv.files.get('package.json')!).scripts['test:e2e']).toBe('playwright test');
 	});
 
+	it('adds the PostgreSQL driver and never libsql (#255)', () => {
+		const sv = fakeSv();
+		applyDashboardMode(sv, baseFiles, dashboardFiles, 'vitest');
+
+		expect(sv.dependencies).toContain('postgres');
+		expect(sv.dependencies).not.toContain('@libsql/client');
+		expect(sv.dependencies).toContain('drizzle-orm');
+	});
+
 	it('writes test configs at the project root, not under src/ (#186)', () => {
 		const sv = fakeSv();
 		applyDashboardMode(sv, baseFiles, dashboardFiles, 'playwright');

@@ -8,7 +8,7 @@ A SvelteKit addon that provides a complete UI component library and starter temp
 UI-only starter with components, theme, and layouts. No auth, no database.
 
 ### Dashboard
-Base + auth (Better Auth), database (Drizzle + SQLite), and admin dashboard.
+Base + auth (Better Auth), database (Drizzle + PostgreSQL), and admin dashboard.
 
 ## Install
 
@@ -28,7 +28,7 @@ npx sv add svforge
 
 The addon prompts for a template:
 - **Base** — UI components + theme + layouts
-- **Dashboard** — Base + Better Auth + Drizzle SQLite + admin dashboard
+- **Dashboard** — Base + Better Auth + Drizzle PostgreSQL + admin dashboard
 
 ## Quick Start — Base
 
@@ -45,7 +45,7 @@ After installation, you get:
 Everything from Base, plus:
 
 - **Better Auth** — email/password login, session management, protected routes
-- **Drizzle + SQLite** — schema auto-generated, `drizzle-kit push` to create tables
+- **Drizzle + PostgreSQL** — schema auto-generated, `drizzle-kit push` to create tables
 - **Admin dashboard** `/admin` — stats cards, user CRUD, settings
 - **Auth guard** — unprotected routes redirect to `/login`
 
@@ -159,7 +159,7 @@ The dashboard template only contains files that differ from base. The build syst
 | Framework | SvelteKit 2.x + Svelte 5.x (runes) |
 | Styling | Tailwind CSS v4 + Skeleton UI v4 |
 | Auth | Better Auth v1.x |
-| Database | Drizzle ORM + libsql (SQLite) |
+| Database | Drizzle ORM + PostgreSQL |
 | Icons | Phosphor Icons |
 | Build | Vite 8.x |
 
