@@ -1,9 +1,11 @@
+import type { SvApi } from 'sv';
+
 /**
  * Apply Base mode files via sv.file()
  * Base = all UI components, layouts, styles, utils, schemas
  */
 export function applyBaseMode(
-	sv: any,
+	sv: SvApi,
 	files: Record<string, string>
 ): void {
 	// Write all base template files

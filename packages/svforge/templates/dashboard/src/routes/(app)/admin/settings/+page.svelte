@@ -4,7 +4,7 @@
 	import Lock from 'phosphor-svelte/lib/Lock';
 	import type { ActionData } from './$types';
 
-	let { data, form }: { data: any, form: ActionData } = $props();
+	let { data, form }: { data: { user: { id: string; name: string; email: string } | null }, form: ActionData } = $props();
 	let currentPassword = $state('');
 	let newPassword = $state('');
 	let confirmPassword = $state('');

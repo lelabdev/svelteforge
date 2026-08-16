@@ -1,3 +1,5 @@
+import type { SvApi } from 'sv';
+
 /**
  * Apply Dashboard mode files via sv.file()
  * Dashboard = base + admin dashboard + auth + DB
@@ -9,7 +11,7 @@
 const ROOT_FILES = new Set(['/playwright.config.ts', '/vitest.config.ts']);
 
 export function applyDashboardMode(
-	sv: any,
+	sv: SvApi,
 	baseFiles: Record<string, string>,
 	dashboardFiles: Record<string, string>,
 	testing: 'vitest' | 'playwright' = 'vitest',
@@ -17,6 +19,7 @@ export function applyDashboardMode(
 ): void {
 	// Dashboard-specific runtime dependencies
 	sv.dependency('drizzle-orm', '^0.45.2');
+	sv.dependency('zod', '^4.3.5'); // schemas.ts — explicit, not transitive via better-auth (#192)
 	sv.dependency('@libsql/client', '^0.17.2');
 	sv.dependency('better-auth', '~1.4.21');
 
