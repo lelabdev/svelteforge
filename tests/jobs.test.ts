@@ -74,5 +74,10 @@ describe('jobs module (#231)', () => {
 		expect(index).toMatch(/hooks\.server\.ts/);
 		expect(index).toMatch(/enrichManifest/);
 		expect(index).toMatch(/sv\.file\('\.svforge\.json'/);
+		// #258: the module also merges its capability into llms.txt (manifest
+		// alone is not enough — svforge is not installed in generated projects)
+		expect(index).toMatch(/mergeLlmstxt/);
+		expect(index).toMatch(/sv\.file\('llms\.txt'/);
+		expect(index).toMatch(/background jobs/);
 	});
 });

@@ -14,7 +14,8 @@ set -euo pipefail
 
 TEMPLATE="${1:-base}"
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-TMP_DIR="$(mktemp -d /tmp/sf-scaffold-$TEMPLATE-XXXXXX)"
+# Respect TMPDIR when set (small /tmp tmpfs machines); CI runners use /tmp.
+TMP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/sf-scaffold-$TEMPLATE-XXXXXX")"
 
 echo "Testing svforge scaffold: template=$TEMPLATE (local addon)"
 
@@ -38,12 +39,23 @@ cd app
 # 2. Add the LOCAL svforge addon with all options set (no prompts in CI)
 #    Profile variants: base, dashboard (vitest), dashboard-playwright, base-blog
 #    base-modules adds svforge itself at the right point (#190 bare-project refusal).
-if [ "$TEMPLATE" = "dashboard-playwright" ]; then
+#    dashboard-foundations (#258): permanent composition of the new foundations
+#    (audit/notifications/jobs/chat/realtime) against a real PostgreSQL.
+if [ "$TEMPLATE" = "dashboard-foundations" ]; then
+	$SV_CMD add \
+		"file:$REPO_ROOT/packages/svforge=template:dashboard+testing:vitest" \
+		"file:$REPO_ROOT/packages/audit" \
+		"file:$REPO_ROOT/packages/notifications" \
+		"file:$REPO_ROOT/packages/jobs" \
+		"file:$REPO_ROOT/packages/chat" \
+		"file:$REPO_ROOT/packages/realtime" \
+		--install bun --no-download-check
+elif [ "$TEMPLATE" = "dashboard-playwright" ]; then
 	ADD_SPEC="file:$REPO_ROOT/packages/svforge=template:dashboard+testing:playwright"
 elif [ "$TEMPLATE" = "dashboard" ]; then
 	ADD_SPEC="file:$REPO_ROOT/packages/svforge=template:dashboard+testing:vitest"
 fi
-if [ "$TEMPLATE" != "base-modules" ]; then
+if [ "$TEMPLATE" != "base-modules" ] && [ "$TEMPLATE" != "dashboard-foundations" ]; then
 	ADD_SPEC="${ADD_SPEC:-file:$REPO_ROOT/packages/svforge=template:base+testing:vitest}"
 	$SV_CMD add "$ADD_SPEC" --install bun --no-download-check
 fi
@@ -80,7 +92,7 @@ fi
 # 3. Dashboard: env vars required at build time (auth.ts / db/index.ts)
 #    Now that drizzle.config.ts + .env.example + setup.sh are scaffolded (#187),
 #    run the REAL setup script instead of hand-writing .env.
-if [ "$TEMPLATE" = "dashboard" ] || [ "$TEMPLATE" = "dashboard-playwright" ]; then
+if [ "$TEMPLATE" = "dashboard" ] || [ "$TEMPLATE" = "dashboard-playwright" ] || [ "$TEMPLATE" = "dashboard-foundations" ]; then
 	# Verify the previously-missing root files were delivered (#187)
 	test -f drizzle.config.ts || { echo "❌ drizzle.config.ts missing at project root (#187)"; exit 1; }
 	test -f .env.example || { echo "❌ .env.example missing at project root (#187)"; exit 1; }
@@ -116,8 +128,36 @@ if [ "$TEMPLATE" = "base-blog" ]; then
 		|| { echo "❌ welcome.md not compiled by mdsvex (#185)"; exit 1; }
 fi
 
+# 4b. dashboard-foundations composition (#258): the five new foundation
+# modules must keep composing after future SvelteForge changes — schemas,
+# hooks, Paraglide, manifest/llms and the real tests all together.
+if [ "$TEMPLATE" = "dashboard-foundations" ]; then
+	# Drizzle schemas compose without collision (all registered in the barrel)
+	for sym in auditLogs notifications jobs conversations messageReads; do
+		grep -q "$sym" src/lib/server/db/schema.ts || { echo "❌ schema $sym missing in Drizzle barrel (#258)"; exit 1; }
+	done
+	# Hooks are patched/composed without overwriting (paraglide + better-auth + runner)
+	grep -q "paraglideMiddleware" src/hooks.server.ts || { echo "❌ paraglide middleware missing (#258)"; exit 1; }
+	grep -q "svelteKitHandler" src/hooks.server.ts || { echo "❌ better-auth handler missing (#258)"; exit 1; }
+	grep -q "startJobRunner" src/hooks.server.ts || { echo "❌ job runner not started in hooks (#258)"; exit 1; }
+	grep -q "startJobRunner()" src/hooks.server.ts || { echo "❌ startJobRunner() not called (#258)"; exit 1; }
+	# Paraglide FR/EN stays coherent across all modules
+	grep -q "chat_title" messages/fr.json || { echo "❌ chat fr messages missing (#258)"; exit 1; }
+	grep -q "chat_title" messages/en.json || { echo "❌ chat en messages missing (#258)"; exit 1; }
+	# .svforge.json / llms.txt reflect every installed module (#234)
+	for mod in audit notifications jobs chat realtime; do
+		grep -q "\"$mod\"" .svforge.json || { echo "❌ module $mod missing in .svforge.json (#258)"; exit 1; }
+	done
+	for cap in "audit trail" "background jobs" "chat" "realtime (WebSocket)" "notifications"; do
+		grep -q "$cap" llms.txt || { echo "❌ capability '$cap' missing in llms.txt (#258)"; exit 1; }
+	done
+	grep -q "Database: postgresql" llms.txt || { echo "❌ llms.txt lacks PostgreSQL (#258)"; exit 1; }
+	# Tests of the installed modules run (dashboard vitest baseline)
+	bun run test || { echo "❌ vitest failed on dashboard-foundations scaffold (#258)"; exit 1; }
+fi
+
 # 5. Assert testing-profile files land at the project ROOT, not src/ (#186)
-if [ "$TEMPLATE" = "dashboard" ] || [ "$TEMPLATE" = "dashboard-playwright" ]; then
+if [ "$TEMPLATE" = "dashboard" ] || [ "$TEMPLATE" = "dashboard-playwright" ] || [ "$TEMPLATE" = "dashboard-foundations" ]; then
 	test -f vitest.config.ts || { echo "❌ vitest.config.ts missing at project root"; exit 1; }
 fi
 if [ "$TEMPLATE" = "dashboard-playwright" ]; then
@@ -126,7 +166,7 @@ if [ "$TEMPLATE" = "dashboard-playwright" ]; then
 fi
 
 # 5b. Canonical component structure primitives/ui/layout (#242)
-if [ "$TEMPLATE" = "base" ] || [ "$TEMPLATE" = "dashboard" ] || [ "$TEMPLATE" = "dashboard-playwright" ]; then
+if [ "$TEMPLATE" = "base" ] || [ "$TEMPLATE" = "dashboard" ] || [ "$TEMPLATE" = "dashboard-playwright" ] || [ "$TEMPLATE" = "dashboard-foundations" ]; then
 	test -f src/lib/components/svforge/primitives/Button.svelte || { echo "❌ primitives/Button.svelte missing (#242)"; exit 1; }
 	test -f src/lib/components/svforge/primitives/index.ts || { echo "❌ primitives/index.ts missing (#242)"; exit 1; }
 	test -f src/lib/components/svforge/ui/Card.svelte || { echo "❌ ui/Card.svelte missing (#242)"; exit 1; }
@@ -138,7 +178,7 @@ if [ "$TEMPLATE" = "base" ] || [ "$TEMPLATE" = "dashboard" ] || [ "$TEMPLATE" = 
 fi
 
 # 5c. Paraglide FR/EN baseline delivered (#239)
-if [ "$TEMPLATE" = "base" ] || [ "$TEMPLATE" = "dashboard" ] || [ "$TEMPLATE" = "dashboard-playwright" ]; then
+if [ "$TEMPLATE" = "base" ] || [ "$TEMPLATE" = "dashboard" ] || [ "$TEMPLATE" = "dashboard-playwright" ] || [ "$TEMPLATE" = "dashboard-foundations" ]; then
 	test -f messages/fr.json || { echo "❌ messages/fr.json missing (#239)"; exit 1; }
 	test -f messages/en.json || { echo "❌ messages/en.json missing (#239)"; exit 1; }
 	test -f project.inlang/settings.json || { echo "❌ project.inlang/settings.json missing (#239)"; exit 1; }
@@ -147,7 +187,7 @@ if [ "$TEMPLATE" = "base" ] || [ "$TEMPLATE" = "dashboard" ] || [ "$TEMPLATE" = 
 fi
 
 # 5d. Design-system harness (#240): catalog delivered + check runs clean
-if [ "$TEMPLATE" = "base" ] || [ "$TEMPLATE" = "dashboard" ] || [ "$TEMPLATE" = "dashboard-playwright" ]; then
+if [ "$TEMPLATE" = "base" ] || [ "$TEMPLATE" = "dashboard" ] || [ "$TEMPLATE" = "dashboard-playwright" ] || [ "$TEMPLATE" = "dashboard-foundations" ]; then
 	test -f svforge-catalog.json || { echo "❌ svforge-catalog.json missing (#240)"; exit 1; }
 	test -f svforge-check.mjs || { echo "❌ svforge-check.mjs missing (#240)"; exit 1; }
 	test -f svforge-modules.json || { echo "❌ svforge-modules.json missing (#236)"; exit 1; }
@@ -159,7 +199,7 @@ fi
 # 6. AI-ready: AGENTS.md scaffolded at the project root (#203)
 test -f AGENTS.md || { echo "❌ AGENTS.md missing at project root (#203)"; exit 1; }
 grep -q "preset-tonal" AGENTS.md || { echo "❌ AGENTS.md lacks Skeleton v5 class guidance (#203)"; exit 1; }
-if [ "$TEMPLATE" = "dashboard" ] || [ "$TEMPLATE" = "dashboard-playwright" ]; then
+if [ "$TEMPLATE" = "dashboard" ] || [ "$TEMPLATE" = "dashboard-playwright" ] || [ "$TEMPLATE" = "dashboard-foundations" ]; then
 	grep -q "result.data" AGENTS.md || { echo "❌ dashboard AGENTS.md lacks action-response pattern (#203)"; exit 1; }
 fi
 

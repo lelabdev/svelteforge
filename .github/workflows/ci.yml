@@ -61,3 +61,8 @@ jobs:
 
       - name: Scaffold test (base + module composition)
         run: bash scripts/test-scaffold.sh base-modules
+
+      # Permanent composition of the new foundations (#258): dashboard +
+      # audit + notifications + jobs + chat + realtime against real PostgreSQL.
+      - name: Scaffold test (dashboard-foundations)
+        run: bash scripts/test-scaffold.sh dashboard-foundations

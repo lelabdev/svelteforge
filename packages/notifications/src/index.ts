@@ -5,17 +5,48 @@ import { files } from './templates';
 
 /**
  * Enrich the project's .svforge.json AI manifest (#234) without overwriting
- * user edits. Small inline helper — modules are standalone packages.
+ * user edits — module id, capability and canonical pattern are merged
+ * idempotently (#258). Small inline helper — modules are standalone packages.
  */
-function enrichManifest(content: string, moduleId: string): string {
-	let manifest: { template: string; modules: string[] } = { template: 'base', modules: [] };
+function enrichManifest(content: string, moduleId: string, capability: string, pattern: string): string {
+	let manifest: {
+		template: string;
+		modules: string[];
+		capabilities: string[];
+		patterns: Record<string, string>;
+	} = { template: 'base', modules: [], capabilities: [], patterns: {} };
 	try {
 		manifest = content && content.trim() ? JSON.parse(content) : manifest;
 	} catch {
-		manifest = { template: 'base', modules: [] };
+		manifest = { template: 'base', modules: [], capabilities: [], patterns: {} };
 	}
+	if (!Array.isArray(manifest.modules)) manifest.modules = [];
+	if (!Array.isArray(manifest.capabilities)) manifest.capabilities = [];
+	if (!manifest.patterns) manifest.patterns = {};
 	if (!manifest.modules.includes(moduleId)) manifest.modules.push(moduleId);
+	if (!manifest.capabilities.includes(capability)) manifest.capabilities.push(capability);
+	if (!manifest.patterns[capability]) manifest.patterns[capability] = pattern;
 	return `${JSON.stringify(manifest, null, 2)}\n`;
+}
+
+/**
+ * Merge this module's capability + canonical pattern into the scaffolded
+ * llms.txt (#258) so the AI context reflects every installed module even
+ * though svforge itself is not installed in the generated project.
+ */
+function mergeLlmstxt(content: string, capability: string, pattern: string): string {
+	const lines = (content || '').split('\n');
+	const capLine = `- ${capability}`;
+	if (!lines.some((l) => l === capLine)) {
+		const idx = lines.findIndex((l) => l === '## Capabilities installed');
+		if (idx >= 0) lines.splice(idx + 1, 0, capLine);
+	}
+	const patLine = `- ${capability}: ${pattern}`;
+	if (!lines.some((l) => l === patLine)) {
+		const idx = lines.findIndex((l) => l === '## Canonical patterns');
+		if (idx >= 0) lines.splice(idx + 1, 0, patLine);
+	}
+	return lines.join('\n');
 }
 
 /**
@@ -84,7 +115,8 @@ export default defineAddon({
 		);
 
 		// AI context (#234).
-		sv.file('.svforge.json', (content) => enrichManifest(content, 'notifications'));
+		sv.file('.svforge.json', (content) => enrichManifest(content, 'notifications', 'notifications', 'src/lib/server/notifications/'));
+		sv.file('llms.txt', (content) => mergeLlmstxt(content, 'notifications', 'src/lib/server/notifications/'));
 	},
 
 	nextSteps: () => [
