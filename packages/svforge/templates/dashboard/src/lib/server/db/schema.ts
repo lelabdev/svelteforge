@@ -1,9 +1,9 @@
-import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import { pgTable, uuid, text, integer } from 'drizzle-orm/pg-core';
 
-export const task = sqliteTable('task', {
-	id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+export const task = pgTable('task', {
+	id: uuid('id').primaryKey().defaultRandom(),
 	title: text('title').notNull(),
 	priority: integer('priority').notNull().default(1)
 });
 
-export *  from './auth.schema';
+export * from './auth.schema';

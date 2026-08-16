@@ -22,7 +22,7 @@ export function applyDashboardMode(
 	// Dashboard-specific runtime dependencies
 	sv.dependency('drizzle-orm', '^0.45.2');
 	sv.dependency('zod', '^4.3.5'); // schemas.ts — explicit, not transitive via better-auth (#192)
-	sv.dependency('@libsql/client', '^0.17.2');
+	sv.dependency('postgres', '^3.4.5'); // PostgreSQL driver (drizzle-orm/postgres-js) (#255)
 	sv.dependency('better-auth', '~1.4.21');
 
 	// Dashboard-specific dev dependencies

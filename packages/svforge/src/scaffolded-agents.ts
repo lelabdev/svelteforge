@@ -137,7 +137,7 @@ const DASHBOARD = `
 - **Admin guard**: \`requireAdmin()\` in \`src/routes/(app)/admin/*/+page.server.ts\` — every action calls it BEFORE touching formData or the db.
 - **SvelteKit action responses**: \`{ type, data }\` — read the message at \`result.data?.message\`, NEVER \`result.message\` (always undefined).
 - **Server errors**: never leak \`e.message\` to the UI — return a generic message.
-- **DB**: Drizzle + SQLite (libsql). Schema in \`src/lib/server/db/schema.ts\`, config \`drizzle.config.ts\` at the root. Env in \`.env\` (copy \`.env.example\`).
+- **DB**: Drizzle + PostgreSQL. Schema in \`src/lib/server/db/schema.ts\`, config \`drizzle.config.ts\` at the root (dialect postgresql). Env in \`.env\` (copy \`.env.example\` — local / Docker / managed connection strings).
 - **Validation**: zod schemas in \`src/lib/server/schemas.ts\`.
 - **Setup**: \`bash scripts/setup.sh\` creates \`.env\`, generates \`BETTER_AUTH_SECRET\`, pushes the schema.
 `;
