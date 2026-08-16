@@ -25,7 +25,24 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        scaffold: [base, dashboard, dashboard-playwright, base-blog, base-modules]
+        scaffold: [base, dashboard, dashboard-playwright, base-blog, base-modules, dashboard-foundations]
+
+    # PostgreSQL for the DB scaffolds (#255): the canary would otherwise
+    # fail on the real drizzle push even when the ecosystem is healthy.
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: sf_dashboard
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - uses: actions/checkout@v4
 

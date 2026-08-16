@@ -39,9 +39,9 @@ describe('(app) layout auth guard', () => {
 				locals: { user: null, session: null },
 				url: new URL('http://localhost/dashboard')
 			} as any);
-		} catch { {
+		} catch (e) {
 			expect(e.status).toBe(302);
-			expect(e.body.location).toMatch(/\/login/);
+			expect(e.location).toMatch(/\/login/);
 		}
 	});
 
