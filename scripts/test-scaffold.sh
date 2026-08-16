@@ -37,14 +37,16 @@ cd app
 
 # 2. Add the LOCAL svforge addon with all options set (no prompts in CI)
 #    Profile variants: base, dashboard (vitest), dashboard-playwright, base-blog
+#    base-modules adds svforge itself at the right point (#190 bare-project refusal).
 if [ "$TEMPLATE" = "dashboard-playwright" ]; then
 	ADD_SPEC="file:$REPO_ROOT/packages/svforge=template:dashboard+testing:playwright"
 elif [ "$TEMPLATE" = "dashboard" ]; then
 	ADD_SPEC="file:$REPO_ROOT/packages/svforge=template:dashboard+testing:vitest"
-else
-	ADD_SPEC="file:$REPO_ROOT/packages/svforge=template:base+testing:vitest"
 fi
-$SV_CMD add "$ADD_SPEC" --install bun --no-download-check
+if [ "$TEMPLATE" != "base-modules" ]; then
+	ADD_SPEC="${ADD_SPEC:-file:$REPO_ROOT/packages/svforge=template:base+testing:vitest}"
+	$SV_CMD add "$ADD_SPEC" --install bun --no-download-check
+fi
 
 # Blog module on top of base (#185): mdsvex must integrate via vite.config.ts
 # (no svelte.config.js in modern sv create) and the scaffold must build.
@@ -55,6 +57,24 @@ if [ "$TEMPLATE" = "base-blog" ]; then
 	grep -q "extensions: \['.svelte', '.md'\]" vite.config.ts || { echo "❌ .md extension missing (#185)"; exit 1; }
 	# welcome.md post delivered and compiled by mdsvex
 	test -f src/posts/welcome.md || { echo "❌ src/posts/welcome.md missing"; exit 1; }
+fi
+
+# Module composition guards (#190): graph/ui_toast on base, oauth on dashboard.
+# A bare project must REFUSE oauth/graph with a clear unsupported message.
+if [ "$TEMPLATE" = "base-modules" ]; then
+	# 1. graph on bare project → refused
+	if $SV_CMD add "file:$REPO_ROOT/packages/graph" --install bun --no-download-check 2>&1 | grep -q "requires the svforge base template"; then
+		echo "✅ graph refused on bare project (#190)"
+	else
+		echo "❌ graph was not refused on bare project (#190)"; exit 1
+	fi
+	# 2. ui_toast on bare project → installs and declares skeleton-svelte
+	$SV_CMD add "file:$REPO_ROOT/packages/ui_toast" --install bun --no-download-check
+	grep -q "skeleton-svelte" package.json || { echo "❌ skeleton-svelte not declared (#190)"; exit 1; }
+	# 3. graph on svforge base → works
+	$SV_CMD add "file:$REPO_ROOT/packages/svforge=template:base+testing:vitest" --install bun --no-download-check
+	$SV_CMD add "file:$REPO_ROOT/packages/graph" --install bun --no-download-check
+	test -f src/lib/components/svforge/graph/KnowledgeGraph.svelte || { echo "❌ graph files missing on base (#190)"; exit 1; }
 fi
 
 # 3. Dashboard: env vars required at build time (auth.ts / db/index.ts)

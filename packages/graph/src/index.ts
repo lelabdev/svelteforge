@@ -1,3 +1,5 @@
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
 import { defineAddon, defineAddonOptions } from 'sv';
 import { files } from './templates';
 
@@ -10,8 +12,13 @@ export default defineAddon({
 	// options object (Object.entries(undefined) in promptAddonQuestions).
 	options: defineAddonOptions().build(),
 
-	setup: ({ unsupported, isKit }) => {
+	setup: ({ unsupported, isKit, cwd }) => {
 		if (!isKit) unsupported('SVForge Graph requires SvelteKit');
+		// KnowledgeGraph imports $lib/utils/cn — provided only by the svforge
+		// base template. Install svforge first (#190).
+		if (!existsSync(join(cwd, 'src/lib/utils/cn.ts'))) {
+			unsupported('SVForge Graph requires the svforge base template (src/lib/utils/cn.ts missing — run `sv add svforge=template:base` first)');
+		}
 	},
 
 	run: ({ sv }) => {

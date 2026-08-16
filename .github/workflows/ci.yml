@@ -42,3 +42,6 @@ jobs:
 
       - name: Scaffold test (base + blog)
         run: bash scripts/test-scaffold.sh base-blog
+
+      - name: Scaffold test (base + module composition)
+        run: bash scripts/test-scaffold.sh base-modules
