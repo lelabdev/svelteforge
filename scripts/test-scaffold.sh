@@ -142,6 +142,7 @@ fi
 if [ "$TEMPLATE" = "base" ] || [ "$TEMPLATE" = "dashboard" ] || [ "$TEMPLATE" = "dashboard-playwright" ]; then
 	test -f svforge-catalog.json || { echo "❌ svforge-catalog.json missing (#240)"; exit 1; }
 	test -f svforge-check.mjs || { echo "❌ svforge-check.mjs missing (#240)"; exit 1; }
+	test -f svforge-modules.json || { echo "❌ svforge-modules.json missing (#236)"; exit 1; }
 	node svforge-check.mjs 2>&1 | grep -q "Design system is clean" || { echo "❌ svforge check not clean (#240)"; exit 1; }
 fi
 

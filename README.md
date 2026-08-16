@@ -86,6 +86,20 @@ npx sv add @svforge/tiptap
 
 For anything else, reach for [`@skeletonlabs/skeleton-svelte`](https://skeleton.dev) — 30+ production components (accordion, tabs, dialog, date-picker…) that pair naturally with the base kit.
 
+## Presets (#236)
+
+Presets are **composition recipes** (meta-packages) — they never duplicate module code. Get the recipe with `svforge preset <name>`, then run it with `sv add`:
+
+| Preset | Composition |
+|--------|-------------|
+| `saas` | dashboard + email + uploads (optional: tiptap, oauth, dnd) |
+| `community` | base + blog + ui_toast (optional: tiptap, graph) |
+
+```bash
+npx svforge preset saas
+# → sv add svforge=template:dashboard+testing:vitest @svforge/email @svforge/uploads
+```
+
 ## Architecture
 
 - **Model**: shadcn/ui style — source files are copied into the target project, not imported from node_modules. You own the code.

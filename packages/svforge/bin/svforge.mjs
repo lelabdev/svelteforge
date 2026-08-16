@@ -30,8 +30,8 @@ async function main() {
 	if (command === 'check') {
 		// Design-system harness (#240): ERROR blocks, WARN is informational.
 		const results = await api.checkDesignSystem(projectRoot);
-		const errors = results.filter((r: { status: string }) => r.status === 'error');
-		const warnings = results.filter((r: { status: string }) => r.status === 'warn');
+		const errors = results.filter((r) => r.status === 'error');
+		const warnings = results.filter((r) => r.status === 'warn');
 		console.log('\n SVForge check (design system)\n');
 		for (const r of results) {
 			const icon = r.status === 'ok' ? '✓' : r.status === 'warn' ? '⚠' : '✗';
@@ -45,6 +45,26 @@ async function main() {
 			console.log('\n✓ Design system is clean.');
 		}
 		process.exitCode = errors.length ? 1 : 0;
+		return;
+	}
+
+	if (command === 'preset') {
+		// Preset recipe (#236): print the exact sv add composition.
+		const presetName = args.find((a) => !a.startsWith('-'));
+		if (!presetName || !api.PRESETS[presetName]) {
+			console.error('Usage: svforge preset <name>');
+			console.error(`Available presets: ${Object.keys(api.PRESETS ?? {}).join(', ')}`);
+			process.exitCode = 1;
+			return;
+		}
+		const specs = api.expandPreset(presetName);
+		console.log(`\n Preset: ${presetName} — ${api.PRESETS[presetName].description}\n`);
+		console.log('  Composition (run with sv add, no parallel CLI):\n');
+		console.log(`  sv add ${specs.join(' ')}`);
+		const preset = api.PRESETS[presetName];
+		if (preset.optional?.length) {
+			console.log(`\n  Optional (never auto-installed): ${preset.optional.join(', ')}\n`);
+		}
 		return;
 	}
 
@@ -68,7 +88,7 @@ async function main() {
 		return;
 	}
 
-	console.error('Usage: svforge <doctor|check|upgrade>');
+	console.error('Usage: svforge <doctor|check|preset|upgrade>');
 	process.exitCode = 1;
 }
 
