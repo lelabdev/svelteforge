@@ -12,6 +12,9 @@
   "homepage": "https://github.com/lelabdev/svelteforge#readme",
   "bugs": "https://github.com/lelabdev/svelteforge/issues",
   "types": "./dist/index.d.ts",
+  "bin": {
+    "svforge": "./bin/svforge.mjs"
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -19,7 +22,8 @@
     }
   },
   "files": [
-    "dist/"
+    "dist/",
+    "bin/"
   ],
   "keywords": [
     "sv-add",

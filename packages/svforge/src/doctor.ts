@@ -73,12 +73,18 @@ function checkSvelteKit(root: string): DiagnosticResult {
 	try {
 		const fs = require('node:fs');
 		const path = require('node:path');
-		const svelteConfig = path.join(root, 'svelte.config.js');
-		if (!fs.existsSync(svelteConfig)) {
+		// Modern sv create (Kit 2.63 / vite-plugin-svelte 7) has no svelte.config.js
+		// — the config lives in vite.config.ts (#185).
+		const hasViteConfig = fs.existsSync(path.join(root, 'vite.config.ts')) || fs.existsSync(path.join(root, 'vite.config.js'));
+		const hasSvelteConfig = fs.existsSync(path.join(root, 'svelte.config.js')) || fs.existsSync(path.join(root, 'svelte.config.ts'));
+		const pkgPath = path.join(root, 'package.json');
+		const hasSvelteKitDep = fs.existsSync(pkgPath) &&
+			/@sveltejs\/kit/.test(fs.readFileSync(pkgPath, 'utf-8'));
+		if (!hasViteConfig && !hasSvelteConfig && !hasSvelteKitDep) {
 			return {
 				module: 'sveltekit',
 				status: 'error',
-				message: 'No svelte.config.js found. SVForge requires a SvelteKit project.'
+				message: 'No SvelteKit project detected (no vite.config / svelte.config / @sveltejs/kit). SVForge requires SvelteKit.'
 			};
 		}
 		return { module: 'sveltekit', status: 'ok', message: 'SvelteKit project detected' };
