@@ -1,8 +1,8 @@
 {
 	"name": "@svforge/ui_toast",
-	"version": "0.0.1",
+	"version": "0.0.2",
 	"type": "module",
-	"description": "SVForge Toast — notification toasts via Skeleton UI",
+	"description": "SVForge Toast \u2014 notification toasts via Skeleton UI",
 	"author": "Ludo (https://lelab.dev)",
 	"repository": {
 		"type": "git",
