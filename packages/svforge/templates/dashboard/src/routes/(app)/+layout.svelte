@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import AdminLayout from '$lib/components/layout/AdminLayout.svelte';
 	import { authClient } from '$lib/client/auth';
@@ -12,6 +12,6 @@
 	}
 </script>
 
-<AdminLayout currentPath={$page.url.pathname} user={data.user} onSignOut={handleSignOut}>
+<AdminLayout currentPath={page.url.pathname} user={data.user} onSignOut={handleSignOut}>
 	{@render children()}
 </AdminLayout>

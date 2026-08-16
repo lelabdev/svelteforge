@@ -29,8 +29,9 @@ export const actions: Actions = {
 				body: { currentPassword, newPassword }
 			});
 			return { success: true };
-		} catch (e: unknown) {
-			return fail(400, { message: e instanceof Error ? e.message : "Failed to change password" || 'Failed to change password' });
+		} catch {
+			// Generic message — never leak e.message internals to the UI (#188).
+			return fail(400, { message: 'Failed to change password' });
 		}
 	}
 };
