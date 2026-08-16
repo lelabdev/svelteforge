@@ -2,7 +2,7 @@
 	import * as m from '$lib/paraglide/messages.js';
 	import { Button } from '$lib/components/svforge/primitives';
 
-	let { data }: { data: ReturnType<typeof import('./$types').load> } = $props();
+	let { data }: { data: import('./$types').PageData } = $props();
 	const conversations = $derived(data.conversations);
 </script>
 

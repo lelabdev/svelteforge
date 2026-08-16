@@ -4,7 +4,7 @@
 	import Check from 'phosphor-svelte/lib/Check';
 
 	interface NotificationItem {
-		id: number;
+		id: string;
 		type: string;
 		title: string;
 		message: string;

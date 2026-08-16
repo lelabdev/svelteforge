@@ -114,9 +114,9 @@ fi
 bun run build
 
 # 4a. Svelte/TypeScript quality gate (#266): run the generated project's own
-# check script on the main scaffolds. dashboard-foundations joins this gate
-# after #265 removes the known UUID number/string drift in DB modules.
-if [ "$TEMPLATE" = "base" ] || [ "$TEMPLATE" = "dashboard" ] || [ "$TEMPLATE" = "dashboard-playwright" ]; then
+# check script on the main scaffolds. dashboard-foundations joined after #265
+# fixed the UUID number/string drift in the DB modules.
+if [ "$TEMPLATE" = "base" ] || [ "$TEMPLATE" = "dashboard" ] || [ "$TEMPLATE" = "dashboard-playwright" ] || [ "$TEMPLATE" = "dashboard-foundations" ]; then
 	bun run check || { echo "❌ svelte-check failed on $TEMPLATE scaffold (#266)"; exit 1; }
 fi
 

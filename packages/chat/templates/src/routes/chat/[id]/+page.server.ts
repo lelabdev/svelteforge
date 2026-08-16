@@ -1,15 +1,15 @@
-import { error, redirect, fail, type RequestEvent, type Actions } from '@sveltejs/kit';
+import { error, redirect, fail } from '@sveltejs/kit';
 import { chat } from '$lib/server/chat';
-import type { PageServerLoad } from './$types';
+import type { PageServerLoad, Actions } from './$types';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
 	if (!locals.user) throw redirect(302, '/login');
+	const currentUser = locals.user; // capture — TS narrows are lost after awaits
 	const conversationId = params.id; // uuid (#255)
-	
 
 	try {
-		const messages = await chat.listMessages(conversationId, locals.user.id, { limit: 50 });
-		await chat.markRead(conversationId, locals.user.id);
+		const messages = await chat.listMessages(conversationId, currentUser.id, { limit: 50 });
+		await chat.markRead(conversationId, currentUser.id);
 		return { conversationId, messages };
 	} catch (e) {
 		throw error(403, { message: e instanceof Error ? e.message : 'Forbidden' });
@@ -17,8 +17,9 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 };
 
 export const actions: Actions = {
-	send: async ({ locals, params, request }: RequestEvent) => {
+	send: async ({ locals, params, request }) => {
 		if (!locals.user) throw redirect(302, '/login');
+		const currentUser = locals.user; // capture — TS narrows are lost after awaits
 		const conversationId = params.id; // uuid (#255)
 		const form = await request.formData();
 		const content = String(form.get('content') ?? '').trim();
@@ -27,7 +28,7 @@ export const actions: Actions = {
 		try {
 			const message = await chat.sendMessage({
 				conversationId,
-				authorId: locals.user.id, // server-side identity — no client spoofing
+				authorId: currentUser.id, // server-side identity — no client spoofing
 				content
 			});
 			return { message };

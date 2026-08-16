@@ -21,7 +21,7 @@ import { eq, and, inArray } from 'drizzle-orm';
 export type JobStatus = 'queued' | 'running' | 'completed' | 'failed';
 
 export interface JobHandlerContext {
-	jobId: number;
+	jobId: string;
 	/** Update progress 0–100. */
 	progress: (value: number) => Promise<void>;
 }
@@ -53,7 +53,7 @@ export const jobsApi = {
 	},
 
 	/** Progress update (0–100). */
-	async progress(jobId: number, value: number) {
+	async progress(jobId: string, value: number) {
 		await db
 			.update(jobs)
 			.set({ progress: Math.min(100, Math.max(0, value)), updatedAt: new Date() })
@@ -61,7 +61,7 @@ export const jobsApi = {
 	},
 
 	/** Get a job by id (diagnostics). */
-	async get(jobId: number) {
+	async get(jobId: string) {
 		const [row] = await db.select().from(jobs).where(eq(jobs.id, jobId));
 		return row;
 	},
@@ -92,7 +92,7 @@ export const jobsApi = {
 		return processed;
 	},
 
-	async runOne(jobId: number, handler: JobHandler) {
+	async runOne(jobId: string, handler: JobHandler) {
 		const job = await this.get(jobId);
 		if (!job) return;
 		const attempts = job.attempts + 1;

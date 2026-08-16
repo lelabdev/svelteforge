@@ -4,7 +4,7 @@
 	import { Button } from '$lib/components/svforge/primitives';
 	import { page } from '$app/state';
 
-	let { data }: { data: ReturnType<typeof import('./$types').load> } = $props();
+	let { data }: { data: import('./$types').PageData } = $props();
 	const entries = $derived(data.entries);
 	const offset = $derived(data.offset);
 	const limit = $derived(data.limit);

@@ -76,7 +76,7 @@ export const notificationsApi = {
 	},
 
 	/** Mark one notification as read (ownership-checked). */
-	async markAsRead(notificationId: number, userId: string) {
+	async markAsRead(notificationId: string, userId: string) {
 		await db
 			.update(notifications)
 			.set({ readAt: new Date() })
