@@ -40,7 +40,7 @@ jobs:
         run: bash scripts/test-scaffold.sh base
 
       - name: Scaffold test (dashboard)
-        run: bash scripts/test-scaffold.sh dashboard --no-file-parallelism
+        run: bash scripts/test-scaffold.sh dashboard
 
       - name: Publish svforge@latest
         run: cd packages/svforge && npm publish --access public --ignore-scripts
