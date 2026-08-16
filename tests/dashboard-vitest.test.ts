@@ -11,14 +11,22 @@ const dashboardRoot = join(ROOT, 'packages/svforge/templates/dashboard');
  */
 describe('dashboard Vitest baseline (#180)', () => {
 	describe('test infrastructure', () => {
-		it('has a vitest config', () => {
-			expect(existsSync(join(dashboardRoot, 'vitest.config.ts'))).toBe(true);
+		it('has a vitest config in the template source', () => {
+			// The file lives under src/ so the prebuild embeds it; the mode
+			// writes it at the PROJECT ROOT (dashboard-mode.test.ts #186).
+			expect(existsSync(join(dashboardRoot, 'src', 'vitest.config.ts'))).toBe(true);
+		});
+
+		it('vitest config is embedded in the manifest (#186)', async () => {
+			// Regression guard: vitest.config.ts must be part of the embedded
+			// dashboard manifest, otherwise it is never scaffolded (prebuild
+			// only ships templates/dashboard/src/**).
+			const { dashboardFiles } = await import('../packages/svforge/src/templates');
+			expect(Object.keys(dashboardFiles)).toContain('/vitest.config.ts');
 		});
 
 		it('vitest is in devDependencies in dashboard package template', () => {
-			// The svforge package.json lists deps; the template's own
-			// vitest config must exist and reference vitest
-			const config = readFileSync(join(dashboardRoot, 'vitest.config.ts'), 'utf-8');
+			const config = readFileSync(join(dashboardRoot, 'src', 'vitest.config.ts'), 'utf-8');
 			expect(config).toMatch(/vitest/i);
 		});
 

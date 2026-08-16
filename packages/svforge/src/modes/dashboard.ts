@@ -2,6 +2,12 @@
  * Apply Dashboard mode files via sv.file()
  * Dashboard = base + admin dashboard + auth + DB
  */
+
+// Files that must land at the PROJECT ROOT, not under src/ (#186):
+// Playwright and Vitest discover their config only at the root, and e2e/
+// is the default testDir referenced by playwright.config.ts.
+const ROOT_FILES = new Set(['/playwright.config.ts', '/vitest.config.ts']);
+
 export function applyDashboardMode(
 	sv: any,
 	baseFiles: Record<string, string>,
@@ -49,6 +55,10 @@ export function applyDashboardMode(
 	for (const [path, content] of Object.entries(dashboardFiles)) {
 		const isPlaywrightFile = path === '/playwright.config.ts' || path.startsWith('/e2e/');
 		if (isPlaywrightFile && testing !== 'playwright') continue;
-		sv.file(`src${path}`, () => content);
+		// Root-level files (test configs) go to the project root; everything
+		// else is src-relative (#186).
+		const isRoot = ROOT_FILES.has(path) || path.startsWith('/e2e/');
+		const dest = isRoot ? path.slice(1) : `src${path}`;
+		sv.file(dest, () => content);
 	}
 }

@@ -36,3 +36,6 @@ jobs:
 
       - name: Scaffold test (dashboard)
         run: bash scripts/test-scaffold.sh dashboard
+
+      - name: Scaffold test (dashboard + playwright)
+        run: bash scripts/test-scaffold.sh dashboard-playwright
