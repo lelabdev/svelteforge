@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { goto } from '$app/navigation';
-	import { Button, Input, Card, Feedback } from '$lib/components/svforge/ui';
+	import { Card, Feedback } from '$lib/components/svforge/ui';
+	import { Button, Input } from '$lib/components/svforge/primitives';
 	import ThemeToggle from '$lib/components/svforge/ui/ThemeToggle.svelte';
 	import type { ActionData } from './$types';
 

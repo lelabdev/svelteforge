@@ -1,10 +1,8 @@
 <script lang="ts">
-	import {
-		Alert, Badge, Button, Card,
-		Checkbox, Input, Select, Table, Textarea, ThemeToggle, Toggle
-	} from '$lib/components/svforge/ui';
-	import { Navbar } from '$lib/components/layout';
-	import { Footer } from '$lib/components/layout';
+	import { Alert, Card, Table, ThemeToggle } from '$lib/components/svforge/ui';
+	import { Badge, Button, Checkbox, Input, Select, Textarea, Toggle } from '$lib/components/svforge/primitives';
+	import { Navbar } from '$lib/components/svforge/layout';
+	import { Footer } from '$lib/components/svforge/layout';
 
 	let loading = $state(false);
 

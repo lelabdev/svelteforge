@@ -15,10 +15,38 @@ describe('monorepo structure', () => {
 		expect(existsSync(join(ROOT, 'packages', pkg, 'dist/index.js'))).toBe(true);
 	});
 
-	it('base template has expected components', () => {
-		const uiDir = join(ROOT, 'packages/svforge/templates/base/src/lib/components/svforge/ui');
-		const files = readdirSync(uiDir).filter((f) => f.endsWith('.svelte') || f.endsWith('.ts'));
-		expect(files.length).toBeGreaterThan(10);
+	it('base template has the canonical primitives/ui/layout structure (#242)', () => {
+		const componentsDir = join(ROOT, 'packages/svforge/templates/base/src/lib/components/svforge');
+		const primitives = readdirSync(join(componentsDir, 'primitives'));
+		const ui = readdirSync(join(componentsDir, 'ui'));
+		const layout = readdirSync(join(componentsDir, 'layout'));
+
+		// primitives: small generic bricks
+		const primitiveNames = primitives.filter((f) => f.endsWith('.svelte')).sort();
+		expect(primitiveNames).toContain('Button.svelte');
+		expect(primitiveNames).toContain('Input.svelte');
+		expect(primitiveNames).toContain('Select.svelte');
+		expect(primitiveNames).toContain('Badge.svelte');
+		expect(primitiveNames).toContain('Toggle.svelte');
+
+		// ui: composed, reusable components
+		const uiNames = ui.filter((f) => f.endsWith('.svelte') || f.endsWith('.ts')).sort();
+		expect(uiNames).toContain('Card.svelte');
+		expect(uiNames).toContain('Alert.svelte');
+		expect(uiNames).toContain('Table.svelte');
+		expect(uiNames).toContain('Logo.svelte');
+		expect(uiNames).toContain('ThemeToggle.svelte');
+
+		// layout: page-structuring components
+		const layoutNames = layout.filter((f) => f.endsWith('.svelte')).sort();
+		expect(layoutNames).toContain('Navbar.svelte');
+		expect(layoutNames).toContain('Footer.svelte');
+
+		// No primitives may leak into ui/ (kept in sync with the split)
+		const primitiveSet = new Set(primitiveNames);
+		for (const name of ['Button.svelte', 'Input.svelte', 'Select.svelte', 'Badge.svelte']) {
+			expect(uiNames, `${name} should live in primitives/`).not.toContain(name);
+		}
 	});
 
 	it('dashboard template has auth files', () => {

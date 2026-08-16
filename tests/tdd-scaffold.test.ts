@@ -33,7 +33,7 @@ describe('TDD scaffold infrastructure (#177)', () => {
 		});
 
 		it('baseTemplateFile resolves template paths', () => {
-			expect(existsSync(baseTemplateFile('lib', 'components', 'svforge', 'ui', 'Button.svelte'))).toBe(true);
+			expect(existsSync(baseTemplateFile('lib', 'components', 'svforge', 'primitives', 'Button.svelte'))).toBe(true);
 		});
 
 		it('tempProject creates and cleans up directories', () => {

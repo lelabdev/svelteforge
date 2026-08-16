@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
-	import AdminLayout from '$lib/components/layout/AdminLayout.svelte';
+	import AdminLayout from '$lib/components/svforge/layout/AdminLayout.svelte';
 	import { authClient } from '$lib/client/auth';
 
 	let { data, children } = $props();

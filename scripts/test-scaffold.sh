@@ -117,6 +117,18 @@ if [ "$TEMPLATE" = "dashboard-playwright" ]; then
 	test -f e2e/auth.test.ts || { echo "❌ e2e/auth.test.ts missing at project root"; exit 1; }
 fi
 
+# 5b. Canonical component structure primitives/ui/layout (#242)
+if [ "$TEMPLATE" = "base" ] || [ "$TEMPLATE" = "dashboard" ] || [ "$TEMPLATE" = "dashboard-playwright" ]; then
+	test -f src/lib/components/svforge/primitives/Button.svelte || { echo "❌ primitives/Button.svelte missing (#242)"; exit 1; }
+	test -f src/lib/components/svforge/primitives/index.ts || { echo "❌ primitives/index.ts missing (#242)"; exit 1; }
+	test -f src/lib/components/svforge/ui/Card.svelte || { echo "❌ ui/Card.svelte missing (#242)"; exit 1; }
+	test -f src/lib/components/svforge/layout/Navbar.svelte || { echo "❌ layout/Navbar.svelte missing (#242)"; exit 1; }
+	# No primitive may leak back into ui/ (separation is canonical)
+	if [ -f src/lib/components/svforge/ui/Button.svelte ]; then
+		echo "❌ Button.svelte must live in primitives/, not ui/ (#242)"; exit 1
+	fi
+fi
+
 # 6. AI-ready: AGENTS.md scaffolded at the project root (#203)
 test -f AGENTS.md || { echo "❌ AGENTS.md missing at project root (#203)"; exit 1; }
 grep -q "preset-tonal" AGENTS.md || { echo "❌ AGENTS.md lacks Skeleton v5 class guidance (#203)"; exit 1; }

@@ -2,7 +2,9 @@
 	import type { PageData } from './$types';
 	import { invalidateAll } from '$app/navigation';
 	import { page } from '$app/state';
-	import { Button, Badge, Input, Card, AvatarInitial, Feedback } from '$lib/components/svforge/ui';
+	import { Card, AvatarInitial, Feedback } from '$lib/components/svforge/ui';
+	import { Badge } from '$lib/components/svforge/primitives';
+	import { Button, Input } from '$lib/components/svforge/primitives';
 	import UserPlus from 'phosphor-svelte/lib/UserPlus';
 	import Trash from 'phosphor-svelte/lib/Trash';
 	import Pencil from 'phosphor-svelte/lib/Pencil';

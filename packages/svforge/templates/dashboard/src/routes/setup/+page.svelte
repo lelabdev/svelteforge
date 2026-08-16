@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { Button, Input, Card } from '$lib/components/svforge/ui';
+	import { Card } from '$lib/components/svforge/ui';
+	import { Button, Input } from '$lib/components/svforge/primitives';
 	import ThemeToggle from '$lib/components/svforge/ui/ThemeToggle.svelte';
 	import { enhance } from '$app/forms';
 	import type { ActionData } from './$types';
