@@ -1,6 +1,8 @@
 # SvelteForge
 
-A `sv` community addon that provides production-ready SvelteKit starter templates powered by **Skeleton UI v4** and **Tailwind CSS v4**.
+A `sv` community addon that scaffolds production-ready SvelteKit boilerplates powered by **Skeleton UI v5** and **Tailwind CSS v4**.
+
+**Not a component library. Not a shadcn clone.** SvelteForge gives you the essentials — buttons, inputs, selects, cards, theme, SEO, layouts — so you start fast and own everything. Need richer components (dialogs, tabs, tooltips…)? Use the official `@skeletonlabs/skeleton-svelte` components directly. Need more? Pick 2–3 opt-in modules, not a framework.
 
 ## Quick Start
 
@@ -23,7 +25,7 @@ bun dev
 
 | Template | Description |
 |----------|-------------|
-| `base` | 15+ UI components, layouts, theme, SEO, dark mode |
+| `base` | UI kit essentials + layouts + theme + SEO + dark mode |
 | `dashboard` | Base + admin dashboard + Better Auth + Drizzle ORM + user management |
 
 ### Dashboard testing profiles
@@ -41,13 +43,13 @@ cd my-project && npx playwright install && bun run test:e2e
 
 | Package | What it adds |
 |---------|-------------|
-| `@svforge/ui_toast` | Toast notifications (Skeleton Store) |
+| `@svforge/ui_toast` | Toast notifications (Skeleton Toast) |
 | `@svforge/dnd` | Drag & drop sortable lists (@thisux/sveltednd) |
 | `@svforge/tiptap` | Rich text editor (Tiptap) |
 | `@svforge/graph` | Knowledge graph visualization (force-graph) |
 | `@svforge/email` | Transactional emails (Resend) |
 | `@svforge/oauth` | Social auth (Google, GitHub) |
-| `@svforge/uploads` | File uploads (S3/R2) |
+| `@svforge/uploads` | File uploads (S3/R2, presigned) |
 | `@svforge/blog` | Blog/CMS (MDsveX) |
 
 Install modules into an existing project:
@@ -57,39 +59,53 @@ npx sv add @svforge/ui_toast
 npx sv add @svforge/tiptap
 ```
 
+For anything else, reach for [`@skeletonlabs/skeleton-svelte`](https://skeleton.dev) — 30+ production components (accordion, tabs, dialog, date-picker…) that pair naturally with the base kit.
+
 ## Architecture
 
-- **Model**: shadcn/ui style — source files are copied into the target project, not imported from `node_modules`
-- **Monorepo**: Bun workspaces with separate packages per module
-- **Build**: `tsdown` bundles each addon into a single ESM file
-- **Templates**: Pre-built at build time via `prebuild.ts` scripts that embed template files as strings
+- **Model**: shadcn/ui style — source files are copied into the target project, not imported from node_modules. You own the code.
+- **Monorepo**: Bun workspaces, one package per module
+- **Build**: `tsdown` bundles each addon into a single ESM file; `prebuild` embeds template files as strings
+- **Base is intentionally small**: essentials only — richer components come from Skeleton
 
 ## Development
 
 ```bash
 bun install              # Install dependencies
-bun run build            # Build svforge
+bun run build            # Build svforge (prebuild + tsdown)
 bun run build:all        # Build every package
-bun run test             # Run tests (sequential — no file parallelism)
+bun run test             # Run the test suite
 ```
 
-### Test locally
+### Build a single module
+
+```bash
+cd packages/graph && bun run build
+```
+
+### Test locally (no npm publish)
 
 ```bash
 cd packages/svforge && bun run build && bun scripts/test-local.ts base /tmp/sf-test
 cd /tmp/sf-test && bun install && bun dev
 ```
 
+### Full scaffold check
+
+```bash
+bash scripts/test-scaffold.sh base        # real sv create + sv add + build
+bash scripts/test-scaffold.sh dashboard
+```
+
+See `CONTRIBUTING.md` for the TDD workflow (Red → Green → Refactor) and `AGENTS.md` for repo conventions.
+
 ## Tech Stack
 
-- **Svelte 5** (runes mode)
-- **SvelteKit**
-- **Skeleton UI v4** (design system)
+- **Svelte 5** (runes) + **SvelteKit 2**
+- **Skeleton UI v5** (design system) — see [skeleton.dev](https://skeleton.dev)
 - **Tailwind CSS v4**
-- **TypeScript**
-- **Bun** (runtime + package manager)
-- **Better Auth** (dashboard template)
-- **Drizzle ORM** (dashboard template)
+- **TypeScript**, **Bun**
+- **Better Auth** + **Drizzle ORM** (dashboard template)
 
 ## License
 
