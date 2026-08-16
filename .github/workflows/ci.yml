@@ -30,3 +30,9 @@ jobs:
 
       - name: Run tests
         run: bun x vitest run --no-file-parallelism
+
+      - name: Scaffold test (base)
+        run: bash scripts/test-scaffold.sh base
+
+      - name: Scaffold test (dashboard)
+        run: bash scripts/test-scaffold.sh dashboard
