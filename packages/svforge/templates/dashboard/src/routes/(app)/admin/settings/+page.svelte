@@ -28,10 +28,10 @@
 		{/snippet}
 		<div class="space-y-3">
 			<div class="flex items-center gap-4">
-				<AvatarInitial name={data.user.name} size="lg" />
+				<AvatarInitial name={data.user?.name ?? ''} size="lg" />
 				<div>
-					<p class="font-medium">{data.user.name}</p>
-					<p class="text-sm text-surface-500">{data.user.email}</p>
+					<p class="font-medium">{data.user?.name}</p>
+					<p class="text-sm text-surface-500">{data.user?.email}</p>
 				</div>
 			</div>
 		</div>

@@ -54,5 +54,5 @@ Le dashboard et tous les modules DB (`audit`, `notifications`, `jobs`, `chat`) u
 - **FK** : `.references(() => table.id, { onDelete: 'cascade' })` explicite
 - **join tables** : PK composite explicite (`primaryKey({ columns: [...] })`) — PostgreSQL n'a pas de rowid implicite
 - **driver** : `postgres` (postgres.js) via `drizzle-orm/postgres-js` — jamais de `@libsql/client` / `sqlite-core`
-- **better-auth** : `drizzleAdapter(db, { provider: 'postgresql' })`
+- **better-auth** : `drizzleAdapter(db, { provider: 'pg' })`
 - **config** : `drizzle.config.ts` dialect `postgresql`, URL via `process.env.DATABASE_URL` (drizzle-kit charge `.env` automatiquement)

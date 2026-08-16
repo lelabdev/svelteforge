@@ -22,7 +22,7 @@ vi.mock('$lib/server/admin', () => ({
 describe('(app) layout auth guard', () => {
 	it('redirects anonymous users to /login', async () => {
 		const { isAdmin } = await import('$lib/server/admin');
-		isAdmin.mockResolvedValue(false);
+		vi.mocked(isAdmin).mockResolvedValue(false);
 
 		// Simulate an unauthenticated request
 		const load = (await import('./+layout.server')).load;
@@ -40,14 +40,15 @@ describe('(app) layout auth guard', () => {
 				url: new URL('http://localhost/dashboard')
 			} as any);
 		} catch (e) {
-			expect(e.status).toBe(302);
-			expect(e.location).toMatch(/\/login/);
+			const err = e as { status: number; location: string };
+			expect(err.status).toBe(302);
+			expect(err.location).toMatch(/\/login/);
 		}
 	});
 
 	it('returns user data for authenticated users', async () => {
 		const { isAdmin } = await import('$lib/server/admin');
-		isAdmin.mockResolvedValue(true);
+		vi.mocked(isAdmin).mockResolvedValue(true);
 
 		const load = (await import('./+layout.server')).load;
 		const result = await load({

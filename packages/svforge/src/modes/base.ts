@@ -19,17 +19,28 @@ export function applyBaseMode(
 	// devDependency + script mirror the template package.json (vitest ^3.1.1).
 	sv.devDependency('vitest', '^3.1.1');
 
+	// Node types (#271): the Paraglide server runtime (generated
+	// src/lib/paraglide/server.js) imports async_hooks — svelte-check fails
+	// without @types/node in the generated project (the template package.json
+	// reference is not enough, the dependency must be declared at scaffold).
+	sv.devDependency('@types/node', '^22');
+
 	// Paraglide i18n (#239): compiler-first FR/EN messages, official Svelte
 	// integration. The vite plugin generates src/lib/paraglide at build time.
 	sv.dependency('@inlang/paraglide-js', '^2.24.0');
 
-	// Add a runnable test script to the generated project.
+	// Add runnable test + type-check scripts to the generated project.
+	// `check` compiles Paraglide first: the vite plugin generates
+	// src/lib/paraglide at build/dev time, but svelte-check needs the files
+	// present (and their .d.ts) to type-check the generated messages (#271).
 	sv.file('package.json', (content: string) => {
 		const pkg = JSON.parse(content);
 		pkg.scripts = {
 			...pkg.scripts,
 			test: 'vitest run',
-			'test:watch': 'vitest'
+			'test:watch': 'vitest',
+			check:
+				'svelte-kit sync && paraglide-js compile --project ./project.inlang --outdir ./src/lib/paraglide && svelte-check --tsconfig ./tsconfig.json'
 		};
 		return `${JSON.stringify(pkg, null, 2)}\n`;
 	});
