@@ -15,7 +15,7 @@ export default defineAddon({
 	},
 
 	run: ({ sv }) => {
-		sv.dependency('force-graph', 'latest');
+		sv.dependency('force-graph', '^1.51.4');
 
 		for (const [path, content] of Object.entries(files)) {
 			sv.file(`src${path}`, () => content);

@@ -15,10 +15,10 @@ export default defineAddon({
 	},
 
 	run: ({ sv }) => {
-		sv.dependency('@tiptap/core', 'latest');
-		sv.dependency('@tiptap/starter-kit', 'latest');
-		sv.dependency('@tiptap/extension-underline', 'latest');
-		sv.dependency('@tiptap/extension-link', 'latest');
+		sv.dependency('@tiptap/core', '^3.30.1');
+		sv.dependency('@tiptap/starter-kit', '^3.30.1');
+		sv.dependency('@tiptap/extension-underline', '^3.30.1');
+		sv.dependency('@tiptap/extension-link', '^3.30.1');
 
 		for (const [path, content] of Object.entries(files)) {
 			sv.file(`src${path}`, () => content);

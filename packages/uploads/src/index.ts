@@ -15,8 +15,8 @@ if (!isKit) unsupported('SVForge Uploads requires SvelteKit');
 },
 
 run: ({ sv }) => {
-sv.dependency('@aws-sdk/client-s3', 'latest');
-sv.dependency('@aws-sdk/s3-request-presigner', 'latest');
+sv.dependency('@aws-sdk/client-s3', '^3.1111.0');
+sv.dependency('@aws-sdk/s3-request-presigner', '^3.1111.0');
 
 for (const [path, content] of Object.entries(files)) {
 sv.file(`src${path}`, () => content);

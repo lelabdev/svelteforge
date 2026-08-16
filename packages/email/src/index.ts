@@ -13,7 +13,7 @@ export default defineAddon({
 		if (!isKit) unsupported('SVForge Email requires SvelteKit');
 	},
 	run: ({ sv }) => {
-		sv.dependency('resend', 'latest');
+		sv.dependency('resend', '^6.20.0');
 		for (const [path, content] of Object.entries(files)) {
 			sv.file(`src${path}`, () => content);
 		}

@@ -15,7 +15,7 @@ export default defineAddon({
 	},
 
 	run: ({ sv }) => {
-		sv.dependency('@thisux/sveltednd', 'latest');
+		sv.dependency('@thisux/sveltednd', '^0.7.0');
 
 		for (const [path, content] of Object.entries(files)) {
 			sv.file(`src${path}`, () => content);
