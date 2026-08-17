@@ -54,6 +54,10 @@ elif [ "$TEMPLATE" = "dashboard-playwright" ]; then
 	ADD_SPEC="file:$REPO_ROOT/packages/svforge=template:dashboard+testing:playwright"
 elif [ "$TEMPLATE" = "dashboard" ]; then
 	ADD_SPEC="file:$REPO_ROOT/packages/svforge=template:dashboard+testing:vitest"
+elif [ "$TEMPLATE" = "base-ui-modules" ]; then
+	ADD_SPEC="file:$REPO_ROOT/packages/svforge=template:base+testing:vitest"
+elif [ "$TEMPLATE" = "dashboard-integrations" ]; then
+	ADD_SPEC="file:$REPO_ROOT/packages/svforge=template:dashboard+testing:vitest"
 fi
 if [ "$TEMPLATE" != "base-modules" ] && [ "$TEMPLATE" != "dashboard-foundations" ]; then
 	ADD_SPEC="${ADD_SPEC:-file:$REPO_ROOT/packages/svforge=template:base+testing:vitest}"
@@ -69,6 +73,37 @@ if [ "$TEMPLATE" = "base-blog" ]; then
 	grep -q "extensions: \['.svelte', '.md'\]" vite.config.ts || { echo "❌ .md extension missing (#185)"; exit 1; }
 	# welcome.md post delivered and compiled by mdsvex
 	test -f src/posts/welcome.md || { echo "❌ src/posts/welcome.md missing"; exit 1; }
+fi
+
+# base-ui-modules (#284): historical UI modules composed on a real base
+# scaffold — dnd, tiptap (with the pure renderer), graph, ui_toast.
+if [ "$TEMPLATE" = "base-ui-modules" ]; then
+	for mod in dnd tiptap graph ui_toast; do
+		$SV_CMD add "file:$REPO_ROOT/packages/$mod" --install bun --no-download-check
+	done
+	# delivered components
+	test -f src/lib/components/svforge/dnd/SortableList.svelte || { echo "❌ dnd SortableList.svelte missing (#284)"; exit 1; }
+	test -f src/lib/components/svforge/tiptap/TiptapEditor.svelte || { echo "❌ tiptap TiptapEditor.svelte missing (#284)"; exit 1; }
+	test -f src/lib/components/svforge/tiptap/render-tiptap.ts || { echo "❌ tiptap render-tiptap.ts missing (#284)"; exit 1; }
+	test -f src/lib/components/svforge/graph/KnowledgeGraph.svelte || { echo "❌ graph KnowledgeGraph.svelte missing (#284)"; exit 1; }
+	test -f src/lib/components/svforge/ui/Toaster.svelte || { echo "❌ ui_toast Toaster.svelte missing (#284)"; exit 1; }
+	grep -q "skeleton-svelte" package.json || { echo "❌ skeleton-svelte not declared (#284)"; exit 1; }
+fi
+
+# dashboard-integrations (#284): oauth + email + uploads on a real dashboard.
+# uploads is installed WITH its security test pack — the endpoint test proves
+# the presign contract (filename/contentType/size) that #279 fixed, and runs
+# inside the scaffold via `bun run test`.
+if [ "$TEMPLATE" = "dashboard-integrations" ]; then
+	$SV_CMD add "file:$REPO_ROOT/packages/oauth" --install bun --no-download-check
+	$SV_CMD add "file:$REPO_ROOT/packages/email" --install bun --no-download-check
+	$SV_CMD add "file:$REPO_ROOT/packages/uploads=testpack:yes" --install bun --no-download-check
+	# delivered endpoints/components
+	test -f src/routes/api/upload/+server.ts || { echo "❌ upload endpoint missing (#284)"; exit 1; }
+	test -f src/lib/components/svforge/uploads/FileUpload.svelte || { echo "❌ FileUpload.svelte missing (#284)"; exit 1; }
+	test -f src/routes/api/upload/upload-security.test.ts || { echo "❌ upload test pack missing (#284)"; exit 1; }
+	test -f src/lib/components/svforge/ui/OAuthButtons.svelte || { echo "❌ OAuthButtons.svelte missing (#284)"; exit 1; }
+	test -f src/lib/server/email.ts || { echo "❌ email server lib missing (#284)"; exit 1; }
 fi
 
 # Module composition guards (#190): graph/ui_toast on base, oauth on dashboard.
@@ -92,7 +127,7 @@ fi
 # 3. Dashboard: env vars required at build time (auth.ts / db/index.ts)
 #    Now that drizzle.config.ts + .env.example + setup.sh are scaffolded (#187),
 #    run the REAL setup script instead of hand-writing .env.
-if [ "$TEMPLATE" = "dashboard" ] || [ "$TEMPLATE" = "dashboard-playwright" ] || [ "$TEMPLATE" = "dashboard-foundations" ]; then
+if [ "$TEMPLATE" = "dashboard" ] || [ "$TEMPLATE" = "dashboard-playwright" ] || [ "$TEMPLATE" = "dashboard-foundations" ] || [ "$TEMPLATE" = "dashboard-integrations" ]; then
 	# Verify the previously-missing root files were delivered (#187)
 	test -f drizzle.config.ts || { echo "❌ drizzle.config.ts missing at project root (#187)"; exit 1; }
 	test -f .env.example || { echo "❌ .env.example missing at project root (#187)"; exit 1; }
@@ -116,16 +151,21 @@ bun run build
 # 4a. Svelte/TypeScript quality gate (#266): run the generated project's own
 # check script on the main scaffolds. dashboard-foundations joined after #265
 # fixed the UUID number/string drift in the DB modules.
-if [ "$TEMPLATE" = "base" ] || [ "$TEMPLATE" = "dashboard" ] || [ "$TEMPLATE" = "dashboard-playwright" ] || [ "$TEMPLATE" = "dashboard-foundations" ]; then
+if [ "$TEMPLATE" = "base" ] || [ "$TEMPLATE" = "dashboard" ] || [ "$TEMPLATE" = "dashboard-playwright" ] || [ "$TEMPLATE" = "dashboard-foundations" ] || [ "$TEMPLATE" = "base-ui-modules" ] || [ "$TEMPLATE" = "dashboard-integrations" ]; then
 	bun run check || { echo "❌ svelte-check failed on $TEMPLATE scaffold (#266)"; exit 1; }
 fi
 
 # Baseline Vitest (#235): vitest.config.ts must land at the PROJECT ROOT on
 # base too (prebuild only embeds templates/base/src/**), and the baseline
 # test must actually run.
-if [ "$TEMPLATE" = "base" ]; then
+if [ "$TEMPLATE" = "base" ] || [ "$TEMPLATE" = "base-ui-modules" ]; then
 	test -f vitest.config.ts || { echo "❌ vitest.config.ts missing at project root (#235)"; exit 1; }
-	bun run test || { echo "❌ baseline vitest failed on base scaffold (#235)"; exit 1; }
+	bun run test || { echo "❌ baseline vitest failed on $TEMPLATE scaffold (#235)"; exit 1; }
+fi
+# dashboard-integrations (#284): the upload security test pack (incl. the size
+# contract #279) must pass inside the scaffold.
+if [ "$TEMPLATE" = "dashboard-integrations" ]; then
+	bun run test || { echo "❌ vitest failed on dashboard-integrations scaffold (#284)"; exit 1; }
 fi
 
 # Blog: assert the welcome.md post is actually compiled by mdsvex (not parsed
@@ -163,8 +203,28 @@ if [ "$TEMPLATE" = "dashboard-foundations" ]; then
 	bun run test || { echo "❌ vitest failed on dashboard-foundations scaffold (#258)"; exit 1; }
 fi
 
+# 4c. base-ui-modules / dashboard-integrations composition (#284): the
+#     historical modules must compose in a real consumer project and declare
+#     themselves in the AI manifest.
+if [ "$TEMPLATE" = "base-ui-modules" ]; then
+	for mod in dnd tiptap graph ui_toast; do
+		grep -q "\"$mod\"" .svforge.json || { echo "❌ module $mod missing in .svforge.json (#284)"; exit 1; }
+	done
+	for cap in "drag & drop" "rich text (Tiptap)" "knowledge graph" "toasts (Skeleton Toast)"; do
+		grep -q "$cap" llms.txt || { echo "❌ capability '$cap' missing in llms.txt (#284)"; exit 1; }
+	done
+fi
+if [ "$TEMPLATE" = "dashboard-integrations" ]; then
+	for mod in oauth email uploads; do
+		grep -q "\"$mod\"" .svforge.json || { echo "❌ module $mod missing in .svforge.json (#284)"; exit 1; }
+	done
+	# uploads security test pack proves the presign contract (#279/#284)
+	grep -q "returns a presigned URL for a valid upload" src/routes/api/upload/upload-security.test.ts \
+		|| { echo "❌ upload test pack lacks the presign contract test (#284)"; exit 1; }
+fi
+
 # 5. Assert testing-profile files land at the project ROOT, not src/ (#186)
-if [ "$TEMPLATE" = "dashboard" ] || [ "$TEMPLATE" = "dashboard-playwright" ] || [ "$TEMPLATE" = "dashboard-foundations" ]; then
+if [ "$TEMPLATE" = "dashboard" ] || [ "$TEMPLATE" = "dashboard-playwright" ] || [ "$TEMPLATE" = "dashboard-foundations" ] || [ "$TEMPLATE" = "dashboard-integrations" ]; then
 	test -f vitest.config.ts || { echo "❌ vitest.config.ts missing at project root"; exit 1; }
 fi
 if [ "$TEMPLATE" = "dashboard-playwright" ]; then
@@ -173,7 +233,7 @@ if [ "$TEMPLATE" = "dashboard-playwright" ]; then
 fi
 
 # 5b. Canonical component structure primitives/ui/layout (#242)
-if [ "$TEMPLATE" = "base" ] || [ "$TEMPLATE" = "dashboard" ] || [ "$TEMPLATE" = "dashboard-playwright" ] || [ "$TEMPLATE" = "dashboard-foundations" ]; then
+if [ "$TEMPLATE" = "base" ] || [ "$TEMPLATE" = "dashboard" ] || [ "$TEMPLATE" = "dashboard-playwright" ] || [ "$TEMPLATE" = "dashboard-foundations" ] || [ "$TEMPLATE" = "base-ui-modules" ] || [ "$TEMPLATE" = "dashboard-integrations" ]; then
 	test -f src/lib/components/svforge/primitives/Button.svelte || { echo "❌ primitives/Button.svelte missing (#242)"; exit 1; }
 	test -f src/lib/components/svforge/primitives/index.ts || { echo "❌ primitives/index.ts missing (#242)"; exit 1; }
 	test -f src/lib/components/svforge/ui/Card.svelte || { echo "❌ ui/Card.svelte missing (#242)"; exit 1; }
@@ -185,7 +245,7 @@ if [ "$TEMPLATE" = "base" ] || [ "$TEMPLATE" = "dashboard" ] || [ "$TEMPLATE" = 
 fi
 
 # 5c. Paraglide FR/EN baseline delivered (#239)
-if [ "$TEMPLATE" = "base" ] || [ "$TEMPLATE" = "dashboard" ] || [ "$TEMPLATE" = "dashboard-playwright" ] || [ "$TEMPLATE" = "dashboard-foundations" ]; then
+if [ "$TEMPLATE" = "base" ] || [ "$TEMPLATE" = "dashboard" ] || [ "$TEMPLATE" = "dashboard-playwright" ] || [ "$TEMPLATE" = "dashboard-foundations" ] || [ "$TEMPLATE" = "base-ui-modules" ] || [ "$TEMPLATE" = "dashboard-integrations" ]; then
 	test -f messages/fr.json || { echo "❌ messages/fr.json missing (#239)"; exit 1; }
 	test -f messages/en.json || { echo "❌ messages/en.json missing (#239)"; exit 1; }
 	test -f project.inlang/settings.json || { echo "❌ project.inlang/settings.json missing (#239)"; exit 1; }
@@ -194,7 +254,7 @@ if [ "$TEMPLATE" = "base" ] || [ "$TEMPLATE" = "dashboard" ] || [ "$TEMPLATE" = 
 fi
 
 # 5d. Design-system harness (#240): catalog delivered + check runs clean
-if [ "$TEMPLATE" = "base" ] || [ "$TEMPLATE" = "dashboard" ] || [ "$TEMPLATE" = "dashboard-playwright" ] || [ "$TEMPLATE" = "dashboard-foundations" ]; then
+if [ "$TEMPLATE" = "base" ] || [ "$TEMPLATE" = "dashboard" ] || [ "$TEMPLATE" = "dashboard-playwright" ] || [ "$TEMPLATE" = "dashboard-foundations" ] || [ "$TEMPLATE" = "base-ui-modules" ] || [ "$TEMPLATE" = "dashboard-integrations" ]; then
 	test -f svforge-catalog.json || { echo "❌ svforge-catalog.json missing (#240)"; exit 1; }
 	test -f svforge-check.mjs || { echo "❌ svforge-check.mjs missing (#240)"; exit 1; }
 	test -f svforge-modules.json || { echo "❌ svforge-modules.json missing (#236)"; exit 1; }
@@ -206,7 +266,7 @@ fi
 # 6. AI-ready: AGENTS.md scaffolded at the project root (#203)
 test -f AGENTS.md || { echo "❌ AGENTS.md missing at project root (#203)"; exit 1; }
 grep -q "preset-tonal" AGENTS.md || { echo "❌ AGENTS.md lacks Skeleton v5 class guidance (#203)"; exit 1; }
-if [ "$TEMPLATE" = "dashboard" ] || [ "$TEMPLATE" = "dashboard-playwright" ] || [ "$TEMPLATE" = "dashboard-foundations" ]; then
+if [ "$TEMPLATE" = "dashboard" ] || [ "$TEMPLATE" = "dashboard-playwright" ] || [ "$TEMPLATE" = "dashboard-foundations" ] || [ "$TEMPLATE" = "dashboard-integrations" ]; then
 	grep -q "result.data" AGENTS.md || { echo "❌ dashboard AGENTS.md lacks action-response pattern (#203)"; exit 1; }
 fi
 

@@ -56,7 +56,7 @@ describe('base Vitest baseline (#235)', () => {
 			const script = readFileSync(join(ROOT, 'scripts', 'test-scaffold.sh'), 'utf-8');
 			expect(script).toMatch(/TEMPLATE.*=.*"base"/s);
 			expect(script).toMatch(/vitest\.config\.ts missing at project root/);
-			expect(script).toMatch(/baseline vitest failed on base scaffold/);
+			expect(script).toMatch(/baseline vitest failed on \$TEMPLATE scaffold/);
 		});
 	});
 

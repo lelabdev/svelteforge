@@ -13,12 +13,14 @@ import { env } from '$env/dynamic/private';
 let cached: S3Client | undefined;
 
 export function getS3(): S3Client {
-	if (!env.S3_ENDPOINT || !env.S3_ACCESS_KEY_ID) {
+	if (!env.S3_ENDPOINT || !env.S3_ACCESS_KEY_ID || !env.S3_SECRET_ACCESS_KEY) {
 		throw new Error('S3 credentials are not set (S3_ENDPOINT, S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY)');
 	}
 	return (cached ??= new S3Client({
 		region: env.S3_REGION ?? 'auto',
 		endpoint: env.S3_ENDPOINT,
+		// All three credentials are checked above, so secretAccessKey is a
+		// string here — the guard also satisfies the AWS SDK types (#284).
 		credentials: { accessKeyId: env.S3_ACCESS_KEY_ID, secretAccessKey: env.S3_SECRET_ACCESS_KEY }
 	}));
 }

@@ -66,3 +66,13 @@ jobs:
       # audit + notifications + jobs + chat + realtime against real PostgreSQL.
       - name: Scaffold test (dashboard-foundations)
         run: bash scripts/test-scaffold.sh dashboard-foundations
+
+      # Consumer coverage of the historical modules (#284): UI modules on a
+      # real base scaffold, integrations on a real dashboard with PostgreSQL.
+      - name: Scaffold test (base-ui-modules)
+        run: bash scripts/test-scaffold.sh base-ui-modules
+
+      - name: Scaffold test (dashboard-integrations)
+        run: bash scripts/test-scaffold.sh dashboard-integrations
+        env:
+          CI: 'true'

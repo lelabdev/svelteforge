@@ -99,18 +99,19 @@
 	let container: HTMLDivElement | undefined = $state();
 	let graphInstance: any = $state();
 
-	// Group-based default colors
+	// Group-based default colors — theme tokens (design-system check #240):
+	// never raw hex inside svforge components.
 	const groupColors = [
-		'#6366f1', // indigo
-		'#8b5cf6', // violet
-		'#06b6d4', // cyan
-		'#10b981', // emerald
-		'#f59e0b', // amber
-		'#ef4444', // red
-		'#ec4899', // pink
-		'#14b8a6', // teal
-		'#f97316', // orange
-		'#84cc16'  // lime
+		'var(--color-primary-500)',
+		'var(--color-secondary-500)',
+		'var(--color-tertiary-500)',
+		'var(--color-success-500)',
+		'var(--color-warning-500)',
+		'var(--color-error-500)',
+		'var(--color-secondary-400)',
+		'var(--color-primary-400)',
+		'var(--color-warning-400)',
+		'var(--color-success-400)'
 	];
 
 	function getNodeColor(node: GraphNode): string {
@@ -131,7 +132,12 @@
 		if (!container) return;
 
 		// Dynamic import — force-graph is client-only
-		const ForceGraph = (await import('force-graph')).default;
+		// The factory returns a value that is BOTH a chainable object and a
+		// callable (ForceGraph()(container)); the shipped types only describe
+		// the object shape, so the callable part needs an explicit cast (#284).
+		const ForceGraph = (await import('force-graph')).default as unknown as () => (
+			container: HTMLElement
+		) => any;
 
 		const graph = ForceGraph()(container)
 			.graphData({ nodes: [...nodes], links: [...links] })
