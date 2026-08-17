@@ -1,7 +1,8 @@
 <script lang="ts">
 	import type { PageData } from './$types';
-	import { invalidateAll } from '$app/navigation';
 	import { page } from '$app/state';
+	import { enhance } from '$app/forms';
+	import type { SubmitFunction } from '@sveltejs/kit';
 	import * as m from '$lib/paraglide/messages.js';
 	import { Card, AvatarInitial, Feedback, Table } from '$lib/components/svforge/ui';
 	import { Badge } from '$lib/components/svforge/primitives';
@@ -73,75 +74,73 @@
 		deleteTarget = null;
 	}
 
-	async function submitCreate() {
-		const formData = new FormData();
-		formData.set('name', formName);
-		formData.set('email', formEmail);
-		formData.set('password', formPassword);
-
-		const res = await fetch('?/create', { method: 'POST', body: formData });
-		const result = await res.json();
-		if (result.type === 'success') {
-			feedback = { type: 'success', message: result.data?.message || m.users_created() };
-			closeModal();
-			invalidate();
-		} else {
-			feedback = { type: 'error', message: result.data?.message || m.users_created_failed() };
+	/**
+	 * Stable server codes → localized feedback (#295). The server never sends
+	 * English copy: every visible message is a Paraglide message mapped here.
+	 */
+	function feedbackFor(code: string | undefined, isError: boolean): string {
+		if (!isError) {
+			switch (code) {
+				case 'created':
+					return m.users_created();
+				case 'updated':
+					return m.users_updated();
+				case 'deleted':
+					return m.users_deleted();
+				case 'verified':
+					return m.users_verified_ok();
+				case 'unverified':
+					return m.users_unverified();
+				default:
+					return m.users_created();
+			}
+		}
+		switch (code) {
+			case 'email_exists':
+				return m.users_email_exists();
+			case 'email_taken':
+				return m.users_email_taken();
+			case 'self_delete':
+				return m.users_self_delete();
+			case 'not_found':
+				return m.users_not_found();
+			case 'invalid_input':
+				return m.users_invalid_input();
+			case 'create_failed':
+				return m.users_created_failed();
+			case 'update_failed':
+				return m.users_updated_failed();
+			case 'delete_failed':
+				return m.users_deleted_failed();
+			case 'verify_failed':
+				return m.users_verify_failed();
+			default:
+				return m.users_created_failed();
 		}
 	}
 
-	async function submitEdit() {
-		if (!editUser) return;
-		const formData = new FormData();
-		formData.set('id', editUser.id);
-		formData.set('name', formName);
-		formData.set('email', formEmail);
-
-		const res = await fetch('?/update', { method: 'POST', body: formData });
-		const result = await res.json();
-		if (result.type === 'success') {
-			feedback = { type: 'success', message: result.data?.message || m.users_updated() };
-			closeModal();
-			invalidate();
-		} else {
-			feedback = { type: 'error', message: result.data?.message || m.users_updated_failed() };
-		}
-	}
-
-	async function submitDelete() {
-		if (!deleteTarget) return;
-		const formData = new FormData();
-		formData.set('id', deleteTarget.id);
-
-		const res = await fetch('?/delete', { method: 'POST', body: formData });
-		const result = await res.json();
-		if (result.type === 'success') {
-			feedback = { type: 'success', message: result.data?.message || m.users_deleted() };
-			closeModal();
-			invalidate();
-		} else {
-			feedback = { type: 'error', message: result.data?.message || m.users_deleted_failed() };
-		}
-	}
-
-	async function toggleVerify(u: { id: string; emailVerified: boolean }) {
-		const formData = new FormData();
-		formData.set('id', u.id);
-		formData.set('verified', String(u.emailVerified));
-
-		const res = await fetch('?/toggleVerify', { method: 'POST', body: formData });
-		const result = await res.json();
-		if (result.type === 'success') {
-			feedback = { type: 'success', message: result.data?.message || m.users_verified_ok() };
-			invalidate();
-		} else {
-			feedback = { type: 'error', message: result.data?.message || m.users_verify_failed() };
-		}
-	}
-
-	async function invalidate() {
-		await invalidateAll();
-	}
+	/**
+	 * Standard SvelteKit use:enhance handler (#295) — the golden reference for
+	 * form mutations: `deserialize` + `applyAction` are handled by `enhance`,
+	 * the action result is a typed ActionResult (success/failure/redirect/error)
+	 * and no imperative fetch parsing exists anywhere.
+	 */
+	const submitEnhance: SubmitFunction = () => {
+		return async ({ result, update }) => {
+			if (result.type === 'success') {
+				feedback = { type: 'success', message: feedbackFor(result.data?.code, false) };
+				closeModal();
+				// update() applies the response, resets the form and invalidates the
+				// page data (standard applyAction behaviour).
+				await update({ reset: true });
+			} else if (result.type === 'failure') {
+				feedback = { type: 'error', message: feedbackFor(result.data?.code, true) };
+			} else if (result.type === 'redirect' || result.type === 'error') {
+				// SvelteKit handles redirects and errors natively via applyAction.
+				await update();
+			}
+		};
+	};
 </script>
 
 <svelte:head>
@@ -177,11 +176,17 @@
 				</div>
 			{:else if col.key === 'status'}
 				{@const user = asUser(row)}
-				<button onclick={() => toggleVerify(user)} aria-label={user.emailVerified ? m.users_pending() : m.users_verified()}>
-					<Badge color={user.emailVerified ? 'success' : 'warning'}>
-						{user.emailVerified ? m.users_verified() : m.users_pending()}
-					</Badge>
-				</button>
+				<!-- toggleVerify is a real form action too (#295): hidden inputs carry
+				     the id and the current state, use:enhance handles the result. -->
+				<form method="POST" action="?/toggleVerify" use:enhance={submitEnhance}>
+					<input type="hidden" name="id" value={user.id} />
+					<input type="hidden" name="verified" value={String(user.emailVerified)} />
+					<button type="submit" class="inline-flex" aria-label={user.emailVerified ? m.users_pending() : m.users_verified()}>
+						<Badge color={user.emailVerified ? 'success' : 'warning'}>
+							{user.emailVerified ? m.users_verified() : m.users_pending()}
+						</Badge>
+					</button>
+				</form>
 			{:else if col.key === 'actions'}
 				{@const user = asUser(row)}
 				<div class="flex items-center justify-end gap-1">
@@ -215,14 +220,24 @@
 			</div>
 
 			{#if modal === 'create' || modal === 'edit'}
-				<form class="space-y-4" onsubmit={(e) => { e.preventDefault(); modal === 'create' ? submitCreate() : submitEdit(); }}>
-					<Input label={m.users_label_name()} bind:value={formName} placeholder={m.users_placeholder_name()} required />
-					<Input label={m.users_label_email()} type="email" bind:value={formEmail} placeholder={m.users_placeholder_email()} required />
+				<!-- Real SvelteKit form action (#295): method=POST + action=?/create|?/update,
+				     use:enhance handles deserialize/applyAction. No fetch().json() anywhere. -->
+				<form
+					method="POST"
+					action={modal === 'create' ? '?/create' : '?/update'}
+					use:enhance={submitEnhance}
+					class="space-y-4"
+				>
+					{#if modal === 'edit' && editUser}
+						<input type="hidden" name="id" value={editUser.id} />
+					{/if}
+					<Input label={m.users_label_name()} name="name" bind:value={formName} placeholder={m.users_placeholder_name()} required />
+					<Input label={m.users_label_email()} name="email" type="email" bind:value={formEmail} placeholder={m.users_placeholder_email()} required />
 					{#if modal === 'create'}
-						<Input label={m.users_label_password()} type="password" bind:value={formPassword} placeholder={m.common_min_chars()} required />
+						<Input label={m.users_label_password()} name="password" type="password" bind:value={formPassword} placeholder={m.common_min_chars()} required />
 					{/if}
 					<div class="flex justify-end gap-2 pt-2">
-						<Button variant="ghost" onclick={closeModal}>{m.common_cancel()}</Button>
+						<Button variant="ghost" type="button" onclick={closeModal}>{m.common_cancel()}</Button>
 						<Button type="submit">{modal === 'create' ? m.users_create() : m.common_save()}</Button>
 					</div>
 				</form>
@@ -230,10 +245,13 @@
 				<p class="text-surface-500 mb-4">
 					{m.users_delete_confirm({ name: deleteTarget.name })}
 				</p>
-				<div class="flex justify-end gap-2">
-					<Button variant="ghost" onclick={closeModal}>{m.common_cancel()}</Button>
-					<Button color="error" onclick={submitDelete}>{m.users_delete_btn()}</Button>
-				</div>
+				<form method="POST" action="?/delete" use:enhance={submitEnhance}>
+					<input type="hidden" name="id" value={deleteTarget.id} />
+					<div class="flex justify-end gap-2">
+						<Button variant="ghost" type="button" onclick={closeModal}>{m.common_cancel()}</Button>
+						<Button color="error" type="submit">{m.users_delete_btn()}</Button>
+					</div>
+				</form>
 			{/if}
 		</Card>
 	</div>
