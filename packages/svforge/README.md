@@ -99,6 +99,23 @@ Every scaffold is agent-ready: `AGENTS.md` (conventions), `.svforge.json`
 (design-system harness). Modules merge their capability into the manifest and
 `llms.txt` at install time.
 
+## Upgrade
+
+`svforge upgrade <base|dashboard>` updates the recipe files (`src/**`) of an
+installed project and records per-file checksums in `.svforge-versions.json`.
+
+**First upgrade (no baseline yet):** any existing file that diverges from the
+template is treated as a *potential local modification* and is **skipped** —
+never overwritten. Only files that are absent are created automatically.
+
+**Later upgrades:** a file that exactly matches what svforge last installed is
+updated silently (that's a template evolution, not a user edit); a file whose
+content differs from the recorded baseline is **skipped** with a clear message.
+
+In every case, pass `--force` to overwrite — a `.svforge-backup` copy is
+created before any overwrite. The recipe version announced by the command is
+derived from the shipped package version (single canonical source, no drift).
+
 ## License
 
 MIT

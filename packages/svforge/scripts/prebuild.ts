@@ -1,9 +1,14 @@
 import { readDirRecursively } from '../../../scripts/prebuild-utils';
-import { writeFileSync } from 'fs';
+import { readFileSync, writeFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+
+// Canonical recipe version (#283): derived from the package.json of the
+// addon itself, so the version announced by `svforge upgrade` cannot drift
+// from the actually shipped package.
+const pkg = JSON.parse(readFileSync(join(__dirname, '../package.json'), 'utf-8'));
 
 const baseFiles = readDirRecursively(join(__dirname, '../templates/base/src'));
 const dashboardOverlay = readDirRecursively(join(__dirname, '../templates/dashboard/src'));
@@ -30,7 +35,13 @@ export const baseRootFiles = ${JSON.stringify(baseRootFiles, null, 2)};
 
 writeFileSync(join(__dirname, '../src/templates.ts'), output);
 
-console.log('✅ Generated src/templates.ts');
+// Generated version module — single canonical source for the recipe version.
+writeFileSync(
+	join(__dirname, '../src/recipe-version.ts'),
+	`// AUTO-GENERATED - DO NOT EDIT\n// Run bun run prebuild to regenerate (canonical version = package.json)\n\nexport const SDFORGE_RECIPE_VERSION = ${JSON.stringify(pkg.version)};\n`
+);
+
+console.log('✅ Generated src/templates.ts + src/recipe-version.ts');
 console.log(`   ${Object.keys(baseFiles).length} base files`);
 console.log(`   ${Object.keys(dashboardFiles).length} dashboard files`);
 console.log(`   ${Object.keys(dashboardRootFiles).length} dashboard root files`);
