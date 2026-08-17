@@ -86,7 +86,26 @@ describe('Paraglide FR/EN baseline (#239)', () => {
 				'utf-8'
 			);
 			expect(hooks).toMatch(/paraglideMiddleware/);
-			expect(hooks).toMatch(/handleBetterAuth/);
+			expect(hooks).toMatch(/handleBetterAuth|svelteKitHandler/);
+		});
+
+		it('dashboard handle keeps the Paraglide html transform (#280)', () => {
+			const hooks = readFileSync(
+				join(ROOT, 'packages/svforge/templates/dashboard/src/hooks.server.ts'),
+				'utf-8'
+			);
+			// The exported handle must rewrite the i18n placeholders in the final
+			// HTML — the #268 composition dropped transformPageChunk and left
+			// %paraglide.lang% / %paraglide.dir% in the rendered output.
+			expect(hooks).toMatch(/transformPageChunk/);
+			expect(hooks).toMatch(/%paraglide\.lang%/);
+			expect(hooks).toMatch(/%paraglide\.dir%/);
+			expect(hooks).toMatch(/getTextDirection/);
+			// No dead duplicate handle left behind.
+			expect(hooks).not.toMatch(/handleParaglide/);
+			// The transform must be applied through the resolve used by the auth
+			// handler, i.e. the exported handle resolves the app with it.
+			expect(hooks.indexOf('export const handle')).toBeLessThan(hooks.indexOf('transformPageChunk'));
 		});
 
 		it('scaffold guard asserts paraglide files on base scaffold', () => {

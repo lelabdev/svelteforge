@@ -57,16 +57,20 @@ describe('admin action feedback (#188)', () => {
 });
 
 describe('auth hooks composition (#268 screenshots regression)', () => {
-	it('hooks.server.ts chains handleBetterAuth — locals.session must be populated', () => {
+	it('hooks.server.ts composes better-auth inside the paraglide transform — locals.session must be populated', () => {
 		// Found while capturing dashboard screenshots: `handle = handleParaglide`
 		// meant better-auth never ran, so locals.session/locals.user were always
-		// undefined and every protected route redirected to /login.
+		// undefined and every protected route redirected to /login. #280 keeps
+		// the session population inside the single composed handle, after the
+		// paraglide request rewrite and before svelteKitHandler resolution.
 		const hooks = readFileSync(join(ROOT, 'packages/svforge/templates/dashboard/src/hooks.server.ts'), 'utf-8');
 		expect(hooks).toMatch(/paraglideMiddleware\(event\.request, async \(\{ request, locale \}\) =>/);
-		expect(hooks).toMatch(/handleBetterAuth\(\{ event, resolve \}\)/);
-		expect(hooks).not.toMatch(/handle: Handle = handleParaglide/);
-		expect(hooks).toMatch(/getSession/);
+		expect(hooks).toMatch(/svelteKitHandler\(\{/);
+		expect(hooks).toMatch(/auth\.api\.getSession/);
 		expect(hooks).toMatch(/locals\.session/);
+		expect(hooks).toMatch(/locals\.user/);
+		expect(hooks).not.toMatch(/handle: Handle = handleParaglide/);
+		expect(hooks).not.toMatch(/handleParaglide/);
 	});
 });
 
