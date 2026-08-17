@@ -25,7 +25,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        scaffold: [base, dashboard, dashboard-playwright, base-blog, base-modules, dashboard-foundations]
+        scaffold: [base, dashboard, dashboard-playwright, base-blog, base-modules, dashboard-foundations, base-ui-modules, dashboard-integrations]
 
     # PostgreSQL for the DB scaffolds (#255): the canary would otherwise
     # fail on the real drizzle push even when the ecosystem is healthy.

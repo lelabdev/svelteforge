@@ -64,6 +64,16 @@ jobs:
         env:
           CI: 'true'
 
+      # Consumer coverage gate (#284): historical modules must compile inside
+      # real consumer scaffolds before any package is published.
+      - name: Scaffold test (base-ui-modules)
+        run: bash scripts/test-scaffold.sh base-ui-modules
+
+      - name: Scaffold test (dashboard-integrations)
+        run: bash scripts/test-scaffold.sh dashboard-integrations
+        env:
+          CI: 'true'
+
       - name: Publish ui_toast@latest
         run: cd packages/ui_toast && npm publish --access public --ignore-scripts
         env:
