@@ -224,6 +224,8 @@ if [ "$TEMPLATE" = "dashboard-foundations" ]; then
 	done
 	for cap in "audit trail" "background jobs" "chat" "realtime (WebSocket)" "notifications"; do
 		grep -q "$cap" llms.txt || { echo "❌ capability '$cap' missing in llms.txt (#258)"; exit 1; }
+		# #296: .svforge.json carries the SAME capability data as llms.txt
+		grep -q "$cap" .svforge.json || { echo "❌ capability '$cap' missing in .svforge.json (#296)"; exit 1; }
 	done
 	grep -q "Database: postgresql" llms.txt || { echo "❌ llms.txt lacks PostgreSQL (#258)"; exit 1; }
 	# Tests of the installed modules run (dashboard vitest baseline)
@@ -239,11 +241,16 @@ if [ "$TEMPLATE" = "base-ui-modules" ]; then
 	done
 	for cap in "drag & drop" "rich text (Tiptap)" "knowledge graph" "toasts (Skeleton Toast)"; do
 		grep -q "$cap" llms.txt || { echo "❌ capability '$cap' missing in llms.txt (#284)"; exit 1; }
+		grep -q "$cap" .svforge.json || { echo "❌ capability '$cap' missing in .svforge.json (#296)"; exit 1; }
 	done
 fi
 if [ "$TEMPLATE" = "dashboard-integrations" ]; then
 	for mod in oauth email uploads; do
 		grep -q "\"$mod\"" .svforge.json || { echo "❌ module $mod missing in .svforge.json (#284)"; exit 1; }
+	done
+	for cap in "oauth (Google/GitHub)" "email (Resend)" "uploads (S3/R2 presigned)"; do
+		grep -q "$cap" llms.txt || { echo "❌ capability '$cap' missing in llms.txt (#284)"; exit 1; }
+		grep -q "$cap" .svforge.json || { echo "❌ capability '$cap' missing in .svforge.json (#296)"; exit 1; }
 	done
 	# uploads security test pack proves the presign contract (#279/#284)
 	grep -q "returns a presigned URL for a valid upload" src/routes/api/upload/upload-security.test.ts \

@@ -98,4 +98,40 @@ describe('AI context generation (#234)', () => {
 		expect(bin).toMatch(/command === 'context'/);
 		expect(bin).toMatch(/regenerateLlmstxt/);
 	});
+
+	describe('AI manifest completeness & non-destructive merges (#296)', () => {
+		const MODULES = Object.keys(MODULE_CAPABILITIES);
+
+		it('every MODULE_CAPABILITIES module enriches .svforge.json with the SAME capability/pattern as llms.txt', () => {
+			for (const mod of MODULES) {
+				const src = readFileSync(join(ROOT, 'packages', mod, 'src/index.ts'), 'utf-8');
+				const meta = MODULE_CAPABILITIES[mod];
+				// The manifest enrichment call must carry the same data as the
+				// llms.txt merge — .svforge.json is complete right after sv add.
+				const re = new RegExp(
+					`enrichManifest\\(content, '${mod}', '${meta.capability.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}', '${meta.pattern?.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}'\\)`
+				);
+				expect(src, `${mod}: manifest enrich call must match MODULE_CAPABILITIES`).toMatch(re);
+				// llms.txt merge present for every module (#296 — blog was missing)
+				expect(src, `${mod}: llms.txt merge missing`).toMatch(/sv\.file\('llms\.txt'/);
+			}
+		});
+
+		it('mergeMessages never overwrites an existing key (non-destructive merge)', () => {
+			for (const mod of ['audit', 'chat', 'notifications', 'tiptap', 'uploads']) {
+				const src = readFileSync(join(ROOT, 'packages', mod, 'src/index.ts'), 'utf-8');
+				const helper = src.match(/function mergeMessages[\s\S]*?\n}/)?.[0] ?? '';
+				expect(helper, `${mod}: mergeMessages must guard existing keys`).toMatch(/!\(key in catalog\)/);
+				expect(helper, `${mod}: mergeMessages must not blindly assign`).not.toMatch(/^\s*catalog\[key\] = value;$/m);
+			}
+		});
+
+		it('the inline enrich helpers merge capabilities without duplicates (idempotent)', () => {
+			for (const mod of MODULES) {
+				const src = readFileSync(join(ROOT, 'packages', mod, 'src/index.ts'), 'utf-8');
+				expect(src, `${mod}: manifest modules guard`).toMatch(/if \(!manifest\.modules\.includes\(moduleId\)\)/);
+				expect(src, `${mod}: manifest capabilities guard`).toMatch(/if \(!manifest\.capabilities\.includes\(capability\)\)/);
+			}
+		});
+	});
 });

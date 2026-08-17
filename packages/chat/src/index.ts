@@ -38,13 +38,30 @@ function mergeLlmstxt(content: string, capability: string, pattern: string): str
 	const lines = (content || '').split('\n');
 	const capLine = `- ${capability}`;
 	if (!lines.some((l) => l === capLine)) {
-		const idx = lines.findIndex((l) => l === '## Capabilities installed');
-		if (idx >= 0) lines.splice(idx + 1, 0, capLine);
+		// Append at the END of the Capabilities section (before the next
+		// "## " header): module order then matches installation order, so
+		// `svforge context` regenerates a byte-identical llms.txt (#296).
+		let insertAt = lines.length;
+		const header = lines.findIndex((l) => l === '## Capabilities installed');
+		if (header >= 0) {
+			const nextSection = lines.findIndex((l, i) => i > header && l.startsWith('## '));
+			insertAt = nextSection >= 0 ? nextSection : lines.length;
+			// insert BEFORE the blank line that closes the section, so the
+			// byte layout matches renderLlmstxt exactly (#296)
+			if (insertAt > header + 1 && lines[insertAt - 1] === '') insertAt -= 1;
+		}
+		lines.splice(insertAt, 0, capLine);
 	}
 	const patLine = `- ${capability}: ${pattern}`;
 	if (!lines.some((l) => l === patLine)) {
-		const idx = lines.findIndex((l) => l === '## Canonical patterns');
-		if (idx >= 0) lines.splice(idx + 1, 0, patLine);
+		let insertAt = lines.length;
+		const header = lines.findIndex((l) => l === '## Canonical patterns');
+		if (header >= 0) {
+			const nextSection = lines.findIndex((l, i) => i > header && l.startsWith('## '));
+			insertAt = nextSection >= 0 ? nextSection : lines.length;
+			if (insertAt > header + 1 && lines[insertAt - 1] === '') insertAt -= 1;
+		}
+		lines.splice(insertAt, 0, patLine);
 	}
 	return lines.join('\n');
 }
@@ -63,7 +80,10 @@ function mergeMessages(content: string, additions: Record<string, string>): stri
 		}
 	}
 	for (const [key, value] of Object.entries(additions)) {
-		catalog[key] = value;
+		// NEVER overwrite an existing key (#296): a consumer may have
+		// customized a translation, and recomposition/reinstall must not
+		// clobber it.
+		if (!(key in catalog)) catalog[key] = value;
 	}
 	return `${JSON.stringify(catalog, null, 2)}\n`;
 }
