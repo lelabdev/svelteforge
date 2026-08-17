@@ -12,6 +12,7 @@
 import { readFileSync, existsSync, writeFileSync, mkdirSync, copyFileSync, readdirSync, statSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { baseFiles, dashboardFiles } from './templates';
+import { SDFORGE_RECIPE_VERSION } from './recipe-version';
 
 /** A single file in an upgrade operation. */
 export interface UpgradeFile {
@@ -48,12 +49,14 @@ export interface UpgradeResult {
  * the base/dashboard recipes live here since this is the main addon.
  */
 export const MODULE_RECIPES: Record<string, { version: string; files: Record<string, string> }> = {
+	// Recipe version is derived from the addon package version at prebuild time
+	// (#283) — it cannot drift from the actually shipped template/package.
 	base: {
-		version: '1.1.0',
+		version: SDFORGE_RECIPE_VERSION,
 		files: baseFiles
 	},
 	dashboard: {
-		version: '1.1.0',
+		version: SDFORGE_RECIPE_VERSION,
 		files: { ...baseFiles, ...dashboardFiles }
 	}
 };
@@ -119,6 +122,10 @@ export async function upgrade(
 	const fromVersion = installed?.version ?? null;
 	// Checksums of what WE last installed — the baseline to detect user edits (#189).
 	const installedChecksums = installed?.fileChecksums ?? {};
+	// New baseline: only files actually written by THIS operation get a new
+	// checksum; skipped/conflict files keep their previous baseline (or none),
+	// so the next upgrade still treats them as potentially modified (#283).
+	const newChecksums: Record<string, string> = { ...installedChecksums };
 
 	for (const [manifestPath, newContent] of Object.entries(recipe.files)) {
 		// Manifest paths start with "/" and are src-relative (e.g. "/lib/ui/Button.svelte").
@@ -131,6 +138,7 @@ export async function upgrade(
 			mkdirSync(dirname(fullPath), { recursive: true });
 			writeFileSync(fullPath, newContent);
 			files.push({ path: relPath, status: 'updated', message: 'New file created' });
+			newChecksums[manifestPath] = checksum(newContent);
 			updatedCount++;
 			continue;
 		}
@@ -140,23 +148,27 @@ export async function upgrade(
 
 		if (currentContent === newContent) {
 			files.push({ path: relPath, status: 'unchanged', message: 'Already up to date' });
+			newChecksums[manifestPath] = currentChecksum;
 			continue;
 		}
 
 		// Detect a LOCAL MODIFICATION: the file differs from what we installed
 		// last time (installedChecksums), not merely from the new template.
-		// Without a baseline (first upgrade), any divergence is a potential edit.
-		const isUserModified =
-			installedChecksums[manifestPath] !== undefined &&
-			currentChecksum !== installedChecksums[manifestPath];
+		// Without a baseline (first upgrade, or file not tracked), ANY
+		// divergence from the template is a potential user edit (#283) —
+		// never overwrite it silently.
+		const baseline = installedChecksums[manifestPath];
+		const isUserModified = baseline === undefined || currentChecksum !== baseline;
 
 		if (isUserModified && !options.force) {
 			files.push({
 				path: relPath,
 				status: 'skipped',
-				message: 'Local modifications detected. Use --force to overwrite.'
+				message: 'Local modifications detected (or no install baseline). Use --force to overwrite.'
 			});
 			skippedCount++;
+			// baseline kept (previous value, or absent) — do NOT record the new
+			// template checksum for a file that was not written.
 		} else {
 			// Create backup, then overwrite
 			const backupPath = `${fullPath}.svforge-backup`;
@@ -167,18 +179,18 @@ export async function upgrade(
 				status: 'updated',
 				message: 'Updated (backup saved as .svforge-backup)'
 			});
+			newChecksums[manifestPath] = checksum(newContent);
 			updatedCount++;
 		}
 	}
 
-	// Update version tracking with the NEW per-file checksums
+	// Update version tracking with the NEW per-file checksums (files skipped
+	// or in conflict keep their previous baseline — or none).
 	saveTracking(projectRoot, {
 		...tracking,
 		[moduleName]: {
 			version: recipe.version,
-			fileChecksums: Object.fromEntries(
-				Object.entries(recipe.files).map(([p, c]) => [p, checksum(c)])
-			)
+			fileChecksums: newChecksums
 		}
 	});
 

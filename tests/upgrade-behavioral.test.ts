@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mkdtempSync, writeFileSync, readFileSync, existsSync, rmSync } from 'node:fs';
-import { join } from 'node:path';
+import { mkdtempSync, writeFileSync, readFileSync, existsSync, rmSync, mkdirSync } from 'node:fs';
+import { join, dirname } from 'node:path';
 import { tmpdir } from 'node:os';
 import { upgrade, doctor, MODULE_RECIPES } from '../packages/svforge/src';
 
@@ -71,7 +71,67 @@ describe('svforge upgrade behavioral (#189)', () => {
 	it('rejects unknown modules', async () => {
 		await expect(upgrade('nope', project)).rejects.toThrow(/Unknown module/);
 	});
+
+	it('a diverging file WITHOUT a baseline (first upgrade) is skipped, never overwritten (#283)', async () => {
+		// Project already has the file (e.g. from an old install or user file),
+		// but no .svforge-versions.json baseline yet. Any divergence from the
+		// template must be treated as a potential user modification.
+		const target = Object.keys(MODULE_RECIPES.base.files)[0];
+		const template = MODULE_RECIPES.base.files[target];
+		mkdirSync(join(project, dirname(`src${target}`)), { recursive: true });
+		writeFileSync(join(project, `src${target}`), template + '\n// USER EDIT BEFORE FIRST UPGRADE\n');
+		const result = await upgrade('base', project);
+		const file = result.files.find((f) => f.path === `src${target}`);
+		expect(file?.status).toBe('skipped');
+		expect(file?.message).toMatch(/no install baseline/i);
+		// The user edit is preserved — the file was NOT overwritten.
+		expect(readFileSync(join(project, `src${target}`), 'utf-8')).toContain('USER EDIT BEFORE FIRST UPGRADE');
+		// And --force overwrites it (with a backup).
+		const forced = await upgrade('base', project, { force: true });
+		expect(forced.files.find((f) => f.path === `src${target}`)?.status).toBe('updated');
+		expect(existsSync(join(project, `src${target}.svforge-backup`))).toBe(true);
+	});
+
+	it('an identical file is reported unchanged, not rewritten (#283)', async () => {
+		await upgrade('base', project);
+		const target = Object.keys(MODULE_RECIPES.base.files)[0];
+		const before = readFileSync(join(project, `src${target}`), 'utf-8');
+		const result = await upgrade('base', project);
+		const file = result.files.find((f) => f.path === `src${target}`);
+		expect(file?.status).toBe('unchanged');
+		expect(readFileSync(join(project, `src${target}`), 'utf-8')).toBe(before);
+	});
+
+	it('tracking keeps the old baseline for skipped files (#283)', async () => {
+		await upgrade('base', project);
+		const target = Object.keys(MODULE_RECIPES.base.files)[0];
+		// User modifies the file, upgrade skips it.
+		writeFileSync(join(project, `src${target}`), '// USER EDIT\n');
+		await upgrade('base', project);
+		const state = JSON.parse(readFileSync(join(project, '.svforge-versions.json'), 'utf-8'));
+		// The recorded checksum must be the ORIGINAL template (what svforge
+		// installed), NOT the user edit — otherwise a later upgrade would treat
+		// the untouched user edit as "ours" and overwrite it silently.
+		expect(state.base.fileChecksums[target]).toBe(checksumOf(MODULE_RECIPES.base.files[target]));
+		// A second upgrade still skips the same file.
+		const again = await upgrade('base', project);
+		expect(again.files.find((f) => f.path === `src${target}`)?.status).toBe('skipped');
+	});
+
+	it('recipe versions match the shipped package version (#283)', () => {
+		const pkg = JSON.parse(readFileSync(join(process.cwd(), 'packages/svforge/package.json'), 'utf-8'));
+		expect(MODULE_RECIPES.base.version).toBe(pkg.version);
+		expect(MODULE_RECIPES.dashboard.version).toBe(pkg.version);
+	});
 });
+
+function checksumOf(content: string): string {
+	let hash = 0;
+	for (let i = 0; i < content.length; i++) {
+		hash = ((hash << 5) - hash + content.charCodeAt(i)) | 0;
+	}
+	return hash.toString(16);
+}
 
 describe('svforge doctor behavioral (#189)', () => {
 	it('detects a SvelteKit project via vite.config.ts (modern format, no svelte.config.js)', async () => {
