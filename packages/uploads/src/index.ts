@@ -95,7 +95,7 @@ export default defineAddon({
 	nextSteps: ({ options }) => [
 		'@svforge/uploads installed!',
 		'Add S3/R2 credentials to .env: S3_ENDPOINT, S3_REGION, S3_BUCKET, S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY',
-		'Usage: <FileUpload onUpload={(url) => console.log(url)} />',
+		'Usage: <FileUpload onUpload={(key) => console.log(key)} /> — key is the persistent object key, not the expiring presigned URL',
 		...(options.testpack
 			? ['Test pack installed: bun run test (upload endpoint security)']
 			: [])

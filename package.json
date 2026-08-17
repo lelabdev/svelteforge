@@ -12,9 +12,11 @@
     "test:watch": "vitest"
   },
   "devDependencies": {
+    "@types/ws": "^8.5.14",
+    "jsdom": "^30.0.1",
     "sv": "0.15.4",
+    "svelte": "^5",
     "vitest": "^3.1.1",
-    "ws": "^8.21.3",
-    "@types/ws": "^8.5.14"
+    "ws": "^8.21.3"
   }
 }
