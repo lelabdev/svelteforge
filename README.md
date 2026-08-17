@@ -138,6 +138,20 @@ Modules copy their implementation into the application and integrate with the ex
 
 The goal is not to ship mini SaaS products inside the boilerplate. Modules cover the reusable first part of a capability and leave product-specific behavior in the application.
 
+## Presets are recipes, not more templates
+
+Presets bundle a useful composition without duplicating module code or multiplying the template matrix.
+
+```bash
+# Dashboard + common SaaS foundations
+npx svforge preset saas
+
+# Base + community/content foundations
+npx svforge preset community
+```
+
+A preset only gives you the composition to apply. The actual project is still built from the same `base` / `dashboard` templates and the same standalone modules.
+
 ## A design system that agents can follow
 
 Canonical shared components live under:
