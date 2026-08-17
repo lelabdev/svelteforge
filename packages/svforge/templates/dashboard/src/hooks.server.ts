@@ -6,34 +6,43 @@ import { paraglideMiddleware } from '$lib/paraglide/server';
 import { auth } from '$lib/server/auth';
 import { svelteKitHandler } from 'better-auth/svelte-kit';
 
-const handleParaglide: Handle = ({ event, resolve }) =>
-	paraglideMiddleware(event.request, ({ request, locale }) => {
-		event.request = request;
-		return resolve(event, {
-			transformPageChunk: ({ html }) =>
-				html
-					.replace('%paraglide.lang%', locale)
-					.replace('%paraglide.dir%', getTextDirection(locale))
-		});
-	});
-
-const handleBetterAuth: Handle = async ({ event, resolve }) => {
-	const session = await auth.api.getSession({ headers: event.request.headers });
-
-	if (session) {
-		event.locals.session = session.session;
-		event.locals.user = session.user;
-	}
-
-	return svelteKitHandler({ event, resolve, auth, building });
-};
-
-// `sequence` is not exported by the @sveltejs/kit runtime in 2.57 (types
-// only) — compose the two handles manually. handleBetterAuth MUST run or
-// locals.session/locals.user stay undefined and every protected route
-// redirects to /login (regression found during #268 screenshots).
+/**
+ * Single composed handle (#280).
+ *
+ * Order matters:
+ * 1. `paraglideMiddleware` negotiates the locale and rewrites `event.request`
+ *    (cookie / accept-language handling).
+ * 2. Better Auth reads the session from the REWRITTEN request and populates
+ *    `locals.session` / `locals.user`; auth paths are routed to the auth
+ *    handler, every other request resolves through the app.
+ * 3. The Paraglide transform rewrites the `%paraglide.lang%` /
+ *    `%paraglide.dir%` placeholders of app.html in the FINAL html — this must
+ *    survive the composition: the #268 fix (composing handleBetterAuth) had
+ *    dropped it, leaving the placeholders in the rendered HTML (#280).
+ */
 export const handle: Handle = async ({ event, resolve }) =>
 	paraglideMiddleware(event.request, async ({ request, locale }) => {
 		event.request = request;
-		return handleBetterAuth({ event, resolve });
+
+		const session = await auth.api.getSession({ headers: event.request.headers });
+		if (session) {
+			event.locals.session = session.session;
+			event.locals.user = session.user;
+		}
+
+		return svelteKitHandler({
+			event,
+			auth,
+			building,
+			// svelteKitHandler calls resolve(event) with a single argument — the
+			// Paraglide transform is applied here so the i18n placeholders of
+			// app.html are rewritten in the final html.
+			resolve: (event) =>
+				resolve(event, {
+					transformPageChunk: ({ html }) =>
+						html
+							.replace('%paraglide.lang%', locale)
+							.replace('%paraglide.dir%', getTextDirection(locale))
+				})
+		});
 	});
