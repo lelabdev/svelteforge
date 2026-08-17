@@ -1,26 +1,40 @@
 # SVForge
 
-**sv community addon** — SvelteKit starter boilerplate built on Skeleton UI v5 and Tailwind CSS v4. Ships with a clean UI kit, layouts, theme, and optional admin dashboard with Better Auth + Drizzle ORM.
+**sv community addon** — production-ready foundations for SvelteKit projects.
 
-**Not a component library. Not a shadcn clone.** SvelteForge gives you the essentials — buttons, inputs, selects, cards, badges, theme, SEO, layouts — so you start fast and own everything. For richer components (dialog, tabs, tooltip, date-picker…), use the official [`@skeletonlabs/skeleton-svelte`](https://skeleton.dev) components directly.
+SVForge starts from a normal SvelteKit app and adds the pieces you would otherwise rebuild on every project: a coherent application structure and design-system conventions, Skeleton UI v5 + Tailwind CSS v4, Paraglide FR/EN, Vitest quality gates, and an optional admin dashboard with Better Auth + Drizzle ORM + PostgreSQL. It **does not replace SvelteKit** — the generated source belongs to your project, there is no opaque runtime to depend on after scaffolding.
+
+**Not a component library. Not a shadcn clone.** SVForge gives you the essentials — buttons, inputs, selects, cards, badges, theme, SEO, layouts — so you start fast and own everything. For richer components (dialog, tabs, tooltip, date-picker…), use the official [`@skeletonlabs/skeleton-svelte`](https://skeleton.dev) components directly.
 
 ## Install
 
+Create a SvelteKit project, then apply a template:
+
 ```bash
 # Base template (UI kit + layouts + theme)
-npx sv create my-app --template minimal --types ts --add svforge --install bun --no-download-check
-cd my-app && bun dev
+npx sv create my-app
+cd my-app
+npx sv add svforge=template:base+testing:vitest
+bun dev
 
 # Dashboard template (base + auth + DB + admin)
-npx sv create my-app --template minimal --types ts --add 'svforge=template:dashboard' --install bun --no-download-check
-cd my-app && bash scripts/setup.sh && bun dev
+npx sv create my-app
+cd my-app
+npx sv add svforge=template:dashboard+testing:vitest
+bash scripts/setup.sh && bun dev
 
 # Dashboard with the opt-in Playwright browser profile
-npx sv create my-app --template minimal --types ts --add 'svforge=template:dashboard+testing:playwright' --install bun --no-download-check
-cd my-app && npx playwright install && bun run test:e2e
+npx sv add svforge=template:dashboard+testing:playwright
+npx playwright install && bun run test:e2e
 ```
 
-Or add to an existing project:
+`sv create` also accepts the addon at creation time:
+
+```bash
+npx sv create my-app --template minimal --types ts --add 'svforge=template:base+testing:vitest' --install bun --no-download-check
+```
+
+Or add to an existing SVForge project:
 ```bash
 npx sv add svforge   # prompts: base or dashboard
 ```
