@@ -1,6 +1,6 @@
 <div align="center">
 
-# SvelteForge
+# SVForge
 
 **Production-ready foundations for SvelteKit projects.**
 
@@ -12,13 +12,13 @@ Start with SvelteKit. Add a solid project structure, a design system, auth/data 
 
 ---
 
-## What SvelteForge is
+## What SVForge is
 
-SvelteForge is a collection of [`sv`](https://github.com/sveltejs/cli) community addons for building SvelteKit applications without rebuilding the same foundations on every project.
+SVForge is a collection of [`sv`](https://github.com/sveltejs/cli) community addons for building SvelteKit applications without rebuilding the same foundations on every project.
 
 It **does not replace SvelteKit** and it is not a framework on top of it. Your project stays a normal SvelteKit app.
 
-SvelteForge adds the pieces around it:
+SVForge adds the pieces around it:
 
 - a coherent application structure and design-system conventions;
 - Skeleton UI + Tailwind foundations;
@@ -32,7 +32,7 @@ The generated source belongs to your project. There is no opaque application run
 
 ## Getting started
 
-Create a SvelteKit project, then apply a SvelteForge template:
+Create a SvelteKit project, then apply an SVForge template:
 
 ```bash
 npx sv create my-app
@@ -56,7 +56,7 @@ The dashboard uses a standard `DATABASE_URL`, so local PostgreSQL, a server you 
 
 ## Templates
 
-SvelteForge intentionally keeps the template surface small.
+SVForge intentionally keeps the template surface small.
 
 ### `base`
 
@@ -87,7 +87,7 @@ Everything in `base`, plus the standard full-stack foundation:
 - real scaffold checks against PostgreSQL
 
 <p align="center">
-  <img src="docs/screenshots/dashboard.png" alt="SvelteForge dashboard" width="760" />
+  <img src="docs/screenshots/dashboard.png" alt="SVForge dashboard" width="760" />
 </p>
 
 ## Compose only what the project needs
@@ -110,7 +110,7 @@ npx sv add \
   @svforge/notifications
 ```
 
-Modules copy their implementation into the application and integrate with the existing SvelteForge conventions instead of creating a parallel architecture.
+Modules copy their implementation into the application and integrate with the existing SVForge conventions instead of creating a parallel architecture.
 
 ## Modules
 
@@ -165,9 +165,9 @@ src/lib/components/svforge/
 
 The reuse order is explicit:
 
-1. SvelteForge primitives
-2. SvelteForge UI components
-3. SvelteForge layouts
+1. SVForge primitives
+2. SVForge UI components
+3. SVForge layouts
 4. Skeleton UI
 5. create something new only when no existing component fits
 
@@ -175,7 +175,7 @@ The reuse order is explicit:
 
 ## AI-ready
 
-SvelteForge projects carry their own implementation context so an agent can inspect the project before inventing architecture.
+SVForge projects carry their own implementation context so an agent can inspect the project before inventing architecture.
 
 A scaffold includes:
 
@@ -202,7 +202,7 @@ svforge check + svelte-check + tests + build
 Useful commands:
 
 ```bash
-# Validate SvelteForge design-system/project rails
+# Validate SVForge design-system/project rails
 svforge check
 
 # Regenerate llms.txt from the project manifest
@@ -217,7 +217,7 @@ Upgrades are intentionally conservative: generated files are owned by the consum
 
 ## Boring by design
 
-SvelteForge favors standard pieces that can survive the lifetime of an application:
+SVForge favors standard pieces that can survive the lifetime of an application:
 
 - SvelteKit stays the application framework.
 - PostgreSQL stays a normal PostgreSQL database.
@@ -226,7 +226,7 @@ SvelteForge favors standard pieces that can survive the lifetime of an applicati
 - Skeleton provides the UI foundation instead of introducing another component system.
 - Modules are optional and composable; templates do not multiply for every feature combination.
 
-This keeps generated projects understandable by a developer who knows the underlying tools, even without knowing SvelteForge first.
+This keeps generated projects understandable by a developer who knows the underlying tools, even without knowing SVForge first.
 
 ## Quality gates
 
