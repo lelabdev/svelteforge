@@ -2,8 +2,8 @@ import { db } from '$lib/server/db';
 import { user, account, session } from '$lib/server/db/schema';
 import { desc, eq } from 'drizzle-orm';
 import { fail, redirect, error, type Actions } from '@sveltejs/kit';
-import { hashPassword } from 'better-auth/crypto';
 import { isAdmin } from '$lib/server/admin';
+import { createCredentialUser, DuplicateEmailError } from '$lib/server/admin-users';
 import { createUserSchema, deleteUserSchema, toggleVerifySchema } from '$lib/server/schemas';
 import type { PageServerLoad } from './$types';
 import type { RequestEvent } from '@sveltejs/kit';
@@ -58,39 +58,16 @@ export const actions: Actions = {
 
 		const { name, email, password } = parsed.data;
 
-		// Check duplicate email
-		const [existing] = await db.select({ id: user.id }).from(user).where(eq(user.email, email)).limit(1);
-		if (existing) {
-			return fail(400, { message: 'Email already exists' });
-		}
-
-
-		// (signUpEmail creates a session cookie that overwrites admin's session)
 		try {
-			// Direct DB insert instead of auth.api.signUpEmail: signUpEmail creates a
-		// session cookie that overwrites the admin's session.
-		const hashedPassword = await hashPassword(password);
-			const userId = crypto.randomUUID();
-
-			await db.insert(user).values({
-				id: userId,
-				name,
-				email,
-				emailVerified: false,
-				createdAt: new Date(),
-				updatedAt: new Date()
-			});
-
-			await db.insert(account).values({
-				id: crypto.randomUUID(),
-				userId,
-				accountId: email,
-				providerId: 'credential',
-				password: hashedPassword,
-				createdAt: new Date(),
-				updatedAt: new Date()
-			});
-		} catch {
+			// Contract-compliant credential user: lowercase email, accountId = userId,
+			// user + credential account created atomically, admin session untouched.
+			// (signUpEmail is NOT used: it sets a session cookie for the new user,
+			// which would silently replace the admin's own session.)
+			await createCredentialUser({ name, email, password });
+		} catch (error) {
+			if (error instanceof DuplicateEmailError) {
+				return fail(400, { message: 'Email already exists' });
+			}
 			// Generic message — never leak e.message internals to the UI (#188).
 			return fail(500, { message: 'Failed to create user' });
 		}
@@ -104,13 +81,14 @@ export const actions: Actions = {
 		const formData = await request.formData();
 		const id = formData.get('id')?.toString();
 		const name = formData.get('name')?.toString()?.trim();
-		const email = formData.get('email')?.toString()?.trim();
+		const email = formData.get('email')?.toString()?.trim()?.toLowerCase();
 
 		if (!id || !name || !email) {
 			return fail(400, { message: 'ID, name and email are required' });
 		}
 
-		// Check email not taken by another user
+		// Check email not taken by another user (case-insensitive, matching the
+		// lowercase credential contract of the create helper — #292).
 		const [existing] = await db.select({ id: user.id }).from(user).where(eq(user.email, email)).limit(1);
 		if (existing && existing.id !== id) {
 			return fail(400, { message: 'Email already taken by another user' });
