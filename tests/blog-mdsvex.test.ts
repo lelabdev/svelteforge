@@ -25,8 +25,16 @@ describe('blog MDsveX scaffold (#173/#185)', () => {
 			expect(source).not.toMatch(/PUBLIC_POSTS_DIR/);
 		});
 
-		it('defines a Post type with content field', () => {
-			expect(source).toMatch(/content.*string|interface Post\b/s);
+		it('types MDsveX content as a Svelte Component wrapper, never a string (#293)', () => {
+			expect(source).toMatch(/import type \{ Component \} from 'svelte'/);
+			expect(source).toMatch(/content:\s*PostComponent/);
+			expect(source).toMatch(/class PostComponent/);
+			expect(source).not.toMatch(/content:\s*string/);
+		});
+
+		it('resolves the component through the same import.meta.glob on both sides (#293)', () => {
+			expect(source).toMatch(/import\.meta\.glob\('\/src\/posts\/\*\.md'\)/);
+			expect(source).toMatch(/loadPostComponent/);
 		});
 
 		it('getPost returns content (not just metadata)', () => {
@@ -43,6 +51,33 @@ describe('blog MDsveX scaffold (#173/#185)', () => {
 
 		it('returns 404 for missing slug', () => {
 			expect(source).toMatch(/404|not found/i);
+		});
+	});
+
+	describe('article page renders the MDsveX component (#293)', () => {
+		const ARTICLE_PAGE = join(ROOT, 'packages/blog/templates/src/routes/blog/[slug]/+page.svelte');
+		const page = readFileSync(ARTICLE_PAGE, 'utf-8');
+
+		it('renders the compiled component dynamically (runes), never raw HTML', () => {
+			expect(page).toMatch(/const Post = \$derived\(data\.post\.content\.component\)/);
+			expect(page).toMatch(/<Post \/>/);
+			expect(page).not.toMatch(/<svelte:component/);
+			expect(page).not.toMatch(/\{@html/);
+		});
+	});
+
+	describe('transport hook carries the component across the data boundary (#293)', () => {
+		const addon = readFileSync(ADDON_INDEX, 'utf-8');
+		const POSTS = readFileSync(POSTS_UTIL, 'utf-8');
+
+		it('the addon patches src/hooks.ts with a transport that encodes the slug', () => {
+			expect(addon).toMatch(/sv\.file\('src\/hooks\.ts'/);
+			expect(addon).toMatch(/mdx-post/);
+			expect(addon).toMatch(/loadPostComponent\(slug\)/);
+		});
+
+		it('the PostComponent wrapper brands itself for the transport', () => {
+			expect(POSTS).toMatch(/__brand = 'mdx-post'/);
 		});
 	});
 
