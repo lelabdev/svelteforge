@@ -10,6 +10,10 @@ name: Ecosystem Canary
 # - Skeleton v5 renamed theme tokens (#194)
 # A pinned CI never detects these — this canary does, within 7 days.
 
+# Closing roadmaps: the run cited for "canary ecosystem vert" must be
+# POSTERIOR to the last commit of the lot (head_sha >= last commit). Replay
+# this workflow on the current main via `gh workflow run canary.yml --ref main`
+# and record the tested SHA — an old green canary never validates a newer HEAD.
 on:
   schedule:
     - cron: '0 6 * * 1' # Monday 06:00 UTC
