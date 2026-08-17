@@ -30,17 +30,40 @@ export function escapeHtml(text: string): string {
 /** Allowed link protocols. Anything else is stripped to prevent javascript: URLs. */
 const SAFE_PROTOCOLS = ['http:', 'https:', 'mailto:', 'tel:'];
 
-/** Sanitize an href: validate protocol and escape for attribute interpolation. */
+/**
+ * Sanitize an href and preserve safe RELATIVE URLs (#294).
+ *
+ * Forms accepted as-is (after escaping):
+ *   - safe absolute/protocol URLs: http:, https:, mailto:, tel:
+ *   - relative URLs: /path, ./path, ../path, ?query, #hash, plain names
+ *
+ * Forms REFUSED (→ '#'):
+ *   - any other scheme (javascript:, data:, vbscript:, …) whatever the case
+ *   - protocol-relative //host URLs (their scheme depends on the page and a
+ *     //evil.com link would navigate the browser to an attacker's origin)
+ *   - leading/trailing whitespace tricks (" javascript:…")
+ *
+ * Never uses `new URL(href, base)` for the OUTPUT — that would absolutize a
+ * relative URL against a placeholder host (the #294 regression).
+ */
 export function sanitizeHref(href: unknown): string {
-	if (typeof href !== 'string' || !href) return '#';
-	try {
-		const url = new URL(href, 'http://placeholder.local');
-		if (!SAFE_PROTOCOLS.includes(url.protocol)) return '#';
-		return escapeHtml(url.href);
-	} catch {
-		// Relative URLs are OK, escape them
-		return escapeHtml(href);
+	if (typeof href !== 'string') return '#';
+	const value = href.trim();
+	if (!value) return '#';
+
+	// Explicit scheme (http:, javascript:, data:, …) — case-insensitive.
+	const scheme = /^([a-zA-Z][a-zA-Z0-9+.-]*):/.exec(value)?.[1]?.toLowerCase();
+	if (scheme) {
+		return SAFE_PROTOCOLS.includes(`${scheme}:`) ? escapeHtml(value) : '#';
 	}
+
+	// Protocol-relative URLs are ambiguous (scheme inherited from the page) —
+	// refuse them even though they carry no scheme on the wire.
+	if (value.startsWith('//')) return '#';
+
+	// Everything else is a safe relative URL: /path, ./path, ../path, ?query,
+	// #hash or a plain name. Preserve it verbatim (escaped).
+	return escapeHtml(value);
 }
 
 /** Link target allowlist — only '_blank' is ever produced by the toolbar. */

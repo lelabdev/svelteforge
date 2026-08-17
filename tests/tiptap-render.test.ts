@@ -151,4 +151,58 @@ describe('TiptapPreview XSS hardening (#282)', () => {
 		expect(html).toContain('<blockquote>');
 		expect(html).toContain('class="language-ts"');
 	});
+
+	describe('relative URLs are preserved (#294)', () => {
+		const link = (href: string) =>
+			renderTiptap(doc([{ type: 'paragraph', content: [text('l', [{ type: 'link', attrs: { href } }])] }]));
+
+		it('/docs stays /docs — no placeholder host absolutization (#294)', () => {
+			const html = link('/docs');
+			expect(html).toContain('href="/docs"');
+			expect(html).not.toContain('placeholder');
+			expect(html).not.toMatch(/https?:\/\//);
+		});
+
+		it('safe relative forms are preserved: ./ ../ ?query #hash plain names (#294)', () => {
+			for (const href of ['./foo', '../foo', '#section', 'contact.html']) {
+				expect(link(href)).toContain(`href="${href}"`);
+			}
+			// & is escaped inside the attribute
+			expect(link('?x=1&y=2')).toContain('href="?x=1&amp;y=2"');
+		});
+
+		it('query/hash-only links keep their relative shape (#294)', () => {
+			expect(link('?lang=fr')).toContain('href="?lang=fr"');
+			expect(link('#top')).toContain('href="#top"');
+		});
+
+		it('protocol-relative //host is refused — ambiguous scheme (#294)', () => {
+			const html = link('//evil.example/x');
+			expect(html).toContain('href="#"');
+			expect(html).not.toContain('evil.example');
+		});
+
+		it('mixed-case protocols are normalized and refused when unsafe (#294)', () => {
+			const html = link('JaVaScRiPt:alert(1)');
+			expect(html).toContain('href="#"');
+			expect(html).not.toMatch(/javascript/i);
+		});
+
+		it('leading-whitespace payloads are refused (#294)', () => {
+			const html = link('  javascript:alert(1)');
+			expect(html).toContain('href="#"');
+			expect(html).not.toMatch(/javascript/i);
+		});
+
+		it('data: URLs are still refused (#294)', () => {
+			const html = link('data:text/html;base64,PHNjcmlwdD4=');
+			expect(html).toContain('href="#"');
+			expect(html).not.toContain('data:text/html');
+		});
+
+		it('href attribute escaping still applies to relative URLs (#294)', () => {
+			const html = link('/docs?a=1&b=2');
+			expect(html).toContain('href="/docs?a=1&amp;b=2"');
+		});
+	});
 });
