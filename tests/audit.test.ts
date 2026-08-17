@@ -58,8 +58,10 @@ describe('audit module (#232)', () => {
 		expect(page).toMatch(/403|Admin access required/);
 		expect(page).toMatch(/limit/);
 		expect(page).toMatch(/offset/);
-		// Never unbounded
-		expect(page).toMatch(/Math\.min/);
+		// Never unbounded (#297): limit is clamped to the explicit 1..100 range
+		// via the pure parsePagination helper (Math.min alone let -10 through).
+		expect(page).toMatch(/parsePagination/);
+		expect(page).toMatch(/from '\$lib\/server\/audit\/pagination'/);
 	});
 
 	it('module requires dashboard (DB) and enriches context/messages', () => {

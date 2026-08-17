@@ -1,8 +1,13 @@
+import { escapeHtml, sanitizeHref } from './security';
+
 export function resetPasswordEmailHtml(resetUrl: string): string {
+	// The URL is a server-built value but may embed user-controlled params —
+	// sanitize the scheme before interpolation into href (#297).
+	const safeUrl = sanitizeHref(resetUrl);
 	return `<div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
     <h1>Reset your password</h1>
     <p>Click the link below to reset your password:</p>
-    <a href="${resetUrl}" style="display: inline-block; padding: 12px 24px; background: #6366f1; color: white; text-decoration: none; border-radius: 6px;">Reset Password</a>
+    <a href="${safeUrl}" style="display: inline-block; padding: 12px 24px; background: #6366f1; color: white; text-decoration: none; border-radius: 6px;">Reset Password</a>
     <p>This link expires in 1 hour.</p>
   </div>`;
 }

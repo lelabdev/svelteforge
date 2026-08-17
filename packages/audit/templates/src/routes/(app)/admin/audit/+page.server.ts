@@ -1,5 +1,6 @@
 import { isAdmin } from '$lib/server/admin';
 import { audit } from '$lib/server/audit';
+import { parsePagination } from '$lib/server/audit/pagination';
 import { error, type RequestEvent } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 
@@ -17,8 +18,7 @@ async function requireAdmin(event: RequestEvent): Promise<string> {
 export const load: PageServerLoad = async ({ locals, url }) => {
 	await requireAdmin({ locals } as RequestEvent);
 
-	const limit = Math.min(Number(url.searchParams.get('limit')) || 50, 100);
-	const offset = Math.max(Number(url.searchParams.get('offset')) || 0, 0);
+	const { limit, offset } = parsePagination(url.searchParams);
 	const action = url.searchParams.get('action') ?? undefined;
 	const entityType = url.searchParams.get('entityType') ?? undefined;
 
