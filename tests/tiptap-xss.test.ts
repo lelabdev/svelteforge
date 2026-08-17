@@ -7,52 +7,58 @@ const PREVIEW_FILE = join(
 	ROOT,
 	'packages/tiptap/templates/src/lib/components/svforge/tiptap/TiptapPreview.svelte'
 );
+const RENDERER_FILE = join(
+	ROOT,
+	'packages/tiptap/templates/src/lib/components/svforge/tiptap/render-tiptap.ts'
+);
 
 /**
- * Regression tests for #169 — TiptapPreview must escape/sanitize all user content.
+ * Regression guards for #169 + #282 — TiptapPreview must escape/sanitize all
+ * user content.
  *
- * The previous implementation interpolated node.text and mark.attrs.href directly
- * into HTML strings rendered via {@html}, enabling script injection via text
- * content and malicious href values (javascript: protocol, quote breakout).
- *
- * Since this is a template .svelte file (not a running component), we verify
- * the security properties via static analysis of the rendering logic.
+ * Since #282 the sanitization lives in the PURE renderer (render-tiptap.ts,
+ * behaviorally tested in tiptap-render.test.ts). The .svelte must NOT contain
+ * any document-controlled interpolation itself — this file statically guards
+ * that boundary so a future edit cannot reintroduce raw attribute
+ * interpolation in the component.
  */
-describe('TiptapPreview XSS prevention (#169)', () => {
+describe('TiptapPreview XSS prevention (#169/#282)', () => {
 	const source = readFileSync(PREVIEW_FILE, 'utf-8');
+	const renderer = readFileSync(RENDERER_FILE, 'utf-8');
 
-	it('escapes text content before interpolation', () => {
-		// Must have an escapeHtml or escape function that transforms <, >, &, ", '
-		expect(source).toMatch(/escapeHtml|escapeText|escape\b|sanitize.*text/i);
+	it('renders through the pure render-tiptap module', () => {
+		expect(source).toMatch(/import \{ renderTiptap \} from '\.\/render-tiptap'/);
+		expect(source).toMatch(/renderTiptap\(content\)/);
 	});
 
-	it('escapes or validates href attributes', () => {
-		// Link hrefs must be sanitized — either escaped or validated against safe protocols
-		expect(source).toMatch(/sanitize.*href|escape.*href|isValidUrl|safeProtocol|isSafeUrl/i);
+	it('never interpolates document attributes into HTML in the .svelte', () => {
+		// The two known breakout surfaces (#282): heading level and code block
+		// language were interpolated directly into class attributes.
+		expect(source).not.toMatch(/heading-\$\{/);
+		expect(source).not.toMatch(/language-\$\{/);
+		expect(source).not.toMatch(/attrs\?\./);
 	});
 
-	it('restricts link protocols (no javascript:)', () => {
-		// Must explicitly check for allowed protocols (http, https, mailto)
-		expect(source).toMatch(/javascript|protocol|https?:|mailto|allowedProtocol|SAFE_PROTOCOLS/i);
+	it('the pure renderer escapes text and restricts link protocols', () => {
+		expect(renderer).toMatch(/export function escapeHtml/);
+		expect(renderer).toMatch(/export function sanitizeHref/);
+		expect(renderer).toMatch(/SAFE_PROTOCOLS/);
+		expect(renderer).toMatch(/javascript|protocol/);
 	});
 
-	it('does not interpolate raw text without escaping', () => {
-		// The text variable must go through an escape function before being used in HTML
-		// Check that applyMarks receives escaped text or that text is escaped before use
-		const textUsagePattern = /applyMarks\s*\(\s*text\s*[,)]/;
-		expect(source).toMatch(textUsagePattern);
-		// And that there's an escape call on text somewhere
-		const escapedTextPattern = /escape.*\btext\b|text.*escape/i;
-		expect(source).toMatch(escapedTextPattern);
+	it('the pure renderer allowlists heading level, language token and target', () => {
+		expect(renderer).toMatch(/export function clampHeadingLevel/);
+		expect(renderer).toMatch(/export function sanitizeLanguage/);
+		expect(renderer).toMatch(/export function sanitizeTarget/);
+		expect(renderer).toMatch(/export function renderTiptap/);
 	});
 
 	it('still renders valid formatting marks (bold, italic, link)', () => {
-		// The fix must preserve rendering of safe marks
-		expect(source).toMatch(/'bold'/);
-		expect(source).toMatch(/<strong>/);
-		expect(source).toMatch(/'italic'/);
-		expect(source).toMatch(/<em>/);
-		expect(source).toMatch(/'link'/);
-		expect(source).toMatch(/href=/);
+		expect(renderer).toMatch(/'bold'/);
+		expect(renderer).toMatch(/<strong>/);
+		expect(renderer).toMatch(/'italic'/);
+		expect(renderer).toMatch(/<em>/);
+		expect(renderer).toMatch(/'link'/);
+		expect(renderer).toMatch(/href=/);
 	});
 });

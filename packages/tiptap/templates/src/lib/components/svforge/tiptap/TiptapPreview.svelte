@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { JSONContent } from '@tiptap/core';
+	import { renderTiptap } from './render-tiptap';
 
 	interface Props {
 		content: JSONContent;
@@ -8,102 +9,11 @@
 
 	let { content, class: className = '' }: Props = $props();
 
-	/** Escape HTML special characters to prevent injection. */
-	function escapeHtml(text: string): string {
-		return text
-			.replace(/&/g, '&amp;')
-			.replace(/</g, '&lt;')
-			.replace(/>/g, '&gt;')
-			.replace(/"/g, '&quot;')
-			.replace(/'/g, '&#39;');
-	}
-
-	/** Allowed link protocols. Anything else is stripped to prevent javascript: URLs. */
-	const SAFE_PROTOCOLS = ['http:', 'https:', 'mailto:', 'tel:'];
-
-	/** Sanitize an href: validate protocol and escape for attribute interpolation. */
-	function sanitizeHref(href: string): string {
-		if (!href) return '#';
-		try {
-			const url = new URL(href, 'http://placeholder.local');
-			if (!SAFE_PROTOCOLS.includes(url.protocol)) {
-				return '#';
-			}
-			return escapeHtml(url.href);
-		} catch {
-			// Relative URLs are OK, escape them
-			return escapeHtml(href);
-		}
-	}
-
-	function renderContent(node: JSONContent): string {
-		if (!node) return '';
-
-		const type = node.type;
-		const nodeContent = node.content || [];
-		const text = escapeHtml(node.text || '');
-		const marks = node.marks || [];
-
-		function applyMarks(text: string, marks: JSONContent['marks']): string {
-			if (!marks) return text;
-			return marks.reduce((acc, mark) => {
-				switch (mark.type) {
-					case 'bold':
-						return `<strong>${acc}</strong>`;
-					case 'italic':
-						return `<em>${acc}</em>`;
-					case 'underline':
-						return `<u>${acc}</u>`;
-					case 'strike':
-						return `<s>${acc}</s>`;
-					case 'code':
-						return `<code>${acc}</code>`;
-					case 'link': {
-						const href = sanitizeHref(mark.attrs?.href || '#');
-						const target = escapeHtml(mark.attrs?.target || '_blank');
-						return `<a href="${href}" target="${target}" rel="noopener noreferrer">${acc}</a>`;
-					}
-					default:
-						return acc;
-				}
-			}, text);
-		}
-
-		const children = nodeContent.map((child) => renderContent(child)).join('');
-
-		switch (type) {
-			case 'doc':
-				return children;
-			case 'paragraph':
-				return `<p>${children || '<br>'}</p>`;
-			case 'heading': {
-				const level = node.attrs?.level || 1;
-				return `<span class="tiptap-heading tiptap-heading-${level}">${children}</span>`;
-			}
-			case 'bulletList':
-				return `<ul>${children}</ul>`;
-			case 'orderedList':
-				return `<ol>${children}</ol>`;
-			case 'listItem':
-				return `<li>${children}</li>`;
-			case 'blockquote':
-				return `<blockquote>${children}</blockquote>`;
-			case 'codeBlock': {
-				const language = node.attrs?.language || '';
-				return `<pre><code class="language-${language}">${children}</code></pre>`;
-			}
-			case 'hardBreak':
-				return '<br>';
-			case 'horizontalRule':
-				return '<hr>';
-			case 'text':
-				return applyMarks(text, marks);
-			default:
-				return children || text;
-		}
-	}
-
-	const renderedHtml = $derived(renderContent(content));
+	// The sanitization lives in the pure renderTiptap() function (#282) — every
+	// document-controlled value is escaped or allowlisted there before reaching
+	// the {@html} output. The .svelte itself must never interpolate
+	// document attributes into HTML.
+	const renderedHtml = $derived(renderTiptap(content));
 </script>
 
 <div class="tiptap-preview prose max-w-none {className}">
