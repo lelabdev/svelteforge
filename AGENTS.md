@@ -93,6 +93,15 @@ bash scripts/test-scaffold.sh base      # ou dashboard
 - Commits = saves, sans cérémonie. Squash merge uniquement (via PR).
 - Toujours partir de `origin/main` à jour (`git fetch` — le main local peut être en retard).
 
+## Clôture de roadmap
+
+- **Preuve canary** : quand une roadmap coche « canary ecosystem vert », le run
+  cité doit être **postérieur au dernier commit du lot** (`head_sha` du run ≥
+  dernier commit). Un vieux canary vert dans l'historique ne valide pas un HEAD
+  plus récent — rejouer `gh workflow run canary.yml --ref main` avant de
+  clôturer, et noter le SHA testé dans le commentaire de clôture. Le canary
+  hebdo reste un détecteur de drift `latest`, jamais un blocage par PR.
+
 ## Pièges connus (vérifiés)
 
 - `sv create` avec plugins : syntaxe explicite `'tailwindcss=plugins:typography,forms'`
