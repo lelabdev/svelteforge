@@ -73,6 +73,10 @@ if [ "$TEMPLATE" = "base-blog" ]; then
 	grep -q "extensions: \['.svelte', '.md'\]" vite.config.ts || { echo "❌ .md extension missing (#185)"; exit 1; }
 	# welcome.md post delivered and compiled by mdsvex
 	test -f src/posts/welcome.md || { echo "❌ src/posts/welcome.md missing"; exit 1; }
+	# transport hook delivered (#293): the MDsveX component crosses the data
+	# boundary via src/hooks.ts (slug on the wire, re-import client-side)
+	grep -q "mdx-post" src/hooks.ts || { echo "❌ mdx-post transport missing in hooks.ts (#293)"; exit 1; }
+	grep -q "loadPostComponent" src/hooks.ts || { echo "❌ loadPostComponent missing in hooks.ts (#293)"; exit 1; }
 fi
 
 # base-ui-modules (#284): historical UI modules composed on a real base
@@ -151,7 +155,7 @@ bun run build
 # 4a. Svelte/TypeScript quality gate (#266): run the generated project's own
 # check script on the main scaffolds. dashboard-foundations joined after #265
 # fixed the UUID number/string drift in the DB modules.
-if [ "$TEMPLATE" = "base" ] || [ "$TEMPLATE" = "dashboard" ] || [ "$TEMPLATE" = "dashboard-playwright" ] || [ "$TEMPLATE" = "dashboard-foundations" ] || [ "$TEMPLATE" = "base-ui-modules" ] || [ "$TEMPLATE" = "dashboard-integrations" ]; then
+if [ "$TEMPLATE" = "base" ] || [ "$TEMPLATE" = "dashboard" ] || [ "$TEMPLATE" = "dashboard-playwright" ] || [ "$TEMPLATE" = "dashboard-foundations" ] || [ "$TEMPLATE" = "base-ui-modules" ] || [ "$TEMPLATE" = "dashboard-integrations" ] || [ "$TEMPLATE" = "base-blog" ]; then
 	bun run check || { echo "❌ svelte-check failed on $TEMPLATE scaffold (#266)"; exit 1; }
 fi
 
@@ -173,6 +177,29 @@ fi
 if [ "$TEMPLATE" = "base-blog" ]; then
 	grep -rl "Welcome to your blog" .svelte-kit/output/server/ >/dev/null \
 		|| { echo "❌ welcome.md not compiled by mdsvex (#185)"; exit 1; }
+
+	# Runtime smoke (#293): serve the production build and hit /blog and
+	# /blog/welcome over HTTP. MDsveX compiles a post into a Svelte COMPONENT
+	# (never an HTML string), so the rendered page must contain the markdown
+	# body AND the inline Svelte component of welcome.md — not a broken
+	# "[object Object]" {@html} output.
+	bun run preview -- --port 4188 >/tmp/sf-preview.log 2>&1 &
+	PREVIEW_PID=$!
+	for i in $(seq 1 30); do
+		curl -sf http://localhost:4188/blog >/dev/null 2>&1 && break
+		sleep 1
+	done
+	BLOG_HTML=$(curl -sf http://localhost:4188/blog) || { echo "❌ /blog not served by preview (#293)"; kill $PREVIEW_PID; exit 1; }
+	echo "$BLOG_HTML" | grep -q "Welcome to your blog" \
+		|| { echo "❌ /blog list lacks the post title (#293)"; kill $PREVIEW_PID; exit 1; }
+	POST_HTML=$(curl -sf http://localhost:4188/blog/welcome) || { echo "❌ /blog/welcome not served by preview (#293)"; kill $PREVIEW_PID; exit 1; }
+	echo "$POST_HTML" | grep -q "Welcome!" \
+		|| { echo "❌ /blog/welcome lacks the markdown h1 (#293)"; kill $PREVIEW_PID; exit 1; }
+	echo "$POST_HTML" | grep -q "MDsveX features" \
+		|| { echo "❌ /blog/welcome lacks the markdown body (#293)"; kill $PREVIEW_PID; exit 1; }
+	echo "$POST_HTML" | grep -q "Count:" \
+		|| { echo "❌ /blog/welcome lacks the embedded Svelte component (#293)"; kill $PREVIEW_PID; exit 1; }
+	kill $PREVIEW_PID 2>/dev/null
 fi
 
 # 4b. dashboard-foundations composition (#258): the five new foundation

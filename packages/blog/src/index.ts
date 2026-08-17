@@ -96,6 +96,41 @@ export default defineAddon({
 
 		// AI context (#234): declare this module in .svforge.json.
 		sv.file('.svforge.json', (content) => enrichManifest(content, 'blog'));
+
+		// Transport hook (#293): MDsveX posts are Svelte components (functions)
+		// which SvelteKit cannot serialize through the data boundary. The
+		// transport encodes a post as its slug server-side and re-imports the
+		// compiled component client-side. Patches the consumer's hooks.ts
+		// (which already exports the Paraglide reroute) without touching it.
+		sv.file('src/hooks.ts', (content) => {
+			if (!content || content.includes('mdx-post')) return content;
+			const imports =
+				"import { loadPostComponent, PostComponent } from '$lib/utils/posts';\nimport type { Transport } from '@sveltejs/kit';\n";
+			const transport =
+				'\n\nexport const transport: Transport = {' +
+				"\n\t'mdx-post': {" +
+				'\n\t\tencode: (value: unknown) =>' +
+				"\n\t\t\tvalue && typeof value === 'object' && (value as { __brand?: string }).__brand === 'mdx-post'" +
+				'\n\t\t\t\t? [(value as { slug: string }).slug]' +
+				'\n\t\t\t\t: null,' +
+				'\n\t\tdecode: async ([slug]: [string]) => {' +
+				'\n\t\t\tconst component = await loadPostComponent(slug);' +
+				'\n\t\t\tif (!component) throw new Error(\'Post component not found: \' + slug);' +
+				'\n\t\t\treturn new PostComponent(component, slug);' +
+				'\n\t\t}' +
+				'\n\t}' +
+				'\n};\n';
+			// Insert the imports after the first import line, then append the
+			// transport after the last export statement (keeps the reroute
+			// intact).
+			const withImports = content.replace(
+				/^(import[^\n]*\n)/m,
+				(match) => match + imports
+			);
+			const lastExport = withImports.lastIndexOf('export ');
+			if (lastExport === -1) return withImports + transport;
+			return withImports.slice(0, lastExport) + transport + withImports.slice(lastExport);
+		});
 	},
 	nextSteps: () => [
 		'@svforge/blog installed!',
