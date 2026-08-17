@@ -4,7 +4,7 @@ import { desc, eq } from 'drizzle-orm';
 import { fail, redirect, error, type Actions } from '@sveltejs/kit';
 import { isAdmin } from '$lib/server/admin';
 import { createCredentialUser, DuplicateEmailError } from '$lib/server/admin-users';
-import { createUserSchema, deleteUserSchema, toggleVerifySchema } from '$lib/server/schemas';
+import { createUserSchema, updateUserSchema, deleteUserSchema, toggleVerifySchema } from '$lib/server/schemas';
 import type { PageServerLoad } from './$types';
 import type { RequestEvent } from '@sveltejs/kit';
 
@@ -41,6 +41,14 @@ export const load: PageServerLoad = async ({ locals }) => {
 	return { users };
 };
 
+/**
+ * Form actions (#295) — golden reference for SvelteKit mutations.
+ *
+ * Every action returns a STABLE machine-readable `code` instead of English
+ * copy: the UI maps codes to Paraglide FR/EN messages, so no visible text
+ * comes from the server and the copy can never leak internal details.
+ */
+
 export const actions: Actions = {
 	create: async (event) => {
 		await requireAdmin(event);
@@ -53,7 +61,7 @@ export const actions: Actions = {
 		});
 
 		if (!parsed.success) {
-			return fail(400, { message: parsed.error.issues[0]?.message ?? 'Invalid input' });
+			return fail(400, { code: 'invalid_input' });
 		}
 
 		const { name, email, password } = parsed.data;
@@ -66,41 +74,55 @@ export const actions: Actions = {
 			await createCredentialUser({ name, email, password });
 		} catch (error) {
 			if (error instanceof DuplicateEmailError) {
-				return fail(400, { message: 'Email already exists' });
+				return fail(400, { code: 'email_exists' });
 			}
-			// Generic message — never leak e.message internals to the UI (#188).
-			return fail(500, { message: 'Failed to create user' });
+			// Generic code — never leak e.message internals to the UI (#188).
+			return fail(500, { code: 'create_failed' });
 		}
 
-		return { success: true, message: `User ${name} created` };
+		return { success: true, code: 'created' };
 	},
 
 	update: async (event) => {
 		await requireAdmin(event);
 		const { request } = event;
 		const formData = await request.formData();
-		const id = formData.get('id')?.toString();
-		const name = formData.get('name')?.toString()?.trim();
-		const email = formData.get('email')?.toString()?.trim()?.toLowerCase();
+		const parsed = updateUserSchema.safeParse({
+			id: formData.get('id'),
+			name: formData.get('name'),
+			email: formData.get('email')
+		});
 
-		if (!id || !name || !email) {
-			return fail(400, { message: 'ID, name and email are required' });
+		if (!parsed.success) {
+			return fail(400, { code: 'invalid_input' });
 		}
+
+		const { id, name, email } = parsed.data;
+		const normalizedEmail = email.toLowerCase();
 
 		// Check email not taken by another user (case-insensitive, matching the
 		// lowercase credential contract of the create helper — #292).
-		const [existing] = await db.select({ id: user.id }).from(user).where(eq(user.email, email)).limit(1);
+		const [existing] = await db
+			.select({ id: user.id })
+			.from(user)
+			.where(eq(user.email, normalizedEmail))
+			.limit(1);
 		if (existing && existing.id !== id) {
-			return fail(400, { message: 'Email already taken by another user' });
+			return fail(400, { code: 'email_taken' });
 		}
 
-		await db.update(user).set({
-			name,
-			email,
-			updatedAt: new Date()
-		}).where(eq(user.id, id));
+		try {
+			await db.update(user).set({
+				name,
+				email: normalizedEmail,
+				updatedAt: new Date()
+			}).where(eq(user.id, id));
+		} catch {
+			// Generic code — never leak e.message internals to the UI (#188).
+			return fail(500, { code: 'update_failed' });
+		}
 
-		return { success: true, message: `User ${name} updated` };
+		return { success: true, code: 'updated' };
 	},
 
 	delete: async (event) => {
@@ -112,20 +134,20 @@ export const actions: Actions = {
 		});
 
 		if (!parsed.success) {
-			return fail(400, { message: 'User ID is required' });
+			return fail(400, { code: 'invalid_input' });
 		}
 
 		const { id } = parsed.data;
 
 		// Prevent self-delete
 		if (id === adminId) {
-			return fail(400, { message: 'You cannot delete your own account' });
+			return fail(400, { code: 'self_delete' });
 		}
 
 		// Verify the target user exists before attempting deletion
 		const [target] = await db.select({ id: user.id }).from(user).where(eq(user.id, id)).limit(1);
 		if (!target) {
-			return fail(404, { message: 'User not found' });
+			return fail(404, { code: 'not_found' });
 		}
 
 		// Atomic deletion: session → account → user (FK-safe order)
@@ -137,11 +159,11 @@ export const actions: Actions = {
 				await tx.delete(user).where(eq(user.id, id));
 			});
 		} catch {
-			// Generic message — never leak e.message internals to the UI (#188).
-			return fail(500, { message: 'Failed to delete user' });
+			// Generic code — never leak e.message internals to the UI (#188).
+			return fail(500, { code: 'delete_failed' });
 		}
 
-		return { success: true, message: 'User deleted' };
+		return { success: true, code: 'deleted' };
 	},
 
 	toggleVerify: async (event) => {
@@ -154,16 +176,21 @@ export const actions: Actions = {
 		});
 
 		if (!parsed.success) {
-			return fail(400, { message: 'User ID is required' });
+			return fail(400, { code: 'invalid_input' });
 		}
 
 		const { id, verified } = parsed.data;
 
-		await db.update(user).set({
-			emailVerified: !verified,
-			updatedAt: new Date()
-		}).where(eq(user.id, id));
+		try {
+			await db.update(user).set({
+				emailVerified: !verified,
+				updatedAt: new Date()
+			}).where(eq(user.id, id));
+		} catch {
+			// Generic code — never leak e.message internals to the UI (#188).
+			return fail(500, { code: 'verify_failed' });
+		}
 
-		return { success: true, message: `Email ${!verified ? 'verified' : 'unverified'}` };
+		return { success: true, code: verified ? 'unverified' : 'verified' };
 	}
 };

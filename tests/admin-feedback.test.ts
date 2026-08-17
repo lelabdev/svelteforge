@@ -32,16 +32,37 @@ const LAYOUT = join(ROOT, 'packages/svforge/templates/dashboard/src/routes/(app)
 describe('admin action feedback (#188)', () => {
 	const page = readFileSync(USERS_PAGE, 'utf-8');
 
-	it('reads the message from result.data, not result.message', () => {
-		// Must read data.message with a fallback — and never the old result.message
-		expect(page).not.toMatch(/result\.message\b/);
-		expect(page).toMatch(/result\.data\?\.message \|\|/);
+	it('uses real SvelteKit form actions with use:enhance, never fetch().json() (#295)', () => {
+		// #295: the golden reference — mutations are <form method="POST"> + use:enhance.
+		expect(page).toMatch(/use:enhance=\{submitEnhance\}/);
+		expect(page).toMatch(/method="POST"/);
+		expect(page).toMatch(/action=\{modal === 'create' \? '\?\/create' : '\?\/update'\}/);
+		expect(page).not.toMatch(/res\.json\(\)/);
+		expect(page).not.toMatch(/fetch\('\?\/create'/);
 	});
 
-	it('toggleVerify has an error branch', () => {
-		// #267: the fallback copy is i18n via Paraglide (m.users_verify_failed)
-		// instead of hard-coded English — the branch must still exist.
+	it('maps stable server codes to Paraglide copy (no English UI strings) (#295)', () => {
+		expect(page).toMatch(/function feedbackFor\(code: string \| undefined, isError: boolean\)/);
+		expect(page).toMatch(/m\.users_email_exists\(\)/);
+		expect(page).toMatch(/m\.users_email_taken\(\)/);
+		expect(page).toMatch(/m\.users_self_delete\(\)/);
+		expect(page).toMatch(/m\.users_not_found\(\)/);
+		expect(page).toMatch(/m\.users_invalid_input\(\)/);
 		expect(page).toMatch(/m\.users_verify_failed\(\)/);
+	});
+
+	it('toggleVerify is a real form action with hidden inputs (#295)', () => {
+		expect(page).toMatch(/action="\?\/toggleVerify"/);
+		expect(page).toMatch(/name="verified"/);
+	});
+
+	it('the server returns stable codes, never English copy (#295)', () => {
+		const server = readFileSync(USERS_SERVER, 'utf-8');
+		expect(server).not.toMatch(/message: `User \$\{name\} created`/);
+		expect(server).not.toMatch(/'Email already exists'/);
+		expect(server).toMatch(/code: 'email_exists'/);
+		expect(server).toMatch(/code: 'created'/);
+		expect(server).toMatch(/code: 'self_delete'/);
 	});
 
 	it('never exposes raw e.message to the UI (server actions)', () => {
