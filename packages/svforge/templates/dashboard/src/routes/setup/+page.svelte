@@ -13,17 +13,17 @@
 	<title>{m.setup_title()}</title>
 </svelte:head>
 
-<main class="min-h-screen flex items-center justify-center p-4">
+<main class="flex min-h-screen items-center justify-center p-4">
 	<div class="w-full max-w-sm space-y-6">
-		<div class="text-center space-y-2">
-			<h1 class="text-2xl font-heading font-bold">{m.setup_create_admin()}</h1>
-			<p class="text-surface-500 text-sm">{m.setup_hint()}</p>
+		<div class="space-y-2 text-center">
+			<h1 class="text-2xl font-bold">{m.setup_create_admin()}</h1>
+			<p class="text-sm text-surface-500">{m.setup_hint()}</p>
 		</div>
 
 		<Card>
 			<form method="POST" class="space-y-4" use:enhance>
 				{#if form?.error}
-					<p class="text-error-500 text-sm">{form.error}</p>
+					<p class="text-sm text-error-500">{form.error}</p>
 				{/if}
 
 				<Input name="name" label={m.users_label_name()} placeholder={m.users_placeholder_name()} required />
