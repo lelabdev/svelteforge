@@ -20,7 +20,15 @@ describe('design-system harness (#240)', () => {
 		mkdirSync(join(project, 'src/lib/components/svforge/primitives'), { recursive: true });
 		writeFileSync(join(project, 'src/lib/components/svforge/primitives/Button.svelte'), '<button>ok</button>');
 		mkdirSync(join(project, 'src/lib/styles'), { recursive: true });
-		writeFileSync(join(project, 'src/lib/styles/tokens.css'), '@theme {}');
+		writeFileSync(
+			join(project, 'src/lib/styles/svelteforge-theme.css'),
+			"[data-theme='svelteForge'] { --color-primary-500: oklch(60% 0.1 220); }"
+		);
+		mkdirSync(join(project, 'src/routes'), { recursive: true });
+		writeFileSync(
+			join(project, 'src/routes/layout.css'),
+			"@import '../lib/styles/svelteforge-theme.css';"
+		);
 	});
 
 	afterAll(() => {
