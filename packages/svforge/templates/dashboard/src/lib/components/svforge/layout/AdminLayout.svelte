@@ -40,23 +40,23 @@
 
 	function navClass(href: string) {
 		return cn(
-			'flex items-center gap-3 px-3 py-2 rounded-card transition-colors',
+			'flex items-center gap-3 rounded-container px-3 py-2 transition-colors',
 			currentPath === href
 				? 'bg-primary-100-900 text-primary-700-300'
-				: 'hover:bg-surface-100-800 text-surface-600-400'
+				: 'text-surface-600-400 hover:bg-surface-100-800'
 		);
 	}
 </script>
 
 <div class={cn('flex min-h-screen', className)}>
 	<!-- Desktop Sidebar -->
-	<aside class="hidden lg:flex flex-col border-r border-surface-200-800 bg-surface-50-950 transition-all {collapsed ? 'w-16' : 'w-56'}">
-		<div class="flex items-center justify-between p-3 border-b border-surface-200-800">
+	<aside class="hidden flex-col border-r border-surface-200-800 bg-surface-50-950 transition-all lg:flex {collapsed ? 'w-16' : 'w-56'}">
+		<div class="flex items-center justify-between border-b border-surface-200-800 p-3">
 			{#if !collapsed}
-				<a href="/admin" class="text-lg font-heading font-bold text-primary-600-400">{m.layout_admin()}</a>
+				<a href="/admin" class="text-lg font-bold text-primary-600-400">{m.layout_admin()}</a>
 			{/if}
 			<button
-				class="btn preset-tonal-surface p-1 rounded"
+				class="btn rounded p-1 preset-tonal-surface"
 				onclick={() => (collapsed = !collapsed)}
 				aria-label={m.layout_toggle_sidebar()}
 				aria-expanded={!collapsed}
@@ -65,7 +65,7 @@
 			</button>
 		</div>
 
-		<nav class="flex-1 p-2 space-y-1" aria-label={m.layout_menu()}>
+		<nav class="flex-1 space-y-1 p-2" aria-label={m.layout_menu()}>
 			{#each items as item}
 				{@const Icon = item.icon}
 				<a
@@ -79,27 +79,27 @@
 			{/each}
 		</nav>
 
-		<div class="p-2 border-t border-surface-200-800">
+		<div class="border-t border-surface-200-800 p-2">
 			<ThemeToggle />
 		</div>
 	</aside>
 
 	<!-- Main area -->
-	<div class="flex-1 flex flex-col">
+	<div class="flex flex-1 flex-col">
 		<!-- Top bar -->
-		<header class="sticky top-0 z-50 bg-surface-50-950/80 backdrop-blur-md border-b border-surface-200-800 px-element py-3 flex items-center justify-between">
+		<header class="sticky top-0 z-50 flex items-center justify-between border-b border-surface-200-800 bg-surface-50-950/80 px-4 py-3 backdrop-blur-md">
 			<div class="flex items-center gap-3">
-				<button class="lg:hidden btn preset-tonal-surface p-2 rounded" onclick={() => (mobileOpen = !mobileOpen)} aria-label={m.layout_menu()} aria-expanded={mobileOpen}>
+				<button class="btn rounded p-2 preset-tonal-surface lg:hidden" onclick={() => (mobileOpen = !mobileOpen)} aria-label={m.layout_menu()} aria-expanded={mobileOpen}>
 					{#if mobileOpen}<X size={20} />{:else}<Menu size={20} />{/if}
 				</button>
-				<h1 class="font-heading font-bold text-lg">{m.layout_dashboard()}</h1>
+				<h1 class="text-lg font-bold">{m.layout_dashboard()}</h1>
 			</div>
 			<div class="flex items-center gap-3">
 				<ThemeToggle class="lg:hidden" />
 				{#if user}
-					<span class="text-sm text-surface-500 hidden sm:block">{user.name}</span>
+					<span class="hidden text-sm text-surface-500 sm:block">{user.name}</span>
 					{#if onSignOut}
-						<button class="btn preset-tonal-surface p-2 rounded" onclick={onSignOut} aria-label={m.layout_sign_out()}>
+						<button class="btn rounded p-2 preset-tonal-surface" onclick={onSignOut} aria-label={m.layout_sign_out()}>
 							<SignOut size={18} />
 						</button>
 					{/if}
@@ -112,27 +112,27 @@
 			<button
 				type="button"
 				aria-label={m.layout_close_menu()}
-				class="lg:hidden fixed inset-0 z-40 w-full bg-black/50 cursor-default"
+				class="fixed inset-0 z-40 w-full cursor-default bg-black/50 lg:hidden"
 				onclick={() => (mobileOpen = false)}
 			></button>
-			<aside class="lg:hidden fixed left-0 top-0 z-50 h-full w-56 bg-surface-50-950 border-r border-surface-200-800 p-3 space-y-1 shadow-xl" aria-label={m.layout_menu()}>
-					{#each items as item}
-						{@const Icon = item.icon}
-						<a
-							href={item.href}
-							class={navClass(item.href)}
-							aria-current={currentPath === item.href ? 'page' : undefined}
-							onclick={() => (mobileOpen = false)}
-						>
-							<Icon size={20} />
-							<span class="text-sm font-medium">{item.label}</span>
-						</a>
-					{/each}
-				</aside>
+			<aside class="fixed left-0 top-0 z-50 h-full w-56 space-y-1 border-r border-surface-200-800 bg-surface-50-950 p-3 shadow-xl lg:hidden" aria-label={m.layout_menu()}>
+				{#each items as item}
+					{@const Icon = item.icon}
+					<a
+						href={item.href}
+						class={navClass(item.href)}
+						aria-current={currentPath === item.href ? 'page' : undefined}
+						onclick={() => (mobileOpen = false)}
+					>
+						<Icon size={20} />
+						<span class="text-sm font-medium">{item.label}</span>
+					</a>
+				{/each}
+			</aside>
 		{/if}
 
 		<!-- Content -->
-		<main class="flex-1 p-group overflow-auto">
+		<main class="flex-1 overflow-auto p-6">
 			{@render children()}
 		</main>
 	</div>
