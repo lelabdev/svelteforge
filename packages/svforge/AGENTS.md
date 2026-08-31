@@ -6,10 +6,12 @@ Spécificiques du package principal. **Lire d'abord le [AGENTS.md racine](../../
 
 ```
 templates/base/
-├── src/lib/components/svforge/ui/   ← composants de base (Button, Input, Card, …)
-├── src/lib/components/layout/       ← Navbar, Footer
-├── src/lib/styles/                  ← theme skeleton + tokens @theme Tailwind
-└── src/routes/                      ← landing + demo-ui
+├── src/lib/components/svforge/       ← primitives / ui / layout
+├── src/lib/styles/
+│   └── svelteforge-theme.css         ← thème Skeleton v5 complet
+└── src/routes/
+    ├── layout.css                    ← unique point d'entrée CSS global
+    └── landing + demo-ui
 
 templates/dashboard/                 ← overlay : base + auth + admin + DB
 ├── src/lib/server/                  ← auth (better-auth), db (drizzle/postgres), schemas (zod), admin.ts
@@ -20,6 +22,16 @@ templates/dashboard/                 ← overlay : base + auth + admin + DB
 └── vitest.config.ts                 ← ⚠️ racine du template = jamais embarqué (#186)
 ```
 
+### Contrat CSS (#313)
+
+Le scaffold reste volontairement minimal :
+
+- `src/routes/layout.css` charge Tailwind, Skeleton, Skeleton Svelte, les fontes, les plugins, le dark variant et `svelteforge-theme.css`. Il ne doit pas devenir une couche de design globale.
+- `src/lib/styles/svelteforge-theme.css` est la source de vérité visuelle Skeleton v5 : palettes, surfaces, brand, root backgrounds, typo, radius/shapes, borders/rings/outlines.
+- Il n'y a **pas** de `tokens.css` ni de `index.css` générique dans le boilerplate.
+- Pour le layout/whitespace local, utiliser les utilities Tailwind standard (`p-4`, `gap-6`, `max-w-7xl`, etc.).
+- Une couche de tokens/effets spécifique au produit ne se crée que plus tard, si un besoin concret et répété n'est pas couvert par Skeleton/Tailwind.
+
 Le pattern admin : **premier utilisateur = admin** (`src/lib/server/admin.ts`, tri par `createdAt`). Multi-rôles = ajouter une colonne `role`.
 
 ## Modes (`src/modes/`)
@@ -27,7 +39,7 @@ Le pattern admin : **premier utilisateur = admin** (`src/lib/server/admin.ts`, t
 - `base.ts` : écrit tous les fichiers de `baseFiles`
 - `dashboard.ts` : deps runtime (drizzle-orm, better-auth, postgres) + devDeps (drizzle-kit, vitest, playwright si opt-in) + patch `package.json` (scripts test) + `baseFiles` puis overlay `dashboardFiles` (filtrage playwright)
 
-L'entry `src/index.ts` : declare les deps communes (fonts, skeleton, tailwind v4, phosphor, clsx, tailwind-merge) et patche `vite.config.ts` (plugin `@tailwindcss/vite`).
+L'entry `src/index.ts` : déclare les deps communes (fonts, skeleton, tailwind v4, phosphor, clsx, tailwind-merge) et patche `vite.config.ts` (plugin `@tailwindcss/vite`).
 
 ## doctor / upgrade
 
