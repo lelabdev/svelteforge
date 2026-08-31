@@ -59,24 +59,34 @@ Canonical structure (#242) — the filesystem IS the registry:
 A domain-specific component does NOT belong in the generic design system —
 keep it in its feature area (e.g. \`src/lib/features/...\` or the route folder).
 
-## Design-system contract (#240)
+## Design-system contract (#240, #313)
 
 **Reuse first**: prefer reuse over invention. A visually less custom interface
 that fully follows the design system is preferred over a bespoke interface
 that introduces new patterns. Coherence > originality on first pass.
 
+SvelteForge deliberately scaffolds a very small CSS architecture:
+
+- \`src/routes/layout.css\` is the **single global CSS entrypoint**. Keep it as wiring only: Tailwind, Skeleton, Skeleton Svelte, fonts, plugins, the dark variant, and the import of the SvelteForge theme.
+- \`src/lib/styles/svelteforge-theme.css\` is the **complete Skeleton v5 theme** and the visual source of truth for palettes, surfaces, brand, root backgrounds, typography, radius/shapes, borders, rings and outlines.
+- There is intentionally **no generic \`tokens.css\` or \`index.css\` layer** in the scaffold. Use normal Tailwind utilities for local layout and spacing (for example \`p-4\`, \`gap-6\`, \`max-w-7xl\`).
+
+Before adding global CSS or a custom visual token, ask: **can Skeleton express this through the theme, a preset, or an existing utility?** If yes, use Skeleton. Only introduce a project-specific abstraction after a concrete, repeated product need exists and Skeleton/Tailwind do not already cover it.
+
 MUST:
 - inspect the SvelteForge catalog before writing UI
 - reuse existing SvelteForge components before creating new ones
 - use Skeleton/Skeleton Svelte for UI primitives and interaction patterns
-- use project design tokens for typography, spacing, radius, surfaces, colors
+- change \`svelteforge-theme.css\` first for global visual decisions covered by Skeleton
+- use standard Tailwind utilities for local structure, whitespace and responsive layout
 - keep pages composition-oriented and thin
 
 MUST NOT:
 - install another UI kit
 - create a duplicate Button/Input/Card/Dialog/Tabs/Menu/etc. when Skeleton or SvelteForge already provides it
 - create project-local one-off design primitives without justification
-- hardcode arbitrary colors/radius/spacing when a token/preset exists
+- create a parallel global palette/token system for colors, surfaces, radius, focus, hover or shadows by default
+- add global visual overrides in \`layout.css\` when the Skeleton theme or presets already own the behavior
 - redesign the global visual language inside a feature PR
 
 Run \`npx svforge check\` before finishing a feature — it flags ERROR
@@ -90,9 +100,11 @@ Components wrap Skeleton classes + Tailwind only — never raw CSS
 
 ## Theme
 
-- Colors are oklch CSS variables in \`src/lib/styles/svelteforge-theme.css\` (\`[data-theme='svelteForge']\`)
-- Tailwind custom tokens (\`rounded-card\`, \`p-element\`, \`max-w-modal\`, \`font-heading\`…) via \`@theme\` in \`src/lib/styles/tokens.css\` — pure Tailwind, Skeleton-independent
-- Dark mode via the \`data-mode\` attribute / ThemeToggle component
+- The complete Skeleton v5 theme lives in \`src/lib/styles/svelteforge-theme.css\` under \`[data-theme='svelteForge']\`.
+- Global CSS wiring lives in \`src/routes/layout.css\`; keep it minimal and non-visual.
+- Dark mode uses the \`data-mode\` attribute / ThemeToggle component.
+- For a project-wide visual change that Skeleton supports, change the theme rather than adding a global override.
+- Add a project-specific token/effects layer only later, when a real repeated use case proves it is needed.
 
 ## Project commands
 
@@ -120,10 +132,10 @@ MUST NOT:
 
 Editorial content (blog/MDsveX, CMS/DB) does NOT belong in the catalogs.
 
-## LLM resources (offline knowledge is likely v4 = obsolete)
+## LLM resources (offline knowledge is likely stale)
 
 If you need Skeleton or Svelte specifics, fetch the FRESH docs rather than
-trusting training memory (Skeleton v5 renamed many tokens):
+trusting training memory:
 
 - \`https://skeleton.dev/llms-full.txt\`
 - \`https://svelte.dev/llms-full.txt\`
@@ -145,7 +157,7 @@ const DASHBOARD = `
 The admin screens are canonical examples agents should copy:
 
 - **\`/admin/users\`** — CRUD data table: the SvelteForge \`Table\` primitive (columns + \`children\` slot for avatar/badge/actions), search filter, create/edit modal (\`Card\` + \`Input\`), delete confirmation, \`Feedback\` for success/error, empty state. Never hand-roll a raw \`<table>\` (see catalogue \`avoid\`).
-- **\`/admin\`** — stats cards (\`Card variant=\"elevated\"\`) + recent list with \`Badge\` status.
+- **\`/admin\`** — stats cards (\`Card variant="elevated"\`) + recent list with \`Badge\` status.
 - **\`/admin/settings\`** — form with client-side validation + \`Feedback\`.
 - **\`AdminLayout\`** — sidebar/mobile drawer with \`aria-expanded\`, \`aria-current\`, labelled navigation.
 - **All UI copy is i18n via Paraglide**: import \`* as m from '$lib/paraglide/messages.js'\` and call \`m.key()\` — never hard-code user-visible text. Keys live in \`messages/fr.json\` + \`messages/en.json\` (keep parity).

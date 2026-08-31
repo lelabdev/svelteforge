@@ -147,9 +147,9 @@
 	<title>{m.users_title()}</title>
 </svelte:head>
 
-<div class="space-y-group">
-	<div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-		<h2 class="text-2xl font-heading font-bold">{m.users_heading()}</h2>
+<div class="space-y-6">
+	<div class="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
+		<h2 class="text-2xl font-bold">{m.users_heading()}</h2>
 		<Button onclick={openCreate}>
 			<UserPlus size={16} class="mr-1" />
 			{m.users_add()}
@@ -190,10 +190,10 @@
 			{:else if col.key === 'actions'}
 				{@const user = asUser(row)}
 				<div class="flex items-center justify-end gap-1">
-					<button class="btn preset-tonal-surface p-2 rounded" onclick={() => openEdit(user)} aria-label={m.users_edit()}>
+					<button class="btn rounded p-2 preset-tonal-surface" onclick={() => openEdit(user)} aria-label={m.users_edit()}>
 						<Pencil size={16} />
 					</button>
-					<button class="btn preset-tonal-error p-2 rounded" onclick={() => openDelete(user)} disabled={user.id === currentUserId} aria-label={m.users_delete()}>
+					<button class="btn rounded p-2 preset-tonal-error" onclick={() => openDelete(user)} disabled={user.id === currentUserId} aria-label={m.users_delete()}>
 						<Trash size={16} />
 					</button>
 				</div>
@@ -202,19 +202,19 @@
 	</Table>
 
 	{#if filtered.length === 0}
-		<p class="text-center text-surface-500 py-section">{m.users_none()}</p>
+		<p class="py-8 text-center text-surface-500">{m.users_none()}</p>
 	{/if}
 </div>
 
 <!-- Modal overlay -->
 {#if modal}
-	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-element" role="presentation" onclick={closeModal}>
-		<Card class="w-full max-w-modal" onclick={(e: Event) => e.stopPropagation()}>
-			<div class="flex items-center justify-between mb-4">
-				<h3 class="text-lg font-heading font-bold">
+	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" role="presentation" onclick={closeModal}>
+		<Card class="w-full max-w-md" onclick={(e: Event) => e.stopPropagation()}>
+			<div class="mb-4 flex items-center justify-between">
+				<h3 class="text-lg font-bold">
 					{modal === 'create' ? m.users_modal_create() : modal === 'edit' ? m.users_modal_edit() : m.users_modal_delete()}
 				</h3>
-				<button class="btn preset-tonal-surface p-1 rounded" onclick={closeModal} aria-label={m.users_close()}>
+				<button class="btn rounded p-1 preset-tonal-surface" onclick={closeModal} aria-label={m.users_close()}>
 					<X size={18} />
 				</button>
 			</div>
@@ -242,7 +242,7 @@
 					</div>
 				</form>
 			{:else if modal === 'delete' && deleteTarget}
-				<p class="text-surface-500 mb-4">
+				<p class="mb-4 text-surface-500">
 					{m.users_delete_confirm({ name: deleteTarget.name })}
 				</p>
 				<form method="POST" action="?/delete" use:enhance={submitEnhance}>

@@ -50,9 +50,13 @@ The Playwright profile is opt-in with `testing:playwright`; it adds
 - **UI kit** — Button, Card, Badge, Alert, Input, Select, Textarea, Checkbox, Toggle, Table
 - **Layout** — Navbar, Footer, ThemeToggle
 - **Utils** — Logo, Seo, generateSitemap(), cn()
-- **SVForge theme** — custom oklch color palette with 7 color families (Skeleton v5 format)
+- **SVForge theme** — complete Skeleton v5 theme with custom oklch palettes
+- **Minimal CSS architecture** — `src/routes/layout.css` is the single global CSS entrypoint and imports `src/lib/styles/svelteforge-theme.css` directly
+- **No generic token layer** — no scaffolded `tokens.css` or style barrel; use Skeleton for visual theme decisions and standard Tailwind utilities for local layout/spacing
 - **Dark/light mode** — auto-detects system preference, manual toggle
 - **Demo page** at `/demo-ui`
+
+Project-specific token/effect layers are intentionally not pre-created. Add them later only when a concrete repeated product need is not already covered by Skeleton or Tailwind.
 
 ### Dashboard Template
 

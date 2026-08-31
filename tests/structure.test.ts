@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { existsSync, readdirSync } from 'fs';
+import { existsSync, readdirSync, readFileSync } from 'fs';
 import { join } from 'path';
 
 const ROOT = join(import.meta.dirname, '..');
@@ -43,10 +43,25 @@ describe('monorepo structure', () => {
 		expect(layoutNames).toContain('Footer.svelte');
 
 		// No primitives may leak into ui/ (kept in sync with the split)
-		const primitiveSet = new Set(primitiveNames);
 		for (const name of ['Button.svelte', 'Input.svelte', 'Select.svelte', 'Badge.svelte']) {
 			expect(uiNames, `${name} should live in primitives/`).not.toContain(name);
 		}
+	});
+
+	it('base template keeps a minimal Skeleton-first CSS architecture (#313)', () => {
+		const base = join(ROOT, 'packages/svforge/templates/base/src');
+		const stylesDir = join(base, 'lib/styles');
+		const styleFiles = readdirSync(stylesDir).filter((f) => f.endsWith('.css')).sort();
+
+		expect(styleFiles).toEqual(['svelteforge-theme.css']);
+		expect(existsSync(join(stylesDir, 'tokens.css'))).toBe(false);
+		expect(existsSync(join(stylesDir, 'index.css'))).toBe(false);
+
+		const layoutCss = readFileSync(join(base, 'routes/layout.css'), 'utf-8');
+		expect(layoutCss).toContain("@import '../lib/styles/svelteforge-theme.css';");
+		expect(layoutCss).toContain("@import '@skeletonlabs/skeleton';");
+		expect(layoutCss).toContain("@import '@skeletonlabs/skeleton-svelte';");
+		expect(layoutCss).not.toMatch(/\b(body|:focus-visible|::selection)\s*\{/);
 	});
 
 	it('dashboard template has auth files', () => {

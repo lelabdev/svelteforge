@@ -1,41 +1,59 @@
 # SvelteForge Base Template
 
-UI-only starter with components, theme, and layouts. No auth, no database.
+UI-only starter with components, a complete Skeleton v5 theme, and layouts. No auth, no database.
 
 ## What You Get
 
 ### Components
-- **Button** — 4 variants (filled, outlined, tonal, ghost) × 7 colors, 3 sizes, loading state
+- **Button** — filled, outlined, tonal and ghost variants × 7 colors, 3 sizes, loading state
 - **Card** — flat, elevated, outlined variants with optional header/footer snippets
 - **Badge** — filled, outlined, tonal variants × 7 colors
 - **Input / Select / Textarea / Checkbox / Toggle** — form components with label + error support
 - **Alert** — info, success, warning, error variants
-- **Table** — sortable column-based table
+- **Table** — column-based table with optional rich-cell renderer
 - **Navbar** — responsive sticky nav with mobile menu + theme toggle
 - **Footer** — configurable links + copyright
 - **ThemeToggle** — light/dark toggle with system detection
-- **Logo** — animated gradient text logo
+- **Logo** — brand logo
 - **Seo** — Open Graph + Twitter Card meta tags
 - **generateSitemap()** — XML sitemap generator utility
 
 > Richer components (Accordion, Tabs, Avatar, Breadcrumb, dialogs…) are NOT
 > re-implemented here — use the official ones from `@skeletonlabs/skeleton-svelte`
-> (`import { Accordion, Tabs } from '@skeletonlabs/skeleton-svelte'`). They ship
-> keyboard + ARIA support out of the box.
+> directly. They ship the interaction/accessibility behavior with Skeleton.
 
 ### Routes
 - `/` — Landing page with hero + feature cards
-- `/demo-ui` — All components showcased
+- `/demo-ui` — Base components showcased
 
 ### Styles
-- **Tailwind CSS v4** with `@theme` custom tokens (spacing, radius, widths)
-- **Skeleton UI v4** design system with oklch colors
-- **Fonts**: Inter (body), Space Grotesk (headings), Fira Code (code)
-- **Theme**: `svelteForge` custom theme with primary, secondary, tertiary, success, warning, error, surface palettes
+
+The CSS architecture is intentionally small:
+
+```text
+src/routes/layout.css
+└── single global CSS entrypoint
+    ├── Tailwind
+    ├── Skeleton / Skeleton Svelte
+    ├── fonts
+    ├── plugins / dark variant
+    └── imports ../lib/styles/svelteforge-theme.css
+
+src/lib/styles/svelteforge-theme.css
+└── complete Skeleton v5 theme
+```
+
+- **Tailwind CSS v4** for local layout, spacing and responsive composition using standard utilities
+- **Skeleton UI v5** as the visual/UI foundation
+- **Fonts**: Inter (body) and Space Grotesk (headings) are configured by the Skeleton theme; Fira Code is preinstalled and applied to `code`/`pre` snippets because Skeleton has no dedicated code-typography role
+- **Theme**: `svelteForge` with complete primary, secondary, tertiary, success, warning, error and surface palettes, plus brand/root/typography/shape values
+- **No generic `tokens.css` or `index.css` layer** is scaffolded by default
+
+If a consumer project later develops a real repeated design need that Skeleton/Tailwind do not model, it can add a project-specific layer at that point. The generic boilerplate does not pre-invent one.
 
 ## Next Steps
 
-- **Modify the theme**: Edit `src/lib/styles/svelteforge-theme.css` (oklch color variables)
-- **Add a route**: Create `src/routes/about/+page.svelte`
-- **Add components**: Skeleton v4 provides Toast, Dialog, Combobox, DatePicker, Progress, Rating, Stepper, Carousel, Pagination — use them directly
-- **Remove demo**: Delete `/demo-ui` route and Navbar links
+- **Modify the theme**: edit `src/lib/styles/svelteforge-theme.css`
+- **Add a route**: create `src/routes/about/+page.svelte`
+- **Add richer UI**: use components from `@skeletonlabs/skeleton-svelte` directly before creating a project-local primitive
+- **Remove demo**: delete `/demo-ui` route and Navbar links

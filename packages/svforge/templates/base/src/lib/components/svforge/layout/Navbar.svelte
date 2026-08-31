@@ -18,8 +18,8 @@
 	let mobileOpen = $state(false);
 </script>
 
-<nav class={cn('sticky top-0 z-50 bg-surface-50-950/80 backdrop-blur-md border-b border-surface-200-800', className)} {...rest}>
-	<div class="max-w-container mx-auto flex items-center justify-between px-element py-3">
+<nav class={cn('sticky top-0 z-50 border-b border-surface-200-800 bg-surface-50-950/80 backdrop-blur-md', className)} {...rest}>
+	<div class="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
 		<!-- Brand -->
 		<a href="/" class="text-xl font-bold">
 			{#if brand}
@@ -30,9 +30,9 @@
 		</a>
 
 		<!-- Desktop links -->
-		<div class="hidden md:flex items-center gap-4">
+		<div class="hidden items-center gap-4 md:flex">
 			{#each links as link (link.href)}
-				<a href={link.href} class="hover:text-primary-500 transition-colors">
+				<a href={link.href} class="transition-colors hover:text-primary-500">
 					{link.label}
 				</a>
 			{/each}
@@ -41,7 +41,7 @@
 
 		<!-- Mobile toggle -->
 		<button
-			class="md:hidden btn hover:preset-tonal-surface p-2 rounded-full"
+			class="btn rounded-full p-2 hover:preset-tonal-surface md:hidden"
 			onclick={() => (mobileOpen = !mobileOpen)}
 			aria-label={m.nav_toggle_menu()}
 		>
@@ -55,9 +55,9 @@
 
 	<!-- Mobile menu -->
 	{#if mobileOpen}
-		<div class="md:hidden border-t border-surface-200-800 px-element py-3 flex flex-col gap-3">
+		<div class="flex flex-col gap-3 border-t border-surface-200-800 px-4 py-3 md:hidden">
 			{#each links as link (link.href)}
-				<a href={link.href} class="hover:text-primary-500 transition-colors" onclick={() => (mobileOpen = false)}>
+				<a href={link.href} class="transition-colors hover:text-primary-500" onclick={() => (mobileOpen = false)}>
 					{link.label}
 				</a>
 			{/each}

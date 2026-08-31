@@ -10,6 +10,7 @@ SvelteForge est un **boilerplate de démarrage**, PAS une bibliothèque de compo
 - **Structure canonique des composants (#242)** : `templates/*/src/lib/components/svforge/` est découpé en `primitives/` (briques simples : Button, Input, Badge…), `ui/` (composés : Card, Alert, Table…), `layout/` (structure de page : Navbar, Footer). C'est le premier registry : un agent cherche là AVANT de créer un composant.
 - **i18n Paraglide FR/EN (#239)** : le base scaffoldé embarque Paraglide (compiler-first, baseLocale fr) + `messages/{fr,en}.json`. Toute copy UI statique passe par `m.*` ; toute clé ajoutée doit exister en FR **et** EN (parité testée). Les modules fusionnent leurs messages dans les catalogues du projet sans écraser.
 - **Design-system harness (#240)** : Skeleton est l'unique source de primitives ; SvelteForge fournit les patterns de composition (`primitives/ui/layout`). Un catalogue machine-readable (`svforge-catalog.json`) est livré au projet + `npx svforge check` (ERROR bloquant : second UI kit, primitive dupliquée ; WARN : valeurs arbitraires). CI le vérifie sur chaque scaffold.
+- **CSS Skeleton-first (#313)** : `src/routes/layout.css` est l'unique point d'entrée CSS global et reste du wiring ; `src/lib/styles/svelteforge-theme.css` est le thème Skeleton v5 complet et la source de vérité visuelle. Le boilerplate ne précrée ni `tokens.css` ni `index.css` générique.
 - **Composition & presets (#236)** : 2 templates (`base`/`dashboard`) + modules opt-in. Les presets (`svforge preset saas|community`) sont des recettes `sv add` — jamais de duplication de code module. Le contrat de métadonnées (`svforge-modules.json` + `MODULES`/`PRESETS` TS) documente id/description/requires/optional/files.
 - Pour tout composant plus riche (accordion, tabs, avatar, tooltip, dialog…), on **n'écrit pas** de composant svforge — on utilise directement les composants officiels de `@skeletonlabs/skeleton-svelte`.
 - Les modules sont **composables et opt-in** : l'utilisateur choisit 2-3 modules selon ses besoins.
@@ -32,7 +33,7 @@ packages/
 │   ├── src/doctor.ts         ← diagnostics read-only (#178)
 │   ├── src/upgrade.ts        ← upgrade explicite des modules (#179, partiel : #189)
 │   └── scripts/prebuild.ts   ← embarque templates/*/src/** en strings dans templates.ts
-├── ui_toast/ dnd/ tiptap/ graph/ email/ oauth/ uploads/ blog/  ← 8 modules indépendants
+├── ui_toast/ dnd/ tiptap/ graph/ email/ oauth/ uploads/ blog/  ← modules indépendants
 │   └── (même structure : templates/src/** + src/templates.ts auto-généré + scripts/prebuild.ts)
 ├── scripts/prebuild-utils.ts   ← readDirRecursively (tri déterministe) — partagé
 ├── scripts/test-scaffold.sh    ← scaffold réel : sv create + sv add + build (utilisé par #191)
@@ -73,19 +74,21 @@ bash scripts/test-scaffold.sh base      # ou dashboard
 
 ## Versions & état actuel
 
-- **Skeleton v5** (`@skeletonlabs/skeleton@5.0.0` en latest). Les templates sont compatibles v5 pour l'essentiel, MAIS : theme custom pré-v5 à migrer (#194), classes fantômes à corriger (#195), versions `latest` à épingler (#197).
+- **Skeleton v5** (`@skeletonlabs/skeleton@5.0.0` en plage majeure épinglée) : le thème custom est au format v5 complet (#194) et sert de source de vérité visuelle.
 - **SvelteKit 2.6x / vite-plugin-svelte 7 / vite 8** : les nouveaux projets `sv create` n'ont **plus de `svelte.config.js`** (config dans `vite.config.ts`). Tout patch de `svelte.config.js` est un no-op (cf. blog, #185).
 - Svelte 5 runes partout. Pas de patterns Svelte 4 (`on:click`, `<slot`, `$app/stores` → `$app/state`, #196).
 
 ## Conventions composants (templates)
 
 - **Skeleton uniquement** : les composants wrappent des classes/presets Skeleton + Tailwind, jamais de CSS brut
-- Classes Skeleton valides : `btn`, `input`, `select`, `textarea`, `checkbox`, `badge`, `card`, et presets `preset-filled-*`, `preset-tonal-*`, `preset-outlined-*` (+ suffixes couleurs `-primary-500`, `-surface-400-600`…). **`variant-*` et `preset-ghost` N'EXISTENT PAS en v5** — `variant-*` est l'ancien nommage Skeleton v2, renommé `preset-*` en v3 (cf. #195 : des résidus de l'ancien nommage traînent encore dans le dashboard)
+- Classes Skeleton valides : `btn`, `input`, `select`, `textarea`, `checkbox`, `badge`, `card`, et presets `preset-filled-*`, `preset-tonal-*`, `preset-outlined-*` (+ suffixes couleurs `-primary-500`, `-surface-400-600`…). **`variant-*` et `preset-ghost` N'EXISTENT PAS en v5** — `variant-*` est l'ancien nommage Skeleton v2, renommé `preset-*` en v3.
+- **CSS global minimal** : `templates/base/src/routes/layout.css` charge les outils et importe directement `src/lib/styles/svelteforge-theme.css`. Pas de `tokens.css`/`index.css` générique dans le scaffold.
+- **Theme Skeleton comme source de vérité** : palettes, surfaces, brand, root backgrounds, typo, radius/shapes, borders/rings/outlines restent dans `[data-theme='svelteForge']` dans `svelteforge-theme.css`.
+- **Layout/whitespace** : utiliser les utilities Tailwind standard (`p-4`, `gap-6`, `max-w-7xl`, etc.). Ne pas créer de couche de tokens globale avant qu'un vrai besoin produit répété et non couvert par Skeleton/Tailwind existe.
 - **`cn()` + prop `class`** sur chaque composant (merge/override)
 - **`HTMLAttributes<T>`** de `svelte/elements` pour étendre les attributs natifs (`HTMLDivAttributes` n'existe pas)
 - **`$bindable()`** déclaré dans l'interface Props, pas juste déstructuré
 - **Phosphor** : `import X from 'phosphor-svelte/lib/IconName'` (pas de sous-dossier `icons/`, pas d'extension)
-- Theme : couleurs oklch dans `[data-theme='svelteForge']` — fichier `src/lib/styles/svelteforge-theme.css`. Tokens Tailwind custom (`rounded-card`, `p-element`, `max-w-modal`, `font-heading`, `space-y-section`…) via `@theme` dans `src/lib/styles/tokens.css` — c'est du Tailwind pur, indépendant de Skeleton.
 
 ## Git
 

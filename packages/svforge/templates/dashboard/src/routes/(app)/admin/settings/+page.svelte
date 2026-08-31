@@ -19,13 +19,13 @@
 	<title>{m.settings_title()}</title>
 </svelte:head>
 
-<div class="space-y-section max-w-2xl">
-	<h2 class="text-2xl font-heading font-bold">{m.settings_heading()}</h2>
+<div class="max-w-2xl space-y-8">
+	<h2 class="text-2xl font-bold">{m.settings_heading()}</h2>
 
 	<!-- Profile info -->
 	<Card>
 		{#snippet header()}
-			<h3 class="font-heading font-bold">{m.settings_profile()}</h3>
+			<h3 class="font-bold">{m.settings_profile()}</h3>
 		{/snippet}
 		<div class="space-y-3">
 			<div class="flex items-center gap-4">
@@ -43,7 +43,7 @@
 		{#snippet header()}
 			<div class="flex items-center gap-2">
 				<Lock size={18} />
-				<h3 class="font-heading font-bold">{m.settings_change_password()}</h3>
+				<h3 class="font-bold">{m.settings_change_password()}</h3>
 			</div>
 		{/snippet}
 
@@ -51,7 +51,7 @@
 			<Feedback type={form.success ? 'success' : 'error'} message={form.message} class="mb-4" />
 		{/if}
 		{#if validationError}
-			<div class="mb-4 p-3 rounded-card text-sm bg-error-100-900 text-error-300-700">
+			<div class="mb-4 rounded-container bg-error-100-900 p-3 text-sm text-error-300-700">
 				{validationError}
 			</div>
 		{/if}

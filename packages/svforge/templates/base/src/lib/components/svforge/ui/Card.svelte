@@ -21,12 +21,12 @@
 		outlined: 'card ring-1 ring-surface-200-800'
 	};
 
-	let classes = $derived(cn(variantClasses[variant], 'p-element rounded-card', className));
+	let classes = $derived(cn(variantClasses[variant], 'rounded-container p-4', className));
 </script>
 
 <div class={classes} {...rest}>
 	{#if header}
-		<div class="border-b border-surface-200-800 pb-3 mb-3">
+		<div class="mb-3 border-b border-surface-200-800 pb-3">
 			{@render header()}
 		</div>
 	{/if}
@@ -34,7 +34,7 @@
 	{@render children()}
 
 	{#if footer}
-		<div class="border-t border-surface-200-800 pt-3 mt-3">
+		<div class="mt-3 border-t border-surface-200-800 pt-3">
 			{@render footer()}
 		</div>
 	{/if}

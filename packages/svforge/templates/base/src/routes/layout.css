@@ -3,19 +3,16 @@
 @import '@skeletonlabs/skeleton-svelte';
 @import '@fontsource-variable/inter';
 @import '@fontsource-variable/space-grotesk';
-@import '@fontsource-variable/manrope';
 @import '@fontsource-variable/fira-code';
-@import '../lib/styles/index.css';
+@import '../lib/styles/svelteforge-theme.css';
 
 @plugin '@tailwindcss/forms';
 @plugin '@tailwindcss/typography';
 
 @custom-variant dark (&:where([data-mode=dark], [data-mode=dark] *));
 
-h1, h2, h3, h4, h5, h6 {
-	font-family: var(--font-heading);
-}
-
-code, pre {
-	font-family: var(--font-code);
+/* Skeleton does not expose a dedicated code typography role. */
+code,
+pre {
+	font-family: 'Fira Code Variable', monospace;
 }
