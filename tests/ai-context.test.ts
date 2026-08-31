@@ -22,6 +22,8 @@ describe('AI context generation (#234)', () => {
 		expect(m.capabilities).toContain('skeleton-ui');
 		expect(m.capabilities).toContain('paraglide-fr-en');
 		expect(m.capabilities).not.toContain('auth');
+		expect(m.patterns['Skeleton theme']).toBe('src/lib/styles/svelteforge-theme.css');
+		expect(m.patterns['Global CSS entrypoint']).toBe('src/routes/layout.css');
 	});
 
 	it('dashboard manifest adds auth/db/admin', () => {
@@ -52,7 +54,6 @@ describe('AI context generation (#234)', () => {
 	});
 
 	it('every module has a capability contribution', () => {
-		// All 8 modules must declare a capability fragment (#234)
 		const expected = ['email', 'uploads', 'oauth', 'ui_toast', 'dnd', 'tiptap', 'graph', 'blog'];
 		for (const mod of expected) {
 			expect(MODULE_CAPABILITIES[mod], `${mod} missing capability`).toBeDefined();
@@ -66,6 +67,9 @@ describe('AI context generation (#234)', () => {
 		expect(txt).toContain('email (Resend)');
 		expect(txt).toContain('MUST NOT');
 		expect(txt).toContain('- install a second ORM, auth provider or UI kit');
+		expect(txt).toContain('src/routes/layout.css is the single global CSS entrypoint');
+		expect(txt).toContain('no generic tokens.css/index.css layer is scaffolded');
+		expect(txt).toContain('change the Skeleton theme/presets first');
 		// deterministic: same input → same output
 		expect(renderLlmstxt(m)).toBe(txt);
 	});
