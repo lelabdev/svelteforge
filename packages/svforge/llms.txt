@@ -1,181 +1,143 @@
 # SvelteForge
 
-A SvelteKit addon that provides a complete UI component library and starter templates built on Skeleton UI v4 and Tailwind CSS v4.
+Production-ready foundations for normal SvelteKit projects. SvelteForge is a `sv` community addon, not a framework replacement and not a separate component runtime. Generated source belongs to the consumer project.
+
+## Stack
+
+- SvelteKit + Svelte 5
+- Skeleton UI v5 + Skeleton Svelte
+- Tailwind CSS v4
+- Paraglide FR/EN
+- Vitest
+- Dashboard option: Better Auth + Drizzle + PostgreSQL
 
 ## Templates
 
 ### Base
-UI-only starter with components, theme, and layouts. No auth, no database.
+
+A lightweight application foundation with:
+
+- essential SvelteForge primitives/UI/layout components
+- complete Skeleton v5 theme
+- dark/light mode
+- SEO + sitemap helpers
+- Paraglide FR/EN
+- Vitest baseline
+- generated agent/project context
 
 ### Dashboard
-Base + auth (Better Auth), database (Drizzle + PostgreSQL), and admin dashboard.
 
-## Install
+Everything in Base plus Better Auth, Drizzle/PostgreSQL, authenticated layouts, admin dashboard, users CRUD, settings and Zod validation patterns.
 
-```bash
-# Create a new project with SvelteForge (one-liner)
-npx sv create my-app --template minimal --types ts --add 'svforge=template:base' --install bun
-cd my-app
-bun dev
+## UI reuse order
+
+1. Existing SvelteForge primitives
+2. Existing SvelteForge UI components
+3. Existing SvelteForge layouts
+4. Official `@skeletonlabs/skeleton-svelte` components
+5. Create a new component only when no existing option fits
+
+Skeleton is the UI foundation. Do not install or invent a parallel UI kit.
+
+## Skeleton v5
+
+Use current Skeleton v5 classes/presets:
+
+- `preset-filled-*`
+- `preset-tonal-*`
+- `preset-outlined-*`
+- component classes such as `btn`, `input`, `select`, `textarea`, `checkbox`, `badge`, `card`, `table`
+
+Do not use obsolete/fake classes such as `variant-*`, `preset-ghost`, or Bootstrap-style `alert alert-*`.
+
+## CSS architecture
+
+The scaffold deliberately has only two CSS responsibilities:
+
+```text
+src/routes/layout.css
+└── single global CSS entrypoint
+    ├── Tailwind
+    ├── Skeleton / Skeleton Svelte
+    ├── fonts
+    ├── plugins / dark variant
+    └── imports ../lib/styles/svelteforge-theme.css
+
+src/lib/styles/svelteforge-theme.css
+└── complete Skeleton v5 theme and visual source of truth
 ```
 
-Or step by step:
-```bash
-npx sv create my-app --template minimal --types ts
-cd my-app
-npx sv add svforge
-```
+`src/lib/styles/svelteforge-theme.css` owns Skeleton-supported global visual decisions: palettes, surfaces, brand, root backgrounds, typography, radius/shapes, borders, rings and outlines.
 
-The addon prompts for a template:
-- **Base** — UI components + theme + layouts
-- **Dashboard** — Base + Better Auth + Drizzle PostgreSQL + admin dashboard
+There is intentionally no generic `tokens.css` or `index.css` style barrel in the scaffold. For local structure and whitespace, use standard Tailwind utilities such as `p-4`, `gap-6`, `space-y-8`, `max-w-7xl` and responsive variants.
 
-## Quick Start — Base
-
-After installation, you get:
-
-- **15 UI components** — Button, Card, Badge, Avatar, Alert, Input, Select, Textarea, Checkbox, Toggle, ThemeToggle, Accordion, Tabs, Table, Breadcrumb
-- **2 layout components** — Navbar (responsive), Footer
-- **SvelteForge theme** — custom oklch color palette
-- **Tailwind v4 custom utilities** — spacing, radius, and width tokens via `@theme`
-- **Demo page** at `/demo-ui` showcasing all components
-
-## Quick Start — Dashboard
-
-Everything from Base, plus:
-
-- **Better Auth** — email/password login, session management, protected routes
-- **Drizzle + PostgreSQL** — schema auto-generated, `drizzle-kit push` to create tables
-- **Admin dashboard** `/admin` — stats cards, user CRUD, settings
-- **Auth guard** — unprotected routes redirect to `/login`
-
-### Dashboard setup
-
-```bash
-cp .env.example .env    # DATABASE_URL, ORIGIN, BETTER_AUTH_SECRET
-npx drizzle-kit push    # Create database tables
-bun dev                 # Start dev server
-# Visit /login and sign up — first user is admin
-```
+Before adding global CSS or custom design tokens, ask whether Skeleton can express the requirement through its theme, presets or utilities. If it can, use Skeleton. Add a project-specific token/effects layer only later when a concrete repeated product need is not covered by Skeleton/Tailwind.
 
 ## Components
 
-All components use `cn()` (clsx + tailwind-merge) and accept a `class` prop:
+Canonical shared components live under:
 
-```svelte
-<script>
-  import { Button, Card, Badge } from '$lib/components/ui';
-</script>
-
-<Button variant="filled" color="primary" size="lg">
-  Get Started
-</Button>
-
-<Button variant="gradient" color="primary">
-  Gradient
-</Button>
-
-<Button variant="glass" color="secondary">
-  Glass
-</Button>
-
-<Button loading={saving}>
-  Saving...
-</Button>
-
-<Button href="/about">
-  Link Button
-</Button>
-
-<Badge variant="tonal" color="success">Active</Badge>
-
-<Card variant="elevated">
-  <h2>Hello World</h2>
-</Card>
+```text
+src/lib/components/svforge/
+├── primitives/
+├── ui/
+└── layout/
 ```
 
-### Button
+For richer UI such as dialogs, tabs, tooltips, accordions, menus and date pickers, prefer direct imports from `@skeletonlabs/skeleton-svelte` rather than reimplementing them.
 
-Variants: `filled` · `outlined` · `tonal` · `ghost` · `glass` · `elevated` · `gradient`
-Colors: `primary` · `secondary` · `tertiary` · `success` · `warning` · `error` · `surface`
-Sizes: `sm` · `md` · `lg`
-Props: `loading`, `disabled`, `href` (renders `<a>`), `type`, `icon`
+## AI workflow
 
-### Badge
+Generated projects include:
 
-Variants: `filled` · `outlined` · `tonal`
-Colors: `primary` · `secondary` · `tertiary` · `success` · `warning` · `error` · `surface`
-Sizes: `sm` · `md` · `lg`
+- `AGENTS.md`
+- `.svforge.json`
+- `llms.txt`
+- `svforge-catalog.json`
+- `svforge-modules.json`
+- `svforge-check.mjs`
 
-### Card
+Expected workflow:
 
-Variants: `flat` (default) · `elevated` (shadow) · `outlined` (ring)
-
-### Alert
-
-Variants: `info` · `success` · `warning` · `error`
-Uses Skeleton `preset-tonal-*` classes.
-
-## Theming
-
-Colors are defined as oklch CSS variables in `src/lib/styles/svelteforge-theme.css`. The theme is split into three files:
-
-```
-src/lib/styles/
-├── index.css              ← barrel (imports tokens + theme)
-├── tokens.css             ← @theme block: fonts, spacing, radius, widths
-└── svelteforge-theme.css  ← [data-theme='svelteForge'] with oklch colors
+```text
+feature request
+    ↓
+read AGENTS.md + llms.txt + .svforge.json
+    ↓
+inspect existing components/modules
+    ↓
+compose with SvelteForge + Skeleton
+    ↓
+use the Skeleton theme for global visual changes
+    ↓
+svforge check + svelte-check + tests + build
 ```
 
-Custom Tailwind utilities via `@theme`:
-- `p-section` / `p-group` / `p-element` — spacing
-- `rounded-card` / `rounded-modal` — radius
-- `max-w-modal` / `max-w-toast` / `max-w-container` — widths
-
-## Architecture
-
-```
-templates/
-├── base/              # UI components + theme + layouts
-│   └── src/
-│       ├── lib/components/ui/      # 15 components
-│       ├── lib/components/layout/  # Navbar, Footer
-│       ├── lib/styles/             # theme + tokens
-│       └── routes/layout.css       # CSS imports
-└── dashboard/         # Overlay on base (only changed files)
-    └── src/
-        ├── lib/server/auth.ts      # Better Auth config
-        ├── lib/server/db/          # Drizzle schema
-        ├── routes/login/           # Login page
-        └── routes/(app)/admin/     # Dashboard, Users, Settings
-```
-
-The dashboard template only contains files that differ from base. The build system merges them automatically.
-
-## Stack
-
-| Layer | Technology |
-|-------|-----------|
-| Framework | SvelteKit 2.x + Svelte 5.x (runes) |
-| Styling | Tailwind CSS v4 + Skeleton UI v4 |
-| Auth | Better Auth v1.x |
-| Database | Drizzle ORM + PostgreSQL |
-| Icons | Phosphor Icons |
-| Build | Vite 8.x |
-
-## Development
+## Commands
 
 ```bash
-bun install
-bun run build                              # prebuild + tsdown
-bun scripts/test-local.ts base /tmp/test   # local test (base)
-bun scripts/test-local.ts dashboard /tmp/test  # local test (dashboard)
-cd /tmp/test && bun install && bun dev
+npx sv create my-app
+cd my-app
+npx sv add svforge=template:base+testing:vitest
+
+# or
+npx sv add svforge=template:dashboard+testing:vitest
 ```
 
-## Links
+```bash
+svforge check
+svforge context
+svforge upgrade base
+svforge upgrade dashboard
+```
 
-- [Svelte 5 Documentation](./docs/llms-svelte.txt)
-- [Skeleton UI Documentation](./docs/llms-skeleton.txt)
-- [npm](https://www.npmjs.com/package/svforge)
-- [GitHub](https://github.com/ludoloops/svelteforge)
+## Modules
+
+Optional modules include realtime, audit, notifications, jobs, chat, email, uploads, oauth, blog, tiptap, dnd, graph and Skeleton-based toast feedback. Modules compose with the base/dashboard conventions instead of creating parallel architecture.
+
+## References
+
+- `README.md` — package overview
+- `AGENTS.md` — repository conventions
+- `docs/llms-skeleton.txt` — offline Skeleton documentation snapshot
+- `docs/llms-svelte.txt` — offline Svelte documentation snapshot
