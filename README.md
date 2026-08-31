@@ -65,13 +65,16 @@ A clean starting point for SvelteKit applications:
 - Svelte 5 + TypeScript
 - Skeleton UI + Tailwind CSS
 - canonical `primitives / ui / layout` component structure
-- theme and dark mode foundations
+- complete Skeleton v5 theme and dark mode foundations
+- one global CSS entrypoint (`src/routes/layout.css`)
 - Paraglide with FR + EN catalogs
 - SEO + sitemap helpers
 - Vitest baseline
 - generated agent/project context
 
-Use it when the application does not need the full authenticated dashboard foundation.
+The CSS surface is deliberately small: `src/routes/layout.css` only wires Tailwind, Skeleton, fonts and plugins, while `src/lib/styles/svelteforge-theme.css` is the visual source of truth. SVForge does not scaffold a generic `tokens.css` or style barrel by default; local layout and whitespace use normal Tailwind utilities. Project-specific token/effect layers can be introduced later when a concrete repeated need justifies them.
+
+Use `base` when the application does not need the full authenticated dashboard foundation.
 
 ### `dashboard`
 
@@ -170,6 +173,8 @@ The reuse order is explicit:
 3. SVForge layouts
 4. Skeleton UI
 5. create something new only when no existing component fits
+
+For global visual decisions, the same rule applies: use the Skeleton theme and presets first. Do not create a parallel palette/token layer simply to restyle the scaffold.
 
 `svforge check` enforces the important rails: no second UI kit, no duplicated canonical primitives, no arbitrary theme drift, and no accidental structure divergence.
 
