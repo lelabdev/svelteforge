@@ -50,7 +50,8 @@ const DASHBOARD_CAPABILITIES = [
 
 const BASE_PATTERNS: Record<string, string> = {
 	'UI components': 'src/lib/components/svforge/',
-	'Theming': 'src/lib/styles/',
+	'Skeleton theme': 'src/lib/styles/svelteforge-theme.css',
+	'Global CSS entrypoint': 'src/routes/layout.css',
 	'i18n messages': 'messages/',
 	'SEO': 'src/lib/components/svforge/ui/Seo.svelte'
 };
@@ -128,15 +129,23 @@ export function renderLlmstxt(manifest: SvforgeManifest): string {
 		lines.push(`- ${name}: ${path}`);
 	}
 	lines.push('');
+	lines.push('## CSS architecture');
+	lines.push('- src/routes/layout.css is the single global CSS entrypoint; keep it as framework/tooling wiring');
+	lines.push('- src/lib/styles/svelteforge-theme.css is the complete Skeleton v5 theme and visual source of truth');
+	lines.push('- no generic tokens.css/index.css layer is scaffolded; use standard Tailwind utilities for local layout/spacing');
+	lines.push('');
 	lines.push('## Rules for AI agents');
 	lines.push('MUST:');
 	lines.push('- reuse installed components/modules before creating alternatives');
 	lines.push('- use Skeleton/Skeleton Svelte for rich UI (dialog, tabs, tooltip…)');
+	lines.push('- change the Skeleton theme/presets first for global visual decisions that Skeleton supports');
+	lines.push('- use standard Tailwind utilities for local structure, whitespace and responsive layout');
 	lines.push('- use Paraglide messages (fr + en) for user-facing copy');
 	lines.push('- follow the canonical patterns above');
 	lines.push('MUST NOT:');
 	lines.push('- install a second ORM, auth provider or UI kit without explicit requirement');
 	lines.push('- recreate Button/Input/Card/Table primitives (they exist)');
+	lines.push('- create a parallel global palette/token layer or visual overrides by default');
 	lines.push('- modify generated internals (src/lib/paraglide, .svforge.json) without understanding the workflow');
 	lines.push('');
 	lines.push('## Inspect first');
