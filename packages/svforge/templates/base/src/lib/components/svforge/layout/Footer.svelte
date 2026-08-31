@@ -13,8 +13,8 @@
 </script>
 
 <footer class={cn('border-t border-surface-200-800 bg-surface-100-900', className)} {...rest}>
-	<div class="max-w-container mx-auto px-element py-section">
-		<div class="flex flex-col md:flex-row justify-between gap-group">
+	<div class="mx-auto max-w-7xl px-4 py-8">
+		<div class="flex flex-col justify-between gap-6 md:flex-row">
 			{#if children}
 				{@render children()}
 			{/if}
@@ -22,7 +22,7 @@
 			{#if links.length}
 				<div class="flex flex-col gap-2">
 					{#each links as link}
-						<a href={link.href} class="text-sm hover:text-primary-500 transition-colors">
+						<a href={link.href} class="text-sm transition-colors hover:text-primary-500">
 							{link.label}
 						</a>
 					{/each}
@@ -30,7 +30,7 @@
 			{/if}
 		</div>
 
-		<div class="mt-section pt-3 border-t border-surface-200-800 text-sm text-surface-500">
+		<div class="mt-8 border-t border-surface-200-800 pt-3 text-sm text-surface-500">
 			&copy; {new Date().getFullYear()} SVForge. All rights reserved.
 		</div>
 	</div>
