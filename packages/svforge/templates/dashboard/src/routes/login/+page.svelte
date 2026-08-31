@@ -17,16 +17,16 @@
 	<title>{m.login_title()}</title>
 </svelte:head>
 
-<main class="min-h-screen flex items-center justify-center bg-surface-50-950 p-element">
-	<div class="w-full max-w-modal">
-		<div class="flex justify-end mb-4">
+<main class="flex min-h-screen items-center justify-center bg-surface-50-950 p-4">
+	<div class="w-full max-w-md">
+		<div class="mb-4 flex justify-end">
 			<ThemeToggle />
 		</div>
 
 		<Card variant="elevated">
-			<div class="text-center mb-6">
-				<h1 class="text-2xl font-heading font-bold">{m.login_welcome_back()}</h1>
-				<p class="text-surface-500 mt-1">{m.login_signin_hint()}</p>
+			<div class="mb-6 text-center">
+				<h1 class="text-2xl font-bold">{m.login_welcome_back()}</h1>
+				<p class="mt-1 text-surface-500">{m.login_signin_hint()}</p>
 			</div>
 
 			{#if form?.message}
