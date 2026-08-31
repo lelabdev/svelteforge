@@ -45,7 +45,7 @@ src/lib/styles/svelteforge-theme.css
 
 - **Tailwind CSS v4** for local layout, spacing and responsive composition using standard utilities
 - **Skeleton UI v5** as the visual/UI foundation
-- **Fonts**: Inter (body) and Space Grotesk (headings), configured by the Skeleton theme
+- **Fonts**: Inter (body) and Space Grotesk (headings) are configured by the Skeleton theme; Fira Code is preinstalled and applied to `code`/`pre` snippets because Skeleton has no dedicated code-typography role
 - **Theme**: `svelteForge` with complete primary, secondary, tertiary, success, warning, error and surface palettes, plus brand/root/typography/shape values
 - **No generic `tokens.css` or `index.css` layer** is scaffolded by default
 
