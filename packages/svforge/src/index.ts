@@ -72,6 +72,7 @@ export default defineAddon({
 		// ── Shared dependencies ──
 		// Pinned major ranges (#197): `latest` would silently resolve the next
 		// major (v4→v5 broke the theme, #194). Bumps are explicit PRs, tested in CI.
+		sv.dependency('@fontsource-variable/fira-code', '^5.3.0');
 		sv.dependency('@fontsource-variable/inter', '^5.3.0');
 		sv.dependency('@fontsource-variable/space-grotesk', '^5.3.0');
 		sv.dependency('clsx', '^2.1.1');
