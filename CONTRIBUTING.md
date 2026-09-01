@@ -8,6 +8,31 @@ bun run build:all    # build all packages
 bun run test         # run the full test suite
 ```
 
+## Issue and Branch Naming
+
+### Issue titles
+
+- Write titles in English.
+- Keep titles descriptive and at most 50 characters, including spaces.
+- Start with an action verb and describe the intended outcome.
+- Do not add type or scope prefixes such as `fix:`, `security(auth):`, or
+  `docs(ops):`.
+- Use GitHub labels for categories, areas, and priorities instead of encoding
+  them in the title.
+
+Example: `Enforce upload size limits`.
+
+### Branch names
+
+Create branches from the issue title using this format:
+
+```text
+issue/<number>-<title-slug>
+```
+
+Convert the title to lowercase kebab-case and remove punctuation. For example,
+issue `#338` becomes `issue/338-enforce-upload-size-limits`.
+
 ## TDD Workflow — Red → Green → Refactor
 
 Every bug fix and feature must follow strict TDD:
