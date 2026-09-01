@@ -92,7 +92,8 @@ bash scripts/test-scaffold.sh base      # ou dashboard
 
 ## Git
 
-- Branches : `issue/N-slug` depuis `main`. Jamais de commit direct sur `main`.
+- Issues et branches : suivre `CONTRIBUTING.md`. Branche = `N-slug` depuis
+  `main`. Jamais de commit direct sur `main`.
 - Commits = saves, sans cérémonie. Squash merge uniquement (via PR).
 - Toujours partir de `origin/main` à jour (`git fetch` — le main local peut être en retard).
 

@@ -1,5 +1,9 @@
 # Contributing to SVForge
 
+SVForge is a starting boilerplate, not a finished product or a component
+library. Contributions must keep generated projects generic, composable, and
+Skeleton-first.
+
 ## Development Setup
 
 ```bash
@@ -8,30 +12,52 @@ bun run build:all    # build all packages
 bun run test         # run the full test suite
 ```
 
-## Issue and Branch Naming
+## Contribution Workflow
 
-### Issue titles
+### Issues
 
-- Write titles in English.
-- Keep titles descriptive and at most 50 characters, including spaces.
-- Start with an action verb and describe the intended outcome.
-- Do not add type or scope prefixes such as `fix:`, `security(auth):`, or
-  `docs(ops):`.
-- Use GitHub labels for categories, areas, and priorities instead of encoding
-  them in the title.
+- Search existing issues before opening a new one.
+- Keep each issue focused on one outcome.
+- Write the title in English, start with an action verb, and keep it descriptive
+  within 50 characters, including spaces.
+- Keep the description concise: state the problem, expected outcome, and
+  acceptance criteria.
+- Use labels for categories, areas, and priorities.
 
 Example: `Enforce upload size limits`.
 
-### Branch names
+### Branches
 
 Create branches from the issue title using this format:
 
 ```text
-issue/<number>-<title-slug>
+<number>-<title-slug>
 ```
 
-Convert the title to lowercase kebab-case and remove punctuation. For example,
-issue `#338` becomes `issue/338-enforce-upload-size-limits`.
+Start from an up-to-date `main`, convert the title to lowercase kebab-case, and
+remove punctuation. For example, issue `#338` becomes
+`338-enforce-upload-size-limits`.
+
+### Pull requests
+
+- Keep one issue per pull request and avoid unrelated refactors.
+- Reuse the issue title when it accurately describes the pull request.
+- Explain what changed and list the commands used for validation.
+- Link the issue with `Closes #<number>`.
+- Wait for CI to pass. Pull requests are squash-merged into `main`.
+
+## Project Principles
+
+- Keep the base template minimal and useful for many kinds of applications.
+- Put optional or product-specific capabilities in composable modules.
+- Use Skeleton as the UI foundation instead of adding another component or
+  token system.
+- Prefer standard SvelteKit, Svelte, PostgreSQL, Drizzle, and Better Auth
+  patterns over SVForge-specific abstractions.
+- Keep generated source understandable and owned by the consumer project;
+  upgrades must not silently overwrite local changes.
+- Keep translatable UI copy in JSON message catalogs. Bundled locales are
+  replaceable defaults, not product requirements.
 
 ## TDD Workflow — Red → Green → Refactor
 
@@ -76,10 +102,20 @@ Shared utilities are in `tests/helpers.ts`:
 - `tempProject(prefix)` — create isolated temp directories for scaffold tests
 - `expectFile(path)` / `expectNoFile(path)` — assertion helpers
 
+## Working With Templates
+
+- Edit files under `packages/*/templates/`, never generated
+  `packages/*/src/templates.ts` files directly.
+- Scaffolded source belongs under the template's `src/` directory. Root-level
+  dashboard files belong under `packages/svforge/templates/dashboard/root/`.
+- Run `bun run --filter <package> build` after changing a template and commit
+  the regenerated `src/templates.ts` with the source change.
+- Run the relevant `scripts/test-scaffold.sh` profile when generated behavior
+  changes.
+
 ## What to Avoid
 
 - **Do not** write tests that only check committed `dist/` files (dist is gitignored)
-- **Do not** hand-edit generated `src/templates.ts` files
 - **Do not** use array index as `{#each}` key — use stable identities
 - **Do not** assign to `$state` from `$effect` — use `$derived` instead
 
@@ -98,7 +134,7 @@ Tests run sequentially (`--no-file-parallelism`) because build tests regenerate
 
 ```bash
 bun run build         # build svforge only
-bun run build:all     # build all 9 packages
+bun run build:all     # build all packages
 ```
 
 Each package runs `prebuild` (regenerates `src/templates.ts` from template dirs)
