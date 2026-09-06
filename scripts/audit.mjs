@@ -66,7 +66,11 @@ export function resolvedPackages(lockfile = readFileSync(resolve(ROOT, 'bun.lock
 		if (typeof resolved !== 'string') continue;
 		const at = resolved.lastIndexOf('@');
 		if (at <= 0) continue;
-		packages.push({ name: resolved.slice(0, at), version: resolved.slice(at + 1), paths: key });
+		const version = resolved.slice(at + 1);
+		// Skip non-registry locators (workspace links, git, file, tarball URLs):
+		// OSV can only match published npm versions.
+		if (/^(workspace|git|file|https?):/.test(version)) continue;
+		packages.push({ name: resolved.slice(0, at), version, paths: key });
 	}
 	return packages;
 }
@@ -88,7 +92,12 @@ export async function queryOsv(packages, fetchImpl = fetch, { retryDelayMs = RET
 				method: 'POST',
 				headers: { 'content-type': 'application/json' },
 				body: JSON.stringify({
-					queries: packages.map((pkg) => ({ package: { name: pkg.name, ecosystem: 'npm', version: pkg.version } }))
+					// Official querybatch schema: `version` sits on the query item,
+					// beside — not inside — the `package` object (#359 review).
+					queries: packages.map((pkg) => ({
+						package: { name: pkg.name, ecosystem: 'npm' },
+						version: pkg.version
+					}))
 				}),
 				signal: AbortSignal.timeout(30_000)
 			});
@@ -114,8 +123,10 @@ export function formatFindings(packages, results) {
 			const pkg = packages[index];
 			const advisory = [vuln.id, ...(vuln.aliases ?? [])].join(', ');
 			findings.push({
-				package: `${pkg.name}@${pkg.version}`,
+				name: pkg.name,
+				version: pkg.version,
 				path: pkg.paths,
+				package: `${pkg.name}@${pkg.version}`,
 				advisory,
 				ids: [vuln.id, ...(vuln.aliases ?? [])],
 				summary: (vuln.summary ?? 'no summary').trim()
@@ -125,50 +136,66 @@ export function formatFindings(packages, results) {
 	return findings;
 }
 
-const BASELINE_PATH = resolve(ROOT, 'docs', 'audit-baseline.txt');
+/**
+ * Narrow, documented baseline (#359 review): one exception per
+ * { package, version, advisory } with a written justification. An advisory ID
+ * alone would silently accept the same vulnerability reintroduced through
+ * another package, version, or dependency path.
+ */
+const BASELINE_PATH = resolve(ROOT, 'docs', 'audit-baseline.json');
 
 export function loadBaseline(path = BASELINE_PATH) {
 	try {
-		return new Set(
-			readFileSync(path, 'utf8')
-				.split('\n')
-				.map((line) => line.trim())
-				.filter((line) => line && !line.startsWith('#'))
-			);
-	} catch {
-		return new Set();
+		const parsed = JSON.parse(readFileSync(path, 'utf8'));
+		if (!Array.isArray(parsed)) throw new Error('baseline must be an array');
+		for (const entry of parsed) {
+			if (!entry.package || !entry.version || !entry.advisory || !entry.reason) {
+				throw new Error(`baseline entry needs package, version, advisory, reason: ${JSON.stringify(entry)}`);
+			}
+		}
+		return parsed;
+	} catch (error) {
+		if (error.code === 'ENOENT') return [];
+		throw new Error(`Invalid audit baseline (${path}): ${error.message}`, { cause: error });
 	}
+}
+
+export function isBaselined(finding, baseline) {
+	return baseline.some(
+		(entry) => entry.package === finding.name && entry.version === finding.version && finding.ids.includes(entry.advisory)
+	);
 }
 
 export async function audit({ updateBaseline = false } = {}) {
 	const packages = resolvedPackages();
 	const results = await queryOsv(packages);
 	const findings = formatFindings(packages, results);
-	const baseline = loadBaseline();
-	const unknown = findings.filter((finding) => !finding.ids.some((id) => baseline.has(id)));
 
 	if (updateBaseline) {
-		const merged = new Set([...baseline, ...findings.flatMap((finding) => finding.ids)]);
-		writeFileSync(
-			BASELINE_PATH,
-			`# Dependency-audit baseline (#351).\n` +
-			`# One advisory ID per line. OSV.dev reports these against the current\n` +
-			`# bun.lock (dev and transitive deps included). New advisories FAIL CI;\n` +
-			`# regenerate with: bun run audit --update-baseline\n` +
-			[...merged].sort().map((id) => `${id}\n`).join('')
-		);
-		console.log(`Baseline updated: ${merged.size} known advisories.`);
-		return { findings, unknown };
+		// REPLACE, never merge: stale exceptions must be re-justified, not
+		// accumulated forever (#359 review).
+		const entries = findings.map((finding) => ({
+			package: finding.name,
+			version: finding.version,
+			advisory: finding.ids[0],
+			reason: 'TODO: justify this exception before the next release.'
+		}));
+		writeFileSync(BASELINE_PATH, `${JSON.stringify(entries, null, '\t')}\n`);
+		console.log(`Baseline replaced: ${entries.length} scoped exception(s) — review and justify each entry in ${BASELINE_PATH}.`);
+		return { findings, unknown: [] };
 	}
+
+	const baseline = loadBaseline();
+	const unknown = findings.filter((finding) => !isBaselined(finding, baseline));
 
 	if (unknown.length) {
 		throw new Error(
-			`${unknown.length} NEW vulnerable package version(s) not in the audit baseline:\n` +
+			`${unknown.length} NEW vulnerable package version(s) not covered by the scoped baseline:\n` +
 			unknown.map((finding) => `- ${finding.package} [${finding.path}]\n  ${finding.advisory}\n  ${finding.summary}`).join('\n') +
-			'\nRemediate with `bun update <package>` or extend docs/audit-baseline.txt with a documented reason.'
+			'\nRemediate with `bun update <package>`, or add a scoped { package, version, advisory, reason }\nentry to docs/audit-baseline.json with a written justification.'
 		);
 	}
-	console.log(`Dependency audit OK: ${packages.length} resolved versions, ${findings.length} known advisories (baselined), 0 new.`);
+	console.log(`Dependency audit OK: ${packages.length} resolved versions, ${findings.length} known advisories (scoped baseline), 0 new.`);
 	return { findings, unknown };
 }
 

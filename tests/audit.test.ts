@@ -1,6 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
-const { formatFindings, loadBaseline, queryOsv, resolvedPackages } = await import('../scripts/audit.mjs');
+const { formatFindings, isBaselined, loadBaseline, queryOsv, resolvedPackages } = await import('../scripts/audit.mjs');
+
+const okFetch = (body: unknown) =>
+	vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve(body) });
 
 describe('dependency audit (#351)', () => {
 	afterEach(() => vi.restoreAllMocks());
@@ -10,24 +16,55 @@ describe('dependency audit (#351)', () => {
 			"packages": {
 				"@types/ws": ["@types/ws@8.18.1", "", {}, "digest"],
 				"ws": ["ws@8.21.3", "", {}, "digest"],
-				"vite/postcss": ["postcss@8.5.16", "", {}, "digest"]
+				"vite/postcss": ["postcss@8.5.16", "", {}, "digest"],
+				"svforge": ["svforge@workspace:packages/svforge"],
+				"pinned": ["pinned@https://example.test/pinned.tgz"]
 			}
 		}`);
 
 		expect(packages).toContainEqual({ name: '@types/ws', version: '8.18.1', paths: '@types/ws' });
 		expect(packages).toContainEqual({ name: 'ws', version: '8.21.3', paths: 'ws' });
 		expect(packages).toContainEqual({ name: 'postcss', version: '8.5.16', paths: 'vite/postcss' });
+		// Non-registry locators are excluded: OSV can only match published versions.
+		expect(packages).toHaveLength(3);
 	});
 
-	it('extracts resolved name@version pairs from JSONC bun.lock with comments', () => {
+	it('sends version beside package, per the official querybatch schema (#359)', async () => {
+		const fetchImpl = okFetch({ results: [] });
+
+		await queryOsv(
+			[
+				{ name: '@types/ws', version: '8.18.1' },
+				{ name: 'ws', version: '8.21.3' }
+			],
+			fetchImpl as unknown as typeof fetch
+		);
+
+		expect(fetchImpl).toHaveBeenCalledWith(
+			'https://api.osv.dev/v1/querybatch',
+			expect.objectContaining({
+				method: 'POST',
+				body: JSON.stringify({
+					queries: [
+						{ package: { name: '@types/ws', ecosystem: 'npm' }, version: '8.18.1' },
+						{ package: { name: 'ws', ecosystem: 'npm' }, version: '8.21.3' }
+					]
+				})
+			})
+		);
+	});
+
+	it('parses JSONC lockfiles with comments and trailing commas', () => {
 		const lockfile = `// Bun lockfile\n// generated\n{\n\t// root workspace\n\t"packages": {\n\t\t"ws": ["ws@8.21.3", ""], // trailing\n\t\t"postcss": ["postcss@8.5.16", ""]\n\t}\n}`;
 		const packages = resolvedPackages(lockfile);
+
 		expect(packages).toContainEqual({ name: 'ws', version: '8.21.3', paths: 'ws' });
 		expect(packages).toContainEqual({ name: 'postcss', version: '8.5.16', paths: 'postcss' });
 	});
 
 	it('does not treat comment markers inside string values as comments', () => {
 		const lockfile = '{"packages":{"ws":["ws@8.21.3","https://example.test/a"]}}';
+
 		expect(resolvedPackages(lockfile)).toEqual([{ name: 'ws', version: '8.21.3', paths: 'ws' }]);
 	});
 
@@ -35,7 +72,9 @@ describe('dependency audit (#351)', () => {
 		const transientFailure = Object.assign(new Error('boom'), { cause: { code: 'ECONNRESET' } });
 		const fetchImpl = vi.fn().mockRejectedValue(transientFailure);
 
-		await expect(queryOsv([{ name: "ws", version: "8.21.3" }], fetchImpl as unknown as typeof fetch, { retryDelayMs: 1 })).rejects.toThrow(/refusing to pass/);
+		await expect(
+			queryOsv([{ name: 'ws', version: '8.21.3' }], fetchImpl as unknown as typeof fetch, { retryDelayMs: 1 })
+		).rejects.toThrow(/refusing to pass/);
 		expect(fetchImpl).toHaveBeenCalledTimes(3);
 	});
 
@@ -47,8 +86,10 @@ describe('dependency audit (#351)', () => {
 
 		expect(formatFindings(packages, results)).toEqual([
 			{
-				package: 'nanoid@3.3.15',
+				name: 'nanoid',
+				version: '3.3.15',
 				path: 'nanoid',
+				package: 'nanoid@3.3.15',
 				advisory: 'GHSA-xxxx, CVE-2026-0000',
 				ids: ['GHSA-xxxx', 'CVE-2026-0000'],
 				summary: 'insecure generation'
@@ -56,38 +97,50 @@ describe('dependency audit (#351)', () => {
 		]);
 	});
 
-	it('fails only on advisories missing from the documented baseline', async () => {
-		const fetchImpl = vi.fn().mockResolvedValue({
-			ok: true,
-			json: () =>
-				Promise.resolve({
-					results: [
-						{ vulns: [{ id: 'GHSA-known', aliases: [], summary: 'known' }] },
-						{ vulns: [{ id: 'GHSA-new', aliases: [], summary: 'brand new regression' }] }
-					]
-				})
-		});
-		const packages = [
-			{ name: 'known-pkg', version: '1.0.0', paths: 'known-pkg' },
-			{ name: 'new-pkg', version: '2.0.0', paths: 'new-pkg' }
-		];
-		const results = await queryOsv(packages, fetchImpl as unknown as typeof fetch);
-		const findings = formatFindings(packages, results);
-		const baseline = new Set(['GHSA-known']);
-		const unknown = findings.filter((finding: { ids: string[] }) => !finding.ids.some((id) => baseline.has(id)));
+	it('scopes baseline matching to package + resolved version + advisory (#359)', () => {
+		const finding = {
+			name: 'nanoid',
+			version: '3.3.15',
+			path: 'nanoid',
+			package: 'nanoid@3.3.15',
+			advisory: 'GHSA-xxxx',
+			ids: ['GHSA-xxxx', 'CVE-2026-0000'],
+			summary: 'x'
+		};
+		const baseline = [{ package: 'nanoid', version: '3.3.15', advisory: 'GHSA-xxxx', reason: 'dev-only transitive' }];
 
-		expect(unknown).toHaveLength(1);
-		expect(unknown[0].package).toBe('new-pkg@2.0.0');
-		expect(loadBaseline('/nonexistent/baseline.txt').size).toBe(0);
+		expect(isBaselined(finding, baseline)).toBe(true);
+		// Same advisory, different version: NOT covered.
+		expect(isBaselined({ ...finding, version: '3.3.16' }, baseline)).toBe(false);
+		// Same package, different advisory: NOT covered.
+		expect(isBaselined({ ...finding, ids: ['GHSA-yyyy'], advisory: 'GHSA-yyyy' }, baseline)).toBe(false);
+	});
+
+	it('rejects baseline entries without a full scope and justification', () => {
+		const root = mkdtempSync(join(tmpdir(), 'audit-baseline-'));
+		try {
+			const missing = join(root, 'absent.json');
+			expect(loadBaseline(missing)).toEqual([]);
+
+			const invalidPath = join(root, 'invalid.json');
+			writeFileSync(invalidPath, JSON.stringify([{ package: 'nanoid', advisory: 'GHSA-xxxx' }]));
+			expect(() => loadBaseline(invalidPath)).toThrow(/needs package, version, advisory, reason/);
+
+			const validPath = join(root, 'valid.json');
+			writeFileSync(validPath, JSON.stringify([
+				{ package: 'nanoid', version: '3.3.15', advisory: 'GHSA-xxxx', reason: 'dev-only transitive via postcss' }
+			]));
+			expect(loadBaseline(validPath)).toHaveLength(1);
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
 	});
 
 	it('reports no findings on a clean OSV response for the real bun.lock', async () => {
-		const fetchImpl = vi.fn().mockResolvedValue({
-			ok: true,
-			json: () => Promise.resolve({ results: [] })
-		});
+		const fetchImpl = okFetch({ results: [] });
 		const packages = resolvedPackages();
 		const results = await queryOsv(packages, fetchImpl as unknown as typeof fetch);
+
 		expect(packages.length).toBeGreaterThan(0);
 		expect(formatFindings(packages, results)).toEqual([]);
 	});
