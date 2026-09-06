@@ -13,6 +13,8 @@ import { readFileSync, existsSync, writeFileSync, mkdirSync, copyFileSync, readd
 import { join, dirname } from 'node:path';
 import { baseFiles, dashboardFiles } from './templates';
 import { SDFORGE_RECIPE_VERSION } from './recipe-version';
+import { RELEASE_NOTES, entriesBetween } from './changelog';
+import type { ChangelogEntry } from './changelog';
 
 /** A single file in an upgrade operation. */
 export interface UpgradeFile {
@@ -38,6 +40,8 @@ export interface UpgradeResult {
 	updatedCount: number;
 	/** Number of files skipped due to local modifications. */
 	skippedCount: number;
+	/** Release notes between the installed and target recipe versions. */
+	changes: ChangelogEntry[];
 }
 
 /**
@@ -104,13 +108,18 @@ function saveTracking(projectRoot: string, state: TrackingState): void {
 export async function upgrade(
 	moduleName: string,
 	projectRoot: string = process.cwd(),
-	options: { force?: boolean } = {}
+	options: { force?: boolean; targetVersion?: string } = {}
 ): Promise<UpgradeResult> {
 	const recipe = MODULE_RECIPES[moduleName];
 	if (!recipe) {
 		throw new Error(
 			`Unknown module: "${moduleName}". Available: ${Object.keys(MODULE_RECIPES).join(', ')}`
 		);
+	}
+
+	const targetVersion = options.targetVersion ?? recipe.version;
+	if (targetVersion !== recipe.version) {
+		throw new Error(`Target version ${targetVersion} is not available in this svforge package (current: ${recipe.version}).`);
 	}
 
 	const files: UpgradeFile[] = [];
@@ -200,7 +209,8 @@ export async function upgrade(
 		toVersion: recipe.version,
 		files,
 		updatedCount,
-		skippedCount
+		skippedCount,
+		changes: entriesBetween(RELEASE_NOTES, 'svforge', fromVersion, targetVersion)
 	};
 }
 
@@ -208,6 +218,12 @@ export async function upgrade(
 export function printUpgradeResult(result: UpgradeResult): void {
 	console.log(`\n SVForge Upgrade: ${result.module}\n`);
 	console.log(`  Version: ${result.fromVersion ?? 'none'} → ${result.toVersion}\n`);
+
+	if (result.changes.length) {
+		console.log('  Release notes:');
+		for (const change of result.changes) console.log(`    ${change.version} (${change.date})\n${change.body}`);
+		console.log('');
+	}
 
 	for (const file of result.files) {
 		const icon =

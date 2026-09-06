@@ -6,7 +6,7 @@
  * Exposed via the `svforge` bin (#189, #240):
  *   npx svforge doctor
  *   npx svforge check
- *   npx svforge upgrade <module> [--force]
+ *   npx svforge upgrade <module> [--to <version>] [--force]
  */
 import { createRequire } from 'node:module';
 import { resolve } from 'node:path';
@@ -89,14 +89,21 @@ async function main() {
 	if (command === 'upgrade') {
 		const moduleName = args.find((a) => !a.startsWith('-'));
 		const force = args.includes('--force');
+		const targetIndex = args.indexOf('--to');
+		const targetVersion = targetIndex === -1 ? undefined : args[targetIndex + 1];
+		if (targetIndex !== -1 && !targetVersion) {
+			console.error('Usage: svforge upgrade <module> [--to <version>] [--force]');
+			process.exitCode = 1;
+			return;
+		}
 		if (!moduleName) {
-			console.error('Usage: svforge upgrade <module> [--force]');
+			console.error('Usage: svforge upgrade <module> [--to <version>] [--force]');
 			console.error(`Available modules: ${Object.keys(api.MODULE_RECIPES ?? {}).join(', ')}`);
 			process.exitCode = 1;
 			return;
 		}
 		try {
-			const result = await api.upgrade(moduleName, projectRoot, { force });
+			const result = await api.upgrade(moduleName, projectRoot, { force, targetVersion });
 			api.printUpgradeResult(result);
 			process.exitCode = result.skippedCount > 0 && !force ? 1 : 0;
 		} catch (e) {

@@ -34,6 +34,7 @@ describe('svforge upgrade behavioral (#189)', () => {
 	it('writes files on first upgrade', async () => {
 		const result = await upgrade('base', project);
 		expect(result.updatedCount).toBeGreaterThan(0);
+		expect(result.changes.map((change) => change.version)).toEqual(['1.2.0']);
 		// Files are written under src/ (manifest paths are src-relative)
 		const anyFile = Object.keys(MODULE_RECIPES.base.files)[0];
 		expect(existsSync(join(project, `src${anyFile}`))).toBe(true);
