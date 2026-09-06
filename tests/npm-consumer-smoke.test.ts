@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
-const { packageTypePath, validateInstalledTypes } = await import('../scripts/npm-consumer-smoke.mjs');
+const { consumerSource, consumerTsConfig, packageTypePath, validateInstalledTypes } = await import('../scripts/npm-consumer-smoke.mjs');
 
 describe('npm consumer smoke test (#330)', () => {
 	it('resolves the declared type entry for every exact package', () => {
@@ -28,6 +28,10 @@ describe('npm consumer smoke test (#330)', () => {
 
 			expect(packageTypePath({ types: './dist/index.d.ts' })).toBe('./dist/index.d.ts');
 			expect(validateInstalledTypes(plan, root)).toEqual([]);
+			expect(consumerSource(plan)).toContain("import * as package0 from \"@svforge/audit\";");
+			expect(consumerSource(plan)).toContain("import * as package1 from \"svforge\";");
+			expect(consumerTsConfig().compilerOptions.moduleResolution).toBe('NodeNext');
+			expect(consumerTsConfig().compilerOptions.noEmit).toBe(true);
 		} finally {
 			rmSync(root, { recursive: true, force: true });
 		}

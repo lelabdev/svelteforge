@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
- * Install the exact release-plan versions in a clean consumer and verify that
- * every package exposes the declared TypeScript entry point.
+ * Install the exact release-plan versions in a clean consumer and compile
+ * imports for every package through its declared TypeScript entry point.
  */
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -33,17 +33,61 @@ export function validateInstalledTypes(plan, consumerRoot) {
 	return missing;
 }
 
+/** Generate imports so TypeScript must resolve every package's public entry point. */
+export function consumerSource(plan) {
+	return `${plan.packages.map((pkg, index) => [
+		`import * as package${index} from ${JSON.stringify(pkg.name)};`,
+		`void package${index};`
+	].join('\n')).join('\n')}\n`;
+}
+
+export function consumerTsConfig() {
+	return {
+		compilerOptions: {
+			module: 'NodeNext',
+			moduleResolution: 'NodeNext',
+			target: 'ES2022',
+			strict: true,
+			noEmit: true,
+			skipLibCheck: true
+		},
+		files: ['consumer.ts']
+	};
+}
+
+export function runTypecheck(consumerRoot, tsc = join(consumerRoot, 'node_modules', '.bin', process.platform === 'win32' ? 'tsc.cmd' : 'tsc')) {
+	try {
+		execFileSync(tsc, ['--noEmit', '--project', join(consumerRoot, 'tsconfig.json'), '--pretty', 'false'], {
+			cwd: consumerRoot,
+			stdio: ['ignore', 'pipe', 'pipe'],
+			encoding: 'utf8'
+		});
+	} catch (error) {
+		const output = [error.stdout, error.stderr]
+			.filter(Boolean)
+			.map((value) => value.toString().trim())
+			.filter(Boolean)
+			.join('\n');
+		throw new Error(`TypeScript consumer resolution failed:\n${output || error.message}`);
+	}
+}
+
 export function runConsumerSmoke(plan, npm = 'npm') {
 	const consumerRoot = mkdtempSync(join(tmpdir(), 'svforge-consumer-'));
 	try {
 		writeFileSync(join(consumerRoot, 'package.json'), JSON.stringify({ private: true, type: 'module' }) + '\n');
 		const exactPackages = plan.packages.map((pkg) => `${pkg.name}@${pkg.version}`);
-		execFileSync(npm, ['install', '--ignore-scripts', '--no-package-lock', '--no-save', ...exactPackages], {
+		// TypeScript is a test-only dependency of the clean consumer. The
+		// packages themselves remain the exact versions from the release plan.
+		execFileSync(npm, ['install', '--ignore-scripts', '--no-package-lock', '--no-save', 'typescript@6.0.3', ...exactPackages], {
 			cwd: consumerRoot,
 			stdio: 'inherit'
 		});
 		const missing = validateInstalledTypes(plan, consumerRoot);
 		if (missing.length) throw new Error(`Consumer type smoke test failed:\n- ${missing.join('\n- ')}`);
+		writeFileSync(join(consumerRoot, 'consumer.ts'), consumerSource(plan));
+		writeFileSync(join(consumerRoot, 'tsconfig.json'), `${JSON.stringify(consumerTsConfig(), null, 2)}\n`);
+		runTypecheck(consumerRoot);
 		console.log(`Consumer smoke test OK for ${plan.packages.length} package(s).`);
 	} finally {
 		rmSync(consumerRoot, { recursive: true, force: true });

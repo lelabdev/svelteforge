@@ -53,14 +53,16 @@ Before the first publication, the workflow:
 3. runs the base, dashboard, foundation and integration scaffold gates;
 4. verifies npm authentication with `npm whoami`;
 5. generates and prints the complete commit/version/registry plan;
-6. verifies read-only npm package access for every planned package, including
-   the unscoped `svforge` package and the `@svforge` packages;
+6. verifies read-only npm package access for every already-published package;
+   not-yet-created packages are allowed through this gate because
+   `npm access list packages` cannot report a package before its first publish;
 7. runs `npm pack --dry-run --json --ignore-scripts` for every package and
    verifies exports, JavaScript, declarations, README, LICENSE and packaged
    paths;
 8. publishes the plan in dependency order;
-9. installs every exact published version in a clean consumer and verifies its
-   declared TypeScript entry point.
+9. installs every exact published version in a clean consumer, imports every
+   package from a generated TypeScript consumer, and runs `tsc --noEmit` to
+   validate package export and declaration resolution.
 
 The workflow uses a repository-global concurrency group so a production push
 and a manual dispatch cannot publish simultaneously, even from different refs.
@@ -80,9 +82,11 @@ An unchanged version produces no `npm publish` call.
 
 The npm account behind `NPM_TOKEN` must be allowed to publish every scoped
 `@svforge/*` package and the unscoped `svforge` package. `npm whoami` verifies
-that the token is present and valid. The release plan then runs
-`npm access list packages --json` and rejects any package that is absent or not
-reported as writable. npm remains the authority for package-level permissions.
+that the token is present and valid. For packages already in the registry, the
+release plan runs `npm access list packages --json` and rejects any package
+that is absent or not reported as writable. Not-yet-published packages are
+skipped by this lookup; npm remains the authority when their first publish is
+attempted.
 
 Do not print, commit or include npm tokens in release output. Never run the
 publish command locally or trigger the production workflow without explicit
@@ -108,7 +112,9 @@ registry-aware plan:
 node scripts/npm-consumer-smoke.mjs --plan /tmp/svforge-release-plan.json
 ```
 
-It installs exact package versions with scripts disabled and checks that each
-package's declared `types` export resolves to an installed declaration file.
-The smoke test is intentionally run only after publication; unpublished local
-versions cannot be tested from npm.
+It installs exact package versions plus a temporary TypeScript compiler with
+scripts disabled, generates imports for every package, and runs `tsc --noEmit`
+with NodeNext resolution. This validates the real package exports and
+TypeScript declarations, not just the existence of a `.d.ts` file. The smoke
+test is intentionally run only after publication; unpublished local versions
+cannot be tested from npm.

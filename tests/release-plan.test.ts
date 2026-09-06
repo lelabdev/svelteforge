@@ -30,6 +30,8 @@ describe('independent release plan (#330)', () => {
 		expect(compareVersions('1.0.0-beta.10', '1.0.0-beta.2')).toBeGreaterThan(0);
 		expect(compareVersions('1.0.0-beta.2', '1.0.0-beta')).toBeGreaterThan(0);
 		expect(compareVersions('1.0.0+build.10', '1.0.0+build.2')).toBe(0);
+		expect(compareVersions('1.0.0-9007199254740992', '1.0.0-9007199254740993')).toBeLessThan(0);
+		expect(compareVersions('9007199254740992.0.0', '9007199254740993.0.0')).toBeLessThan(0);
 		expect(parseVersion('1.2.3+build.7').build).toEqual(['build', '7']);
 		expect(() => parseVersion('1.0.0-01')).toThrow(/Unsupported package version/);
 	});
@@ -84,11 +86,40 @@ describe('independent release plan (#330)', () => {
 		expect(calls).toHaveLength(2);
 	});
 
-	it('fails access preflight when any package is not writable', () => {
+	it('fails access preflight when any existing package is not writable', () => {
 		const plan = { packages: [{ name: 'svforge' }, { name: '@svforge/audit' }] };
 		const npm = () => ({ status: 0, stdout: JSON.stringify({ svforge: 'read-write' }), stderr: '' });
 
 		expect(() => checkPublishAccess(plan, ROOT, npm)).toThrow(/@svforge\/audit/);
+	});
+
+	it('does not reject packages that have not been published yet', () => {
+		const calls = [];
+		const plan = {
+			packages: [
+				{ name: '@svforge/existing', registry: { published: true } },
+				{ name: '@svforge/first-release', registry: { published: false } }
+			]
+		};
+		const npm = (args) => {
+			calls.push(args);
+			return { status: 0, stdout: JSON.stringify({ '@svforge/existing': 'read-write' }), stderr: '' };
+		};
+
+		expect(() => checkPublishAccess(plan, ROOT, npm)).not.toThrow();
+		expect(calls).toEqual([['access', 'list', 'packages', '--json']]);
+	});
+
+	it('checks access for a package with an older published version', () => {
+		const plan = {
+			packages: [{
+				name: '@svforge/existing',
+				registry: { published: false, availableVersions: ['0.9.0'] }
+			}]
+		};
+		const npm = () => ({ status: 0, stdout: '{}', stderr: '' });
+
+		expect(() => checkPublishAccess(plan, ROOT, npm)).toThrow(/@svforge\/existing/);
 	});
 
 	it('runs tarball preflight and reports missing required files', () => {

@@ -17,19 +17,32 @@ export function parseVersion(version) {
 		throw new Error(`Unsupported package version: ${version}`);
 	}
 	return {
-		major: Number(match[1]),
-		minor: Number(match[2]),
-		patch: Number(match[3]),
+		// Keep numeric identifiers as decimal strings. JavaScript numbers cannot
+		// represent every valid SemVer integer exactly (notably above 2^53 - 1).
+		major: match[1],
+		minor: match[2],
+		patch: match[3],
 		prerelease,
 		build: match[5]?.split('.') ?? []
 	};
+}
+
+function compareNumericIdentifiers(left, right) {
+	const normalizedLeft = left.replace(/^0+/, '') || '0';
+	const normalizedRight = right.replace(/^0+/, '') || '0';
+	if (normalizedLeft.length !== normalizedRight.length) {
+		return normalizedLeft.length < normalizedRight.length ? -1 : 1;
+	}
+	if (normalizedLeft === normalizedRight) return 0;
+	return normalizedLeft < normalizedRight ? -1 : 1;
 }
 
 export function compareVersions(left, right) {
 	const a = typeof left === 'string' ? parseVersion(left) : left;
 	const b = typeof right === 'string' ? parseVersion(right) : right;
 	for (const key of ['major', 'minor', 'patch']) {
-		if (a[key] !== b[key]) return a[key] - b[key];
+		const comparison = compareNumericIdentifiers(String(a[key]), String(b[key]));
+		if (comparison !== 0) return comparison;
 	}
 	if (!a.prerelease.length && !b.prerelease.length) return 0;
 	if (!a.prerelease.length) return 1;
@@ -42,7 +55,7 @@ export function compareVersions(left, right) {
 		if (leftPart === rightPart) continue;
 		const leftNumeric = /^\d+$/.test(leftPart);
 		const rightNumeric = /^\d+$/.test(rightPart);
-		if (leftNumeric && rightNumeric) return Number(leftPart) - Number(rightPart);
+		if (leftNumeric && rightNumeric) return compareNumericIdentifiers(leftPart, rightPart);
 		if (leftNumeric !== rightNumeric) return leftNumeric ? -1 : 1;
 		return leftPart < rightPart ? -1 : 1;
 	}
@@ -181,26 +194,43 @@ export function checkRegistry(plan, root = SCRIPT_ROOT, npm = runNpm) {
 	return checkedPlan;
 }
 
-/** Verify that the authenticated npm account can publish every package. */
+/**
+ * Verify npm publish access for packages that already exist.
+ *
+ * `npm access list packages` only reports packages that already exist. A
+ * package with no registry versions is intentionally absent from that response
+ * until its first publication, so its access must be validated by the
+ * authenticated publish itself rather than rejected here.
+ */
 export function checkPublishAccess(plan, root = SCRIPT_ROOT, npm = runNpm) {
-	const result = npm(['access', 'list', 'packages', '--json'], root);
-	if (result.status !== 0) {
-		throw new Error(`Could not query npm publish permissions: ${`${result.stdout}\n${result.stderr}`.trim()}`);
+	const hasPublishedPackage = (pkg) => !pkg.registry
+		|| pkg.registry.published === true
+		|| (pkg.registry.availableVersions?.length ?? 0) > 0;
+	const existing = plan.packages.filter(hasPublishedPackage);
+	const notYetPublished = plan.packages.filter((pkg) => !hasPublishedPackage(pkg));
+	let access = {};
+
+	if (existing.length) {
+		const result = npm(['access', 'list', 'packages', '--json'], root);
+		if (result.status !== 0) {
+			throw new Error(`Could not query npm publish permissions: ${`${result.stdout}\n${result.stderr}`.trim()}`);
+		}
+		try {
+			access = JSON.parse(result.stdout);
+		} catch {
+			throw new Error('Could not query npm publish permissions: npm returned invalid JSON.');
+		}
 	}
-	let access;
-	try {
-		access = JSON.parse(result.stdout);
-	} catch {
-		throw new Error('Could not query npm publish permissions: npm returned invalid JSON.');
-	}
+
 	const canPublish = (permission) => typeof permission === 'string'
 		? /write|admin/i.test(permission)
 		: permission === true;
-	const denied = plan.packages
-		.filter((pkg) => !canPublish(access[pkg.name]))
-		.map((pkg) => pkg.name);
+	const denied = existing.filter((pkg) => !canPublish(access[pkg.name])).map((pkg) => pkg.name);
 	if (denied.length) {
 		throw new Error(`Authenticated npm account cannot publish: ${denied.join(', ')}.`);
+	}
+	if (notYetPublished.length) {
+		console.log(`Skipping npm access lookup for ${notYetPublished.length} not-yet-published package(s).`);
 	}
 	console.log(`Publish access OK for ${plan.packages.length} package(s).`);
 	return plan;

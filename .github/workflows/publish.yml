@@ -111,7 +111,7 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      # Consumer gate: install every exact published version and resolve its
-      # declared TypeScript entry point from a clean external project.
+      # Consumer gate: install every exact published version and run tsc against
+      # generated imports from a clean external project.
       - name: Consumer installation smoke test
         run: node scripts/npm-consumer-smoke.mjs --plan /tmp/release-plan.json
