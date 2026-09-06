@@ -37,7 +37,7 @@ export type { UpgradeFile, UpgradeResult } from './upgrade';
 export default defineAddon({
 	id: 'svelteforge',
 	alias: 'forge',
-	shortDescription: 'SvelteForge — themed UI kit + layouts for SvelteKit',
+	shortDescription: 'SvelteForge — production-ready foundations for SvelteKit',
 	homepage: 'https://github.com/lelabdev/svelteforge',
 
 	options: defineAddonOptions()

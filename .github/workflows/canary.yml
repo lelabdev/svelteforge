@@ -53,6 +53,7 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
+          # Intentionally floating: this workflow detects upstream drift.
           bun-version: latest
 
       - name: Install dependencies
@@ -79,35 +80,69 @@ jobs:
             tail -40 /tmp/canary.log
           fi
 
-      - name: Open drift issue on failure
+      - name: Open or update drift issue on failure
         if: steps.scaffold.outputs.status != '0'
         uses: actions/github-script@v7
+        env:
+          CANARY_PROFILE: ${{ matrix.scaffold }}
+          CANARY_SHA: ${{ github.sha }}
+          CANARY_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         with:
           script: |
             const fs = require('fs');
-            const log = fs.readFileSync('/tmp/canary.log', 'utf-8').slice(-2000);
-            const body = [
-              '## Écosystème drift détecté — canary hebdo (#205)',
+            const { canaryFailureSignature, canaryIssueMarker, findExistingCanaryIssue } =
+              await import(`${process.env.GITHUB_WORKSPACE}/scripts/canary-issue.mjs`);
+            const profile = process.env.CANARY_PROFILE;
+            const log = fs.readFileSync('/tmp/canary.log', 'utf-8');
+            const signature = canaryFailureSignature(log);
+            const marker = canaryIssueMarker(profile, signature);
+            const logTail = log.slice(-2000);
+            const report = [
+              '## Ecosystem drift detected — weekly canary (#205)',
               '',
-              `Le scaffold \`${{ matrix.scaffold }}\` a échoué contre les versions \`latest\` de l'écosystème (sv, Skeleton, SvelteKit).`,
+              `The \`${profile}\` scaffold failed against the \`latest\` ecosystem versions (sv, Skeleton, SvelteKit).`,
               '',
-              'La CI PR (#191) est épinglée et ne détecte pas ce type de drift — c\'est exactement le but de ce canary.',
+              `Failure signature: \`${signature}\``,
+              `Commit: \`${process.env.CANARY_SHA}\``,
+              `Run: ${process.env.CANARY_RUN_URL}`,
               '',
-              '## Cause probable',
+              'The pinned pull-request CI does not detect this upstream drift; that is the purpose of this canary.',
               '',
-              'sv / Skeleton / Kit ont changé quelque chose. Vérifier :',
-              '- `sv create` a-t-il changé la structure du projet ? (cf. #185 : svelte.config.js supprimé)',
-              '- Skeleton a-t-il renommé/changé des tokens de theme ? (cf. #194 : format v5)',
-              '',
-              '## Log (fin)',
+              '## Log (tail)',
               '',
               '```',
-              log,
+              logTail,
               '```'
             ].join('\n');
-            await github.rest.issues.create({
+            const issues = await github.paginate(github.rest.issues.listForRepo, {
               owner: context.repo.owner,
               repo: context.repo.repo,
-              title: `Écosystème drift détecté : scaffold ${'${{ matrix.scaffold }}'}`,
-              body
+              state: 'all',
+              per_page: 100
             });
+            const existing = findExistingCanaryIssue(issues, marker);
+            if (existing) {
+              if (existing.state === 'closed') {
+                await github.rest.issues.update({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: existing.number,
+                  state: 'open'
+                });
+              }
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existing.number,
+                body: report
+              });
+              core.info(`Updated existing canary issue #${existing.number}.`);
+            } else {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: `Ecosystem drift detected: scaffold ${profile}`,
+                body: `${marker}\n\n${report}`
+              });
+              core.info(`Opened a canary issue for ${profile} (${signature}).`);
+            }
