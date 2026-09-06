@@ -14,6 +14,11 @@ const {
 	parseVersion
 } = await import('../scripts/release-plan.mjs');
 
+// npm fakes only implement the status/stdout/stderr surface the planner uses;
+// cast them to the real spawnSync-based signature at this single boundary.
+type NpmFake = Parameters<typeof checkRegistry>[2];
+const asNpm = (fn: unknown): NpmFake => fn as NpmFake;
+
 describe('independent release plan (#330)', () => {
 	it('describes every workspace with an explicit package version', () => {
 		const plan = buildReleasePlan(ROOT, 'test-commit');
@@ -22,8 +27,8 @@ describe('independent release plan (#330)', () => {
 		expect(plan.versionPolicy).toBe('independent');
 		expect(plan.commit).toBe('test-commit');
 		expect(plan.packages).toHaveLength(14);
-		expect(plan.packages.every((pkg) => pkg.name && pkg.version && pkg.manifestPath)).toBe(true);
-		expect(new Set(plan.packages.map((pkg) => pkg.name)).size).toBe(14);
+		expect(plan.packages.every((pkg: { name: string; version: string; manifestPath: string }) => pkg.name && pkg.version && pkg.manifestPath)).toBe(true);
+		expect(new Set(plan.packages.map((pkg: { name: string }) => pkg.name)).size).toBe(14);
 	});
 
 	it('compares full SemVer prerelease identifiers and accepts build metadata', () => {
@@ -42,7 +47,7 @@ describe('independent release plan (#330)', () => {
 			{ name: '@svforge/core', localDependencies: [] }
 		]);
 
-		expect(ordered.map((pkg) => pkg.name)).toEqual(['@svforge/core', '@svforge/feature']);
+		expect(ordered.map((pkg: { name: string }) => pkg.name)).toEqual(['@svforge/core', '@svforge/feature']);
 	});
 
 	it('does not allow OAuth build failures to be swallowed', () => {
@@ -68,19 +73,19 @@ describe('independent release plan (#330)', () => {
 	});
 
 	it('checks registry state and skips already-published versions', () => {
-		const calls = [];
+		const calls: string[][] = [];
 		const plan = {
 			packages: [
 				{ name: '@svforge/old', version: '1.0.0', directory: 'packages/old', localDependencies: [] },
 				{ name: '@svforge/new', version: '1.0.0', directory: 'packages/new', localDependencies: [] }
 			]
 		};
-		const npm = (args) => {
+		const npm = (args: string[]) => {
 			calls.push(args);
 			return { status: 0, stdout: args[1] === '@svforge/old' ? '["1.0.0"]' : '["0.9.0"]', stderr: '' };
 		};
 
-		const checked = checkRegistry(plan, ROOT, npm);
+		const checked = checkRegistry(plan, ROOT, asNpm(npm));
 		expect(checked.packages[0].registry.published).toBe(true);
 		expect(checked.packages[1].registry.published).toBe(false);
 		expect(calls).toHaveLength(2);
@@ -90,23 +95,23 @@ describe('independent release plan (#330)', () => {
 		const plan = { packages: [{ name: 'svforge' }, { name: '@svforge/audit' }] };
 		const npm = () => ({ status: 0, stdout: JSON.stringify({ svforge: 'read-write' }), stderr: '' });
 
-		expect(() => checkPublishAccess(plan, ROOT, npm)).toThrow(/@svforge\/audit/);
+		expect(() => checkPublishAccess(plan, ROOT, asNpm(npm))).toThrow(/@svforge\/audit/);
 	});
 
 	it('does not reject packages that have not been published yet', () => {
-		const calls = [];
+		const calls: string[][] = [];
 		const plan = {
 			packages: [
 				{ name: '@svforge/existing', registry: { published: true } },
 				{ name: '@svforge/first-release', registry: { published: false } }
 			]
 		};
-		const npm = (args) => {
+		const npm = (args: string[]) => {
 			calls.push(args);
 			return { status: 0, stdout: JSON.stringify({ '@svforge/existing': 'read-write' }), stderr: '' };
 		};
 
-		expect(() => checkPublishAccess(plan, ROOT, npm)).not.toThrow();
+		expect(() => checkPublishAccess(plan, ROOT, asNpm(npm))).not.toThrow();
 		expect(calls).toEqual([['access', 'list', 'packages', '--json']]);
 	});
 
@@ -119,17 +124,17 @@ describe('independent release plan (#330)', () => {
 		};
 		const npm = () => ({ status: 0, stdout: '{}', stderr: '' });
 
-		expect(() => checkPublishAccess(plan, ROOT, npm)).toThrow(/@svforge\/existing/);
+		expect(() => checkPublishAccess(plan, ROOT, asNpm(npm))).toThrow(/@svforge\/existing/);
 	});
 
 	it('runs tarball preflight and reports missing required files', () => {
 		const pkg = { name: 'svforge', version: '1.2.0', directory: 'packages/svforge' };
 		const files = ['README.md', 'package.json', 'LICENSE', 'dist/index.js', 'dist/index.d.ts', 'bin/svforge.mjs'];
 		const npm = () => ({ status: 0, stdout: JSON.stringify([{ files: files.map((path) => ({ path })) }]), stderr: '' });
-		expect(preflightPackage(pkg, ROOT, npm).fileCount).toBe(files.length);
+		expect(preflightPackage(pkg, ROOT, asNpm(npm)).fileCount).toBe(files.length);
 
 		const broken = () => ({ status: 0, stdout: JSON.stringify([{ files: files.filter((path) => path !== 'dist/index.d.ts').map((path) => ({ path })) }]), stderr: '' });
-		expect(() => preflightPackage(pkg, ROOT, broken)).toThrow(/dist\/index\.d\.ts/);
+		expect(() => preflightPackage(pkg, ROOT, asNpm(broken))).toThrow(/dist\/index\.d\.ts/);
 	});
 
 	it('resumes a partial release without republishing immutable versions', () => {
@@ -140,20 +145,20 @@ describe('independent release plan (#330)', () => {
 				{ name: '@svforge/second', version: '1.0.0', directory: 'packages/second', registry: { published: false } }
 			]
 		};
-		const firstCalls = [];
-		const failingNpm = (args, cwd) => {
+		const firstCalls: string[] = [];
+		const failingNpm = (args: string[], cwd: string) => {
 			if (args[0] === 'publish') firstCalls.push(cwd);
 			return { status: firstCalls.length === 2 ? 1 : 0, stdout: '', stderr: '' };
 		};
-		expect(() => publishPlan(plan, ROOT, failingNpm)).toThrow(/publish failed/);
+		expect(() => publishPlan(plan, ROOT, asNpm(failingNpm))).toThrow(/publish failed/);
 		expect(firstCalls).toEqual([join(ROOT, 'packages/first'), join(ROOT, 'packages/second')]);
 
 		const resumed = { ...plan, packages: plan.packages.map((pkg) => pkg.name === '@svforge/first' ? { ...pkg, registry: { published: true } } : pkg) };
-		const resumedCalls = [];
-		publishPlan(resumed, ROOT, (args, cwd) => {
+		const resumedCalls: string[] = [];
+		publishPlan(resumed, ROOT, asNpm((args: string[], cwd: string) => {
 			if (args[0] === 'publish') resumedCalls.push(cwd);
 			return { status: 0, stdout: '', stderr: '' };
-		});
+		}));
 		expect(resumedCalls).toEqual([join(ROOT, 'packages/second')]);
 	});
 });

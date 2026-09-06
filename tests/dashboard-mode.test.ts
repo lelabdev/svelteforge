@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import type { SvApi } from 'sv';
 import { applyDashboardMode } from '../packages/svforge/src/modes/dashboard';
 
 type FakeSv = {
@@ -28,6 +29,10 @@ function fakeSv(): FakeSv {
 	return sv;
 }
 
+// FakeSv implements the SvApi surface applyDashboardMode actually uses; the
+// unused required SvApi members are stubbed out at this single boundary.
+const asSvApi = (sv: FakeSv): SvApi => sv as unknown as SvApi;
+
 const baseFiles = { '/lib/base.ts': 'base' };
 const dashboardFiles = {
 	'/routes/(app)/+layout.server.test.ts': 'vitest',
@@ -45,7 +50,7 @@ const rootFiles = {
 describe('dashboard testing profiles', () => {
 	it('includes Vitest and excludes Playwright files by default', () => {
 		const sv = fakeSv();
-		applyDashboardMode(sv, baseFiles, dashboardFiles, 'vitest');
+		applyDashboardMode(asSvApi(sv), baseFiles, dashboardFiles, 'vitest');
 
 		expect(sv.devDependencies).toContain('vitest');
 		expect(sv.devDependencies).not.toContain('@playwright/test');
@@ -57,7 +62,7 @@ describe('dashboard testing profiles', () => {
 
 	it('adds Playwright files, dependency, and script only when selected', () => {
 		const sv = fakeSv();
-		applyDashboardMode(sv, baseFiles, dashboardFiles, 'playwright');
+		applyDashboardMode(asSvApi(sv), baseFiles, dashboardFiles, 'playwright');
 
 		expect(sv.devDependencies).toContain('vitest');
 		expect(sv.devDependencies).toContain('@playwright/test');
@@ -68,7 +73,7 @@ describe('dashboard testing profiles', () => {
 
 	it('adds the PostgreSQL driver and never libsql (#255)', () => {
 		const sv = fakeSv();
-		applyDashboardMode(sv, baseFiles, dashboardFiles, 'vitest');
+		applyDashboardMode(asSvApi(sv), baseFiles, dashboardFiles, 'vitest');
 
 		expect(sv.dependencies).toContain('postgres');
 		expect(sv.dependencies).not.toContain('@libsql/client');
@@ -77,7 +82,7 @@ describe('dashboard testing profiles', () => {
 
 	it('writes test configs at the project root, not under src/ (#186)', () => {
 		const sv = fakeSv();
-		applyDashboardMode(sv, baseFiles, dashboardFiles, 'playwright');
+		applyDashboardMode(asSvApi(sv), baseFiles, dashboardFiles, 'playwright');
 
 		// Playwright and Vitest discover their config only at the project root,
 		// and playwright.config.ts references testDir './e2e' relative to root.
@@ -91,7 +96,7 @@ describe('dashboard testing profiles', () => {
 
 	it('writes root-level files at the project root (#187)', () => {
 		const sv = fakeSv();
-		applyDashboardMode(sv, baseFiles, dashboardFiles, 'vitest', rootFiles);
+		applyDashboardMode(asSvApi(sv), baseFiles, dashboardFiles, 'vitest', rootFiles);
 
 		// drizzle.config.ts, .env.example, scripts/setup.sh, static/robots.txt
 		// must land at the project root — prebuild only ships templates/src/**,
@@ -106,7 +111,7 @@ describe('dashboard testing profiles', () => {
 
 	it('scaffolds AGENTS.md with dashboard golden references (#267)', () => {
 		const sv = fakeSv();
-		applyDashboardMode(sv, baseFiles, dashboardFiles, 'vitest');
+		applyDashboardMode(asSvApi(sv), baseFiles, dashboardFiles, 'vitest');
 
 		const agents = sv.files.get('AGENTS.md') ?? '';
 		expect(agents).toMatch(/Golden references \(#267\)/);

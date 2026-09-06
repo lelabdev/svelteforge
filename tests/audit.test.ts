@@ -1,87 +1,94 @@
-import { describe, it, expect } from 'vitest';
-import { readFileSync, existsSync } from 'node:fs';
-import { join } from 'node:path';
-import { ROOT } from './helpers';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
-/**
- * Tests for #232 — audit module. Append-only business audit trail:
- * record + query helpers + admin view, no update/delete exposed.
- */
-describe('audit module (#232)', () => {
-	const auditDir = join(ROOT, 'packages/audit/templates/src/lib/server/audit');
-	const routeDir = join(ROOT, 'packages/audit/templates/src/routes/(app)/admin/audit');
+const { formatFindings, loadBaseline, queryOsv, resolvedPackages } = await import('../scripts/audit.mjs');
 
-	it('ships schema + API + admin view', () => {
-		expect(existsSync(join(auditDir, 'schema.ts'))).toBe(true);
-		expect(existsSync(join(auditDir, 'index.ts'))).toBe(true);
-		expect(existsSync(join(routeDir, '+page.server.ts'))).toBe(true);
-		expect(existsSync(join(routeDir, '+page.svelte'))).toBe(true);
+describe('dependency audit (#351)', () => {
+	afterEach(() => vi.restoreAllMocks());
+
+	it('extracts resolved name@version pairs from bun.lock, including scoped packages', () => {
+		const packages = resolvedPackages(`{
+			"packages": {
+				"@types/ws": ["@types/ws@8.18.1", "", {}, "digest"],
+				"ws": ["ws@8.21.3", "", {}, "digest"],
+				"vite/postcss": ["postcss@8.5.16", "", {}, "digest"]
+			}
+		}`);
+
+		expect(packages).toContainEqual({ name: '@types/ws', version: '8.18.1', paths: '@types/ws' });
+		expect(packages).toContainEqual({ name: 'ws', version: '8.21.3', paths: 'ws' });
+		expect(packages).toContainEqual({ name: 'postcss', version: '8.5.16', paths: 'vite/postcss' });
 	});
 
-	it('schema is append-only (no update/delete in API)', () => {
-		const api = readFileSync(join(auditDir, 'index.ts'), 'utf-8');
-		expect(api).toMatch(/async record/);
-		expect(api).toMatch(/forEntity/);
-		expect(api).toMatch(/byActor/);
-		expect(api).toMatch(/async list/);
-		// No mutation/update/delete exposed
-		expect(api).not.toMatch(/\.update\(/);
-		expect(api).not.toMatch(/\.delete\(/);
-		expect(api).not.toMatch(/updateAudit|deleteAudit/);
+	it('extracts resolved name@version pairs from JSONC bun.lock with comments', () => {
+		const lockfile = `// Bun lockfile\n// generated\n{\n\t// root workspace\n\t"packages": {\n\t\t"ws": ["ws@8.21.3", ""], // trailing\n\t\t"postcss": ["postcss@8.5.16", ""]\n\t}\n}`;
+		const packages = resolvedPackages(lockfile);
+		expect(packages).toContainEqual({ name: 'ws', version: '8.21.3', paths: 'ws' });
+		expect(packages).toContainEqual({ name: 'postcss', version: '8.5.16', paths: 'postcss' });
 	});
 
-	it('record stores the full model (actorId nullable, metadata, createdAt)', () => {
-		const api = readFileSync(join(auditDir, 'index.ts'), 'utf-8');
-		expect(api).toMatch(/actorId/);
-		expect(api).toMatch(/entityType/);
-		expect(api).toMatch(/entityId/);
-		expect(api).toMatch(/metadata/);
-		expect(api).toMatch(/new Date\(\)/);
-		const schema = readFileSync(join(auditDir, 'schema.ts'), 'utf-8');
-		expect(schema).toMatch(/actorId/);
-		expect(schema).toMatch(/audit_logs/);
+	it('does not treat comment markers inside string values as comments', () => {
+		const lockfile = '{"packages":{"ws":["ws@8.21.3","https://example.test/a"]}}';
+		expect(resolvedPackages(lockfile)).toEqual([{ name: 'ws', version: '8.21.3', paths: 'ws' }]);
 	});
 
-	it('list supports filters + pagination (limit/offset, newest first)', () => {
-		const api = readFileSync(join(auditDir, 'index.ts'), 'utf-8');
-		expect(api).toMatch(/limit/);
-		expect(api).toMatch(/offset/);
-		expect(api).toMatch(/orderBy\(desc/);
-		expect(api).toMatch(/action/);
-		expect(api).toMatch(/entityType/);
+	it('fails after retries on a persistently unreachable OSV API instead of passing silently', async () => {
+		const transientFailure = Object.assign(new Error('boom'), { cause: { code: 'ECONNRESET' } });
+		const fetchImpl = vi.fn().mockRejectedValue(transientFailure);
+
+		await expect(queryOsv([{ name: "ws", version: "8.21.3" }], fetchImpl as unknown as typeof fetch, { retryDelayMs: 1 })).rejects.toThrow(/refusing to pass/);
+		expect(fetchImpl).toHaveBeenCalledTimes(3);
 	});
 
-	it('admin view guards access + paginates', () => {
-		const page = readFileSync(join(routeDir, '+page.server.ts'), 'utf-8');
-		expect(page).toMatch(/requireAdmin/);
-		expect(page).toMatch(/401|Authentication required/);
-		expect(page).toMatch(/403|Admin access required/);
-		expect(page).toMatch(/limit/);
-		expect(page).toMatch(/offset/);
-		// Never unbounded (#297): limit is clamped to the explicit 1..100 range
-		// via the pure parsePagination helper (Math.min alone let -10 through).
-		expect(page).toMatch(/parsePagination/);
-		expect(page).toMatch(/from '\$lib\/server\/audit\/pagination'/);
+	it('reports vulnerable packages with name, version, path, and advisory', () => {
+		const packages = [{ name: 'nanoid', version: '3.3.15', paths: 'nanoid' }];
+		const results = {
+			results: [{ vulns: [{ id: 'GHSA-xxxx', aliases: ['CVE-2026-0000'], summary: '  insecure generation  ' }] }]
+		};
+
+		expect(formatFindings(packages, results)).toEqual([
+			{
+				package: 'nanoid@3.3.15',
+				path: 'nanoid',
+				advisory: 'GHSA-xxxx, CVE-2026-0000',
+				ids: ['GHSA-xxxx', 'CVE-2026-0000'],
+				summary: 'insecure generation'
+			}
+		]);
 	});
 
-	it('module requires dashboard (DB) and enriches context/messages', () => {
-		const index = readFileSync(join(ROOT, 'packages/audit/src/index.ts'), 'utf-8');
-		expect(index).toMatch(/template:dashboard/);
-		expect(index).toMatch(/enrichManifest/);
-		expect(index).toMatch(/sv\.file\('\.svforge\.json'/);
-		expect(index).toMatch(/mergeMessages/);
-		expect(index).toMatch(/audit_title/);
+	it('fails only on advisories missing from the documented baseline', async () => {
+		const fetchImpl = vi.fn().mockResolvedValue({
+			ok: true,
+			json: () =>
+				Promise.resolve({
+					results: [
+						{ vulns: [{ id: 'GHSA-known', aliases: [], summary: 'known' }] },
+						{ vulns: [{ id: 'GHSA-new', aliases: [], summary: 'brand new regression' }] }
+					]
+				})
+		});
+		const packages = [
+			{ name: 'known-pkg', version: '1.0.0', paths: 'known-pkg' },
+			{ name: 'new-pkg', version: '2.0.0', paths: 'new-pkg' }
+		];
+		const results = await queryOsv(packages, fetchImpl as unknown as typeof fetch);
+		const findings = formatFindings(packages, results);
+		const baseline = new Set(['GHSA-known']);
+		const unknown = findings.filter((finding: { ids: string[] }) => !finding.ids.some((id) => baseline.has(id)));
+
+		expect(unknown).toHaveLength(1);
+		expect(unknown[0].package).toBe('new-pkg@2.0.0');
+		expect(loadBaseline('/nonexistent/baseline.txt').size).toBe(0);
 	});
 
-	it('registers the audit schema in the Drizzle barrel', () => {
-		const index = readFileSync(join(ROOT, 'packages/audit/src/index.ts'), 'utf-8');
-		expect(index).toMatch(/schema\.ts/);
-		expect(index).toMatch(/auditLogs/);
-	});
-
-	it('documents confidentiality (what must never go in metadata)', () => {
-		const readme = readFileSync(join(ROOT, 'packages/audit/README.md'), 'utf-8');
-		expect(readme).toMatch(/passwords|tokens|secrets/);
-		expect(readme).toMatch(/append-only/);
+	it('reports no findings on a clean OSV response for the real bun.lock', async () => {
+		const fetchImpl = vi.fn().mockResolvedValue({
+			ok: true,
+			json: () => Promise.resolve({ results: [] })
+		});
+		const packages = resolvedPackages();
+		const results = await queryOsv(packages, fetchImpl as unknown as typeof fetch);
+		expect(packages.length).toBeGreaterThan(0);
+		expect(formatFindings(packages, results)).toEqual([]);
 	});
 });

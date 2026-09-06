@@ -41,6 +41,22 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile --ignore-scripts
 
+      # Repository quality gates (#351) — ALL THREE BLOCK MERGING:
+      #   lint       (eslint)  repository source, tests, scripts
+      #   typecheck  (tsc)     strict, incl. test files; scaffold templates
+      #                        stay covered by the scaffold tests
+      #   audit      (OSV.dev) bun.lock vulnerabilities; retries transient
+      #                        network errors 3x, then FAILS (never passes
+      #                        silently on an unverified dependency tree)
+      - name: Lint (eslint)
+        run: bun run lint
+
+      - name: Typecheck (tsc)
+        run: bun run typecheck
+
+      - name: Dependency audit (OSV)
+        run: bun run audit
+
       # Generated-manifest freshness gate (#329): regenerate every manifest on
       # the clean checkout and fail on any diff BEFORE the build step can
       # regenerate over it and hide the drift.

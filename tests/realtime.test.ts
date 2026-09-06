@@ -89,11 +89,11 @@ describe('realtime module (#229/#264)', () => {
 		// Exactly the configuration shown in the module README — no Better Auth.
 		const { createRealtimeHub, RealtimeHub } = await import(hubPath);
 		const hub = createRealtimeHub({
-			authenticate: async (req) => {
+			authenticate: async (req: { headers: Record<string, unknown> }) => {
 				const header = req.headers['x-user-id'];
 				return typeof header === 'string' ? header : undefined;
 			},
-			authorize: (userId, channel) =>
+			authorize: (userId: unknown, channel: string) =>
 				userId != null && (channel === `org:${userId}` || channel.startsWith('public:'))
 		});
 		expect(hub).toBeInstanceOf(RealtimeHub);
@@ -123,7 +123,7 @@ describe('realtime module (#229/#264)', () => {
 
 	it('publish delivers to subscribers of the channel only (object contract)', async () => {
 		const { RealtimeHub } = await import(hubPath);
-		const hub = new RealtimeHub({ authorize: (userId, channel) => channel.startsWith('org:') });
+		const hub = new RealtimeHub({ authorize: (userId: unknown, channel: string) => channel.startsWith('org:') });
 		const { port, cleanup } = await startHub(hub);
 
 		const received: string[] = [];
@@ -177,7 +177,7 @@ describe('realtime module (#229/#264)', () => {
 
 	it('a refused channel never receives events even when authorize is partial', async () => {
 		const { RealtimeHub } = await import(hubPath);
-		const hub = new RealtimeHub({ authorize: (userId, channel) => channel === 'org:1' });
+		const hub = new RealtimeHub({ authorize: (userId: unknown, channel: string) => channel === 'org:1' });
 		const { port, cleanup } = await startHub(hub);
 
 		const frames: Array<Record<string, unknown>> = [];
@@ -238,7 +238,7 @@ describe('realtime module (#229/#264)', () => {
 
 		const got: unknown[] = [];
 		const client = createRealtimeClient(`ws://127.0.0.1:${port}/api/realtime`, { backoffMs: 10, maxBackoffMs: 30 });
-		const unsub = client.subscribe('c', 'e', (p) => got.push(p));
+		const unsub = client.subscribe('c', 'e', (p: unknown) => got.push(p));
 		await delay(120); // connect + subscribe round-trip
 
 		hub.publish({ channel: 'c', event: 'e', payload: { n: 1 } });
