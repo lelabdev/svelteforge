@@ -21,8 +21,7 @@ describe('security policy (#352)', () => {
 		expect(policy).toMatch(/Supported/);
 		// Pre-1.0 published versions are evaluation-only; main is the supported line.
 		expect(policy).toMatch(/pre-1\.0/);
-		expect(policy).toMatch(/evaluation only[^
-]*no security fixes/i);
+		expect(policy).toMatch(/evaluation only[\s\S]*no security fixes/i);
 		// From 1.0 onward, the latest published version is supported.
 		expect(policy).toMatch(/latest published version/);
 	});
