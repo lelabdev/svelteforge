@@ -33,7 +33,8 @@ export function discoverPrebuildPackages(root = SCRIPT_ROOT) {
 			if (!manifest.scripts?.prebuild) return null;
 			return { name: manifest.name ?? entry.name, directory: `packages/${entry.name}` };
 		})
-		.filter(Boolean)
+		// flatMap keeps the inferred element type non-null (filter(Boolean) does not).
+		.flatMap((entry) => (entry ? [entry] : []))
 		.sort((left, right) => left.name.localeCompare(right.name));
 }
 

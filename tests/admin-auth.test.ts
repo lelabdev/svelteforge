@@ -58,7 +58,7 @@ describe('admin actions authorization (#167)', () => {
 				// The guard must appear before the first db. call or formData parse.
 				const guardIdx = body.search(/requireAdmin|isAdmin|adminGuard|authorize/);
 				const firstDbIdx = body.search(/db\./);
-				const firstFormDataIdx = body.search(/formData/);
+				
 
 				expect(guardIdx).toBeGreaterThan(-1);
 

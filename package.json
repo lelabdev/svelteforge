@@ -9,15 +9,24 @@
   "scripts": {
     "build": "bun run --filter svforge build",
     "build:all": "bun run --filter '*' build",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "audit": "node scripts/audit.mjs",
     "test": "vitest run --no-file-parallelism",
     "test:watch": "vitest",
     "release:plan": "node scripts/release-plan.mjs"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/bun": "^1.4.1",
     "@types/ws": "^8.5.14",
+    "eslint": "^10.10.0",
+    "globals": "^17.12.0",
     "jsdom": "^30.0.1",
     "sv": "0.15.4",
     "svelte": "^5",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.69.0",
     "vitest": "^3.1.1",
     "ws": "^8.21.3"
   }

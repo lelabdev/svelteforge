@@ -62,7 +62,7 @@ describe('package changelog (#348)', () => {
 - None.
 `);
 
-		expect(entriesBetween(entries, 'svforge', '1.0.0', '1.1.0').map((entry) => entry.version)).toEqual(['1.1.0']);
+		expect(entriesBetween(entries, 'svforge', '1.0.0', '1.1.0').map((entry: { version: string }) => entry.version)).toEqual(['1.1.0']);
 		expect(entriesBetween(entries, 'svforge', null, '1.1.0')).toHaveLength(2);
 		expect(entriesBetween(entries, 'svforge', '1.1.0', '2.0.0')).toHaveLength(0);
 	});

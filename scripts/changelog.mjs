@@ -6,7 +6,6 @@
  */
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
 
 const ROOT = resolve(new URL('..', import.meta.url).pathname);
 const RELEASE_MARKER = /^<!--\s*svforge-release\s+(.+?)\s*-->$/gm;

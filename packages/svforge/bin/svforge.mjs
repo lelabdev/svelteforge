@@ -8,10 +8,10 @@
  *   npx svforge check
  *   npx svforge upgrade <module> [--to <version>] [--force]
  */
-import { createRequire } from 'node:module';
-import { resolve } from 'node:path';
 
-const require = createRequire(import.meta.url);
+
+
+
 // The dist is bundled by tsdown; load it the same way the package exports do.
 const api = await import('../dist/index.js');
 

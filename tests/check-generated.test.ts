@@ -39,10 +39,13 @@ function makeWorkspace() {
 	return root;
 }
 
+/** Complete SpawnSyncReturns-shaped result for git test doubles (#359 review). */
+const gitResult = (stdout: string) => ({ status: 0, stdout, stderr: '', pid: 4321, output: [stdout], signal: null });
+
 describe('generated-manifest freshness gate (#329)', () => {
 	it('discovers every prebuild package, including the previously omitted modules', () => {
 		const packages = discoverPrebuildPackages();
-		const directories = packages.map((pkg) => pkg.directory);
+		const directories = packages.map((pkg: { name: string; directory: string }) => pkg.directory);
 
 		expect(directories).toHaveLength(14);
 		for (const previouslyOmitted of ['realtime', 'audit', 'notifications', 'jobs', 'chat']) {
@@ -51,17 +54,13 @@ describe('generated-manifest freshness gate (#329)', () => {
 	});
 
 	it('passes on a clean tree', () => {
-		const git = () => ({ status: 0, stdout: '', stderr: '' });
+		const git = () => gitResult('');
 
 		expect(assertNoDrift(ROOT, git)).toEqual([]);
 	});
 
 	it('fails with the drift, the regeneration command, and no unsafe staging advice', () => {
-		const git = () => ({
-			status: 0,
-			stdout: ' M packages/audit/src/templates.ts\n?? packages/svforge/src/generated-root-file.ts\n',
-			stderr: ''
-		});
+		const git = () => gitResult(' M packages/audit/src/templates.ts\n?? packages/svforge/src/generated-root-file.ts\n');
 
 		expect(() => assertNoDrift(ROOT, git)).toThrow(/Stale generated files committed/);
 		expect(() => assertNoDrift(ROOT, git)).toThrow(/packages\/audit\/src\/templates\.ts/);
