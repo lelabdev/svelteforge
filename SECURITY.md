@@ -6,18 +6,20 @@ explains how to report it privately and what to expect.
 
 ## Supported versions
 
-SVForge packages are versioned independently. Only the **latest published
-version of each package** receives security fixes. Before a package's first
-stable release, only the current `main` branch is supported.
+SVForge packages are versioned independently. Support depends on the package's
+maturity:
 
-| Package | Supported |
+| Package state | Supported |
 |---------|-----------|
-| latest published version of each `@svforge/*` package and `svforge` | ✅ |
-| any older version | ❌ re-scaffold or upgrade instead |
-| `main` (pre-release) | ✅ fixes land here first |
+| pre-1.0 versions (`0.x`) published to npm | ❌ evaluation only — no security fixes |
+| `main` branch (current development) | ✅ all fixes land here first |
+| `1.0.0` and later: latest published version of the package | ✅ |
+| `1.0.0` and later: any older version | ❌ upgrade instead |
 
-There is no backport policy yet: generated projects should pin, then upgrade
-to the fixed version when it ships.
+While packages are pre-1.0, only `main` is supported: consumers tracking npm
+releases must upgrade to the fixed version when it ships. Once a package
+reaches `1.0.0`, its latest published version receives security fixes; there
+is no backport policy for older lines.
 
 ## Reporting a vulnerability
 
@@ -29,8 +31,12 @@ Report privately through GitHub's **private vulnerability reporting**:
 > https://github.com/lelabdev/svelteforge/security/advisories/new
 
 This channel is owned by the maintainers and is the only supported reporting
-route. If you cannot use it, contact the maintainers directly through an
-established private channel and reference "SVForge security".
+route. It requires the repository's private vulnerability reporting feature to
+be enabled by the maintainers (Settings → Code security) — it is currently
+**enabled**. If that route is ever unavailable, contact a maintainer directly
+through their established private channels (maintainer handles are listed in
+the repository) and reference "SVForge security". Never use public issues,
+discussions, or pull requests for vulnerability details.
 
 ### What a useful report contains
 
