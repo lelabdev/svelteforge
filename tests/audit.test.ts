@@ -97,7 +97,7 @@ describe('dependency audit (#351)', () => {
 		]);
 	});
 
-	it('scopes baseline matching to package + resolved version + advisory (#359)', () => {
+	it('scopes baseline matching to package + version + path + advisory (#359)', () => {
 		const finding = {
 			name: 'nanoid',
 			version: '3.3.15',
@@ -107,11 +107,13 @@ describe('dependency audit (#351)', () => {
 			ids: ['GHSA-xxxx', 'CVE-2026-0000'],
 			summary: 'x'
 		};
-		const baseline = [{ package: 'nanoid', version: '3.3.15', advisory: 'GHSA-xxxx', reason: 'dev-only transitive' }];
+		const baseline = [{ package: 'nanoid', version: '3.3.15', path: 'nanoid', advisory: 'GHSA-xxxx', reason: 'dev-only transitive' }];
 
 		expect(isBaselined(finding, baseline)).toBe(true);
 		// Same advisory, different version: NOT covered.
 		expect(isBaselined({ ...finding, version: '3.3.16' }, baseline)).toBe(false);
+		// Same package/version, introduced through another dependency path: NOT covered.
+		expect(isBaselined({ ...finding, path: 'vite/nanoid' }, baseline)).toBe(false);
 		// Same package, different advisory: NOT covered.
 		expect(isBaselined({ ...finding, ids: ['GHSA-yyyy'], advisory: 'GHSA-yyyy' }, baseline)).toBe(false);
 	});
@@ -124,11 +126,17 @@ describe('dependency audit (#351)', () => {
 
 			const invalidPath = join(root, 'invalid.json');
 			writeFileSync(invalidPath, JSON.stringify([{ package: 'nanoid', advisory: 'GHSA-xxxx' }]));
-			expect(() => loadBaseline(invalidPath)).toThrow(/needs package, version, advisory, reason/);
+			expect(() => loadBaseline(invalidPath)).toThrow(/needs a non-empty string version/);
+
+			const todoPath = join(root, 'todo.json');
+			writeFileSync(todoPath, JSON.stringify([
+				{ package: 'nanoid', version: '3.3.15', path: 'nanoid', advisory: 'GHSA-xxxx', reason: 'TODO: justify this exception before the next release.' }
+			]));
+			expect(() => loadBaseline(todoPath)).toThrow(/unjustified baseline entry/);
 
 			const validPath = join(root, 'valid.json');
 			writeFileSync(validPath, JSON.stringify([
-				{ package: 'nanoid', version: '3.3.15', advisory: 'GHSA-xxxx', reason: 'dev-only transitive via postcss' }
+				{ package: 'nanoid', version: '3.3.15', path: 'nanoid', advisory: 'GHSA-xxxx', reason: 'dev-only transitive via postcss' }
 			]));
 			expect(loadBaseline(validPath)).toHaveLength(1);
 		} finally {

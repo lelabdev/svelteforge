@@ -149,8 +149,13 @@ export function loadBaseline(path = BASELINE_PATH) {
 		const parsed = JSON.parse(readFileSync(path, 'utf8'));
 		if (!Array.isArray(parsed)) throw new Error('baseline must be an array');
 		for (const entry of parsed) {
-			if (!entry.package || !entry.version || !entry.advisory || !entry.reason) {
-				throw new Error(`baseline entry needs package, version, advisory, reason: ${JSON.stringify(entry)}`);
+			for (const field of ['package', 'version', 'advisory', 'path', 'reason']) {
+				if (typeof entry[field] !== 'string' || !entry[field].trim()) {
+					throw new Error(`baseline entry needs a non-empty string ${field}: ${JSON.stringify(entry)}`);
+				}
+			}
+			if (/^TODO\b/i.test(entry.reason.trim())) {
+				throw new Error(`unjustified baseline entry (reason is a placeholder): ${JSON.stringify(entry)}`);
 			}
 		}
 		return parsed;
@@ -162,7 +167,11 @@ export function loadBaseline(path = BASELINE_PATH) {
 
 export function isBaselined(finding, baseline) {
 	return baseline.some(
-		(entry) => entry.package === finding.name && entry.version === finding.version && finding.ids.includes(entry.advisory)
+		(entry) =>
+			entry.package === finding.name
+			&& entry.version === finding.version
+			&& entry.path === finding.path
+			&& finding.ids.includes(entry.advisory)
 	);
 }
 
@@ -173,15 +182,24 @@ export async function audit({ updateBaseline = false } = {}) {
 
 	if (updateBaseline) {
 		// REPLACE, never merge: stale exceptions must be re-justified, not
-		// accumulated forever (#359 review).
+		// accumulated forever (#359 review). Placeholder reasons deliberately
+		// leave the gate failing until each entry is manually justified.
 		const entries = findings.map((finding) => ({
 			package: finding.name,
 			version: finding.version,
 			advisory: finding.ids[0],
+			path: finding.path,
 			reason: 'TODO: justify this exception before the next release.'
 		}));
 		writeFileSync(BASELINE_PATH, `${JSON.stringify(entries, null, '\t')}\n`);
-		console.log(`Baseline replaced: ${entries.length} scoped exception(s) — review and justify each entry in ${BASELINE_PATH}.`);
+		if (entries.length) {
+			throw new Error(
+				`Baseline written with ${entries.length} unjustified placeholder entrie(s).\n` +
+				`The audit will keep failing until every "TODO" reason in ${BASELINE_PATH}\n` +
+				`is replaced by a real, reviewed justification.`
+			);
+		}
+		console.log('Baseline replaced: 0 scoped exceptions needed.');
 		return { findings, unknown: [] };
 	}
 
