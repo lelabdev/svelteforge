@@ -8,13 +8,20 @@ const SCRIPT_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const REQUIRED_FILES = ['README.md', 'package.json', 'LICENSE', 'dist/index.js', 'dist/index.d.ts'];
 
 export function parseVersion(version) {
-	const match = /^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?$/.exec(version);
-	if (!match) throw new Error(`Unsupported package version: ${version}`);
+	const match = /^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$/.exec(version);
+	if (!match || [match[1], match[2], match[3]].some((part) => part.length > 1 && part.startsWith('0'))) {
+		throw new Error(`Unsupported package version: ${version}`);
+	}
+	const prerelease = match[4]?.split('.') ?? [];
+	if (prerelease.some((part) => /^\d+$/.test(part) && part.length > 1 && part.startsWith('0'))) {
+		throw new Error(`Unsupported package version: ${version}`);
+	}
 	return {
 		major: Number(match[1]),
 		minor: Number(match[2]),
 		patch: Number(match[3]),
-		prerelease: match[4] ?? ''
+		prerelease,
+		build: match[5]?.split('.') ?? []
 	};
 }
 
@@ -24,10 +31,22 @@ export function compareVersions(left, right) {
 	for (const key of ['major', 'minor', 'patch']) {
 		if (a[key] !== b[key]) return a[key] - b[key];
 	}
-	if (!a.prerelease && !b.prerelease) return 0;
-	if (!a.prerelease) return 1;
-	if (!b.prerelease) return -1;
-	return a.prerelease.localeCompare(b.prerelease);
+	if (!a.prerelease.length && !b.prerelease.length) return 0;
+	if (!a.prerelease.length) return 1;
+	if (!b.prerelease.length) return -1;
+	for (let index = 0; index < Math.max(a.prerelease.length, b.prerelease.length); index++) {
+		const leftPart = a.prerelease[index];
+		const rightPart = b.prerelease[index];
+		if (leftPart === undefined) return -1;
+		if (rightPart === undefined) return 1;
+		if (leftPart === rightPart) continue;
+		const leftNumeric = /^\d+$/.test(leftPart);
+		const rightNumeric = /^\d+$/.test(rightPart);
+		if (leftNumeric && rightNumeric) return Number(leftPart) - Number(rightPart);
+		if (leftNumeric !== rightNumeric) return leftNumeric ? -1 : 1;
+		return leftPart < rightPart ? -1 : 1;
+	}
+	return 0;
 }
 
 function packageDirectories(root) {
@@ -130,8 +149,8 @@ function runNpm(args, cwd, options = {}) {
 	return result;
 }
 
-function registryVersions(name) {
-	const result = runNpm(['view', name, 'versions', '--json']);
+function registryVersions(name, npm = runNpm, cwd = SCRIPT_ROOT) {
+	const result = npm(['view', name, 'versions', '--json'], cwd);
 	if (result.status !== 0) {
 		const output = `${result.stdout}\n${result.stderr}`;
 		if (/E404|404 Not Found|is not in this registry/i.test(output)) return [];
@@ -142,9 +161,9 @@ function registryVersions(name) {
 	return (Array.isArray(versions) ? versions : [versions]).filter((version) => typeof version === 'string');
 }
 
-export function checkRegistry(plan, root = SCRIPT_ROOT) {
+export function checkRegistry(plan, root = SCRIPT_ROOT, npm = runNpm) {
 	const checked = plan.packages.map((pkg) => {
-		const versions = registryVersions(pkg.name);
+		const versions = registryVersions(pkg.name, npm, root);
 		const published = versions.includes(pkg.version);
 		const latest = versions.reduce(
 			(current, version) => (!current || compareVersions(version, current) > 0 ? version : current),
@@ -162,6 +181,31 @@ export function checkRegistry(plan, root = SCRIPT_ROOT) {
 	return checkedPlan;
 }
 
+/** Verify that the authenticated npm account can publish every package. */
+export function checkPublishAccess(plan, root = SCRIPT_ROOT, npm = runNpm) {
+	const result = npm(['access', 'list', 'packages', '--json'], root);
+	if (result.status !== 0) {
+		throw new Error(`Could not query npm publish permissions: ${`${result.stdout}\n${result.stderr}`.trim()}`);
+	}
+	let access;
+	try {
+		access = JSON.parse(result.stdout);
+	} catch {
+		throw new Error('Could not query npm publish permissions: npm returned invalid JSON.');
+	}
+	const canPublish = (permission) => typeof permission === 'string'
+		? /write|admin/i.test(permission)
+		: permission === true;
+	const denied = plan.packages
+		.filter((pkg) => !canPublish(access[pkg.name]))
+		.map((pkg) => pkg.name);
+	if (denied.length) {
+		throw new Error(`Authenticated npm account cannot publish: ${denied.join(', ')}.`);
+	}
+	console.log(`Publish access OK for ${plan.packages.length} package(s).`);
+	return plan;
+}
+
 function exportedPaths(manifest) {
 	const paths = [];
 	const rootExport = manifest.exports?.['.'] ?? manifest.exports;
@@ -174,10 +218,10 @@ function exportedPaths(manifest) {
 	return paths.map((path) => path.replace(/^\.\//, ''));
 }
 
-export function preflightPackage(pkg, root = SCRIPT_ROOT) {
+export function preflightPackage(pkg, root = SCRIPT_ROOT, npm = runNpm) {
 	const packageDirectory = join(root, pkg.directory);
 	const manifest = JSON.parse(readFileSync(join(packageDirectory, 'package.json'), 'utf8'));
-	const result = runNpm(['pack', '--dry-run', '--json', '--ignore-scripts'], packageDirectory);
+	const result = npm(['pack', '--dry-run', '--json', '--ignore-scripts'], packageDirectory);
 	if (result.status !== 0) throw new Error(`npm pack failed for ${pkg.name}: ${result.stderr.trim()}`);
 	const pack = JSON.parse(result.stdout)[0];
 	const files = new Set(pack.files.map((file) => file.path));
@@ -188,13 +232,13 @@ export function preflightPackage(pkg, root = SCRIPT_ROOT) {
 	return { name: pkg.name, version: pkg.version, fileCount: files.size };
 }
 
-export function preflightPlan(plan, root = SCRIPT_ROOT) {
-	const results = plan.packages.map((pkg) => preflightPackage(pkg, root));
+export function preflightPlan(plan, root = SCRIPT_ROOT, npm = runNpm) {
+	const results = plan.packages.map((pkg) => preflightPackage(pkg, root, npm));
 	for (const result of results) console.log(`Preflight OK: ${result.name}@${result.version} (${result.fileCount} files)`);
 	return results;
 }
 
-export function publishPlan(plan, root = SCRIPT_ROOT) {
+export function publishPlan(plan, root = SCRIPT_ROOT, npm = runNpm) {
 	for (const pkg of plan.packages) {
 		if (!pkg.registry) {
 			throw new Error('Cannot publish an unchecked release plan; run --check-registry first.');
@@ -204,7 +248,7 @@ export function publishPlan(plan, root = SCRIPT_ROOT) {
 			continue;
 		}
 		console.log(`Publishing ${pkg.name}@${pkg.version} from ${pkg.directory}...`);
-		const result = runNpm(['publish', '--access', 'public', '--ignore-scripts'], join(root, pkg.directory), {
+		const result = npm(['publish', '--access', 'public', '--ignore-scripts'], join(root, pkg.directory), {
 			stdio: 'inherit'
 		});
 		if (result.status !== 0) throw new Error(`npm publish failed for ${pkg.name}@${pkg.version}.`);
@@ -240,9 +284,10 @@ async function main() {
 	}
 
 	if (args.includes('--check-registry')) plan = checkRegistry(plan, root);
+	if (args.includes('--check-access')) checkPublishAccess(plan, root);
 	if (args.includes('--preflight')) preflightPlan(plan, root);
 	if (args.includes('--publish')) publishPlan(plan, root);
-	if (!args.includes('--check-registry') && !args.includes('--preflight') && !args.includes('--publish')) {
+	if (!args.includes('--check-registry') && !args.includes('--check-access') && !args.includes('--preflight') && !args.includes('--publish')) {
 		printPlan(plan, root);
 	}
 	if (output) writeFileSync(resolve(output), `${JSON.stringify(plan, null, 2)}\n`);

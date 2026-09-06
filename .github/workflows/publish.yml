@@ -9,7 +9,9 @@ permissions:
   contents: read
 
 concurrency:
-  group: publish-${{ github.ref }}
+  # Publishing is repository-global: prod pushes and manual dispatches must
+  # never publish concurrently, even when they use different refs.
+  group: publish
   cancel-in-progress: false
 
 jobs:
@@ -88,6 +90,11 @@ jobs:
       - name: Generate release plan
         run: node scripts/release-plan.mjs --check-registry --output /tmp/release-plan.json
 
+      - name: Verify package publish access
+        run: node scripts/release-plan.mjs --plan /tmp/release-plan.json --check-access
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
       - name: Show release plan
         run: cat /tmp/release-plan.json
 
@@ -103,3 +110,8 @@ jobs:
         run: node scripts/release-plan.mjs --plan /tmp/release-plan.json --publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # Consumer gate: install every exact published version and resolve its
+      # declared TypeScript entry point from a clean external project.
+      - name: Consumer installation smoke test
+        run: node scripts/npm-consumer-smoke.mjs --plan /tmp/release-plan.json
