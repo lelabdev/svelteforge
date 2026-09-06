@@ -16,6 +16,12 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import type { DiagnosticResult } from './doctor';
+import {
+	SKELETON_PRIMITIVES as GENERATED_SKELETON_PRIMITIVES,
+	SKELETON_UTILITIES,
+	SKELETON_UTILITY_PREFIXES,
+	SKELETON_VERSIONS
+} from './skeleton-inventory';
 
 export type Severity = 'ok' | 'warn' | 'error';
 
@@ -135,39 +141,173 @@ export const SVFORGE_CATALOG: Record<string, CatalogEntry> = {
  * Skeleton is the single source of UI primitives. These names must NOT be
  * recreated as project-local components (ERROR) — Skeleton already provides
  * them via @skeletonlabs/skeleton-svelte.
+ *
+ * GENERATED (#335) from the installed @skeletonlabs/skeleton-svelte package:
+ * a newly exported primitive is protected automatically, without editing a
+ * blacklist. See src/skeleton-inventory.ts.
  */
-export const SKELETON_PRIMITIVES = [
-	'Accordion',
-	'AppBar',
-	'Avatar',
-	'Badge',
-	'Breadcrumb',
-	'Button',
-	'Card',
-	'Checkbox',
-	'Combobox',
-	'DatePicker',
-	'Dialog',
-	'Drawer',
-	'DropdownMenu',
-	'Field',
-	'Input',
-	'Listbox',
-	'Menu',
-	'Popover',
-	'Progress',
-	'RadioGroup',
-	'Select',
-	'Slider',
-	'SegmentedControl',
-	'Stepper',
-	'Tab',
-	'Table',
-	'Textarea',
-	'Toast',
-	'Toggle',
-	'Tooltip'
-] as const;
+export const SKELETON_PRIMITIVES: string[] = GENERATED_SKELETON_PRIMITIVES;
+
+/**
+ * Former scaffold aliases (#335): generic spacing/typography names removed
+ * from the scaffold because they recreated a parallel token layer. Using one
+ * is an ERROR unless the project explicitly re-defines it with @utility.
+ */
+export const REMOVED_SCAFFOLD_ALIASES = [
+	'p-element',
+	'gap-group',
+	'space-y-section',
+	'py-section',
+	'max-w-modal',
+	'max-w-container',
+	'font-heading',
+	'font-code'
+];
+
+/** Token namespaces that look like Skeleton utilities. */
+const SKELETON_LOOKING = ['btn-icon', 'btn', 'badge', 'chip', 'card', 'label', 'input', 'select', 'textarea', 'preset-'];
+/**
+ * Tailwind utilities that share a Skeleton namespace stay Tailwind
+ * (select-none, select-text, …). Anything else on a Skeleton namespace that
+ * is not in the inventory is an invented utility (#335).
+ */
+const SKELETON_TAILWIND_EXCEPTIONS: Record<string, string[]> = {
+	select: ['none', 'text', 'all', 'auto']
+};
+/** Valid Tailwind rounded-* suffixes; anything else is an invented shape. */
+const TAILWIND_RADIUS = /^(none|sm|md|lg|xl|2xl|3xl|full|(t|b|l|r|tl|tr|bl|br|s|e|ss|se|es|ee)(-(none|sm|md|lg|xl|2xl|3xl|full))?|start|end)$/;
+
+/** Tailwind namespaces that can never be Skeleton primitives (last segment). */
+const TAILWIND_NAMESPACES = [
+	'w-', 'min-w-', 'max-w-', 'h-', 'min-h-', 'max-h-', 'size-', 'p-', 'px-', 'py-', 'pt-', 'pr-', 'pb-', 'pl-',
+	'm-', 'mx-', 'my-', 'mt-', 'mr-', 'mb-', 'ml-', 'gap-', 'space-x-', 'space-y-', 'inset-', 'top-', 'right-',
+	'bottom-', 'left-', 'basis-', 'flex-', 'grid-', 'col-', 'row-', 'auto-cols-', 'auto-rows-', 'items-',
+	'justify-', 'content-', 'self-', 'place-', 'order-', 'text-', 'font-', 'tracking-', 'leading-', 'list-',
+	'whitespace-', 'break-', 'bg-', 'from-', 'via-', 'to-', 'border-', 'divide-', 'ring-', 'rounded-', 'shadow-',
+	'opacity-', 'blur-', 'brightness-', 'contrast-', 'grayscale-', 'saturate-', 'hue-rotate-', 'backdrop-',
+	'transition-', 'duration-', 'ease-', 'delay-', 'scale-', 'rotate-', 'translate-', 'skew-', 'origin-',
+	'aspect-', 'object-', 'overflow-', 'overscroll-', 'z-', 'cursor-', 'select-', 'touch-', 'columns-',
+	'outline-', 'decoration-', 'underline-', 'accent-', 'caret-', 'scroll-', 'snap-', 'fill-', 'stroke-',
+	'indent-', 'align-', 'appearance-', 'resize-', 'will-change-', 'motion-', 'sr-only'
+];
+const TAILWIND_EXACT = new Set([
+	'block', 'inline-block', 'inline', 'flex', 'inline-flex', 'grid', 'hidden', 'table', 'contents', 'flow-root',
+	'static', 'fixed', 'absolute', 'relative', 'sticky', 'isolate', 'container', 'transform', 'animate-spin',
+	'animate-ping', 'animate-pulse', 'animate-bounce', 'grayscale', 'invert', 'sepia', 'transition', 'resize',
+	'rounded', 'border', 'outline', 'underline', 'sr-only', 'not-sr-only', 'group', 'peer', 'antialiased',
+	'italic', 'not-italic', 'uppercase', 'lowercase', 'capitalize', 'normal-case', 'truncate', 'underline-offset-auto',
+	'prose', 'avatar-group', 'sr', 'grow', 'grow-0', 'shrink', 'shrink-0'
+]);
+const TAILWIND_VARIANTS = new Set(['sm', 'md', 'lg', 'xl', '2xl', 'hover', 'focus', 'focus-within', 'focus-visible', 'active', 'visited', 'target', 'first', 'last', 'only', 'odd', 'even', 'first-of-type', 'last-of-type', 'empty', 'disabled', 'enabled', 'checked', 'indeterminate', 'default', 'required', 'valid', 'invalid', 'in-range', 'out-of-range', 'placeholder-shown', 'details-content', 'autofill', 'read-only', 'before', 'after', 'marker', 'file', 'backdrop', 'selection', 'first-line', 'first-letter', 'file-input', 'dark', 'motion-safe', 'motion-reduce', 'motion-secure', 'contrast-more', 'contrast-less', 'forced-colors', 'print', 'rtl', 'ltr', 'open', 'inert', 'group-hover', 'group-focus', 'peer-hover', 'peer-focus', 'peer-checked', 'peer-disabled', 'aria-checked', 'aria-disabled', 'aria-expanded', 'aria-hidden', 'aria-pressed', 'aria-readonly', 'supports-', 'data-', 'has-', 'not-', 'in-', 'min-', 'max-', 'start', 'end']);
+
+function isTailwind(token: string): boolean {
+	// Arbitrary values are Tailwind by definition: w-[42px], bg-[#abc], grid-cols-[1fr_2fr].
+	if (token.includes('[') && token.includes(']')) return true;
+	let segment = token;
+	// Strip leading variants: md:hover:bg-... — analyze the last segment.
+	while (true) {
+		const index = segment.indexOf(':');
+		if (index === -1) break;
+		const variant = segment.slice(0, index);
+		if (!TAILWIND_VARIANTS.has(variant) && !variant.startsWith('group-') && !variant.startsWith('peer-')) return false;
+		segment = segment.slice(index + 1);
+	}
+	if (TAILWIND_EXACT.has(segment)) return true;
+	if (TAILWIND_NAMESPACES.some((namespace) => segment.startsWith(namespace))) return true;
+	// Bare tailwind scale values attached to a namespace we already matched.
+	return false;
+}
+
+function isSkeletonUtility(token: string, ctx: { utilities: string[]; prefixes: string[] }): boolean {
+	return ctx.utilities.includes(token) || ctx.prefixes.some((prefix) => token.startsWith(prefix));
+}
+
+export interface MarkupViolation {
+	token: string;
+	severity: 'error' | 'warn';
+	message: string;
+}
+
+export interface MarkupContext {
+	utilities: string[];
+	prefixes: string[];
+	/** @utility names redefined by the project's own CSS files. */
+	projectUtilities?: string[];
+}
+
+/**
+ * Deterministic Skeleton markup rules (#335).
+ *
+ * ERROR = certain Skeleton violation / low false-positive risk.
+ * WARN  = suspicious composition requiring human review.
+ */
+export function checkClassString(classString: string, ctx: MarkupContext): MarkupViolation[] {
+	const violations: MarkupViolation[] = [];
+	const tokens = classString.split(/\s+/).map((token) => token.trim()).filter(Boolean);
+	const skeletonTokens = tokens.filter((token) => isSkeletonUtility(token, ctx));
+
+	// ── Incompatible primitives on the same element ──────────────
+	const hasBtn = skeletonTokens.includes('btn');
+	const hasBtnIcon = skeletonTokens.includes('btn-icon');
+	const hasCard = skeletonTokens.includes('card');
+	const rounded = tokens.filter((token) => token.startsWith('rounded-') || token === 'rounded');
+	if (hasBtn && hasBtnIcon) {
+		violations.push({
+			token: 'btn + btn-icon',
+			severity: 'error',
+			message: 'btn and btn-icon are mutually exclusive primitives: render one or the other, never both.'
+		});
+	}
+	for (const token of rounded) {
+		if (hasBtn || hasBtnIcon) {
+			violations.push({
+				token,
+				severity: 'error',
+				message: `btn already owns its radius/shape — do not reapply ${token}. Remove it or use the Skeleton size primitive.`
+			});
+		}
+		if (hasCard) {
+			violations.push({
+				token,
+				severity: 'error',
+				message: `card already owns its radius/shape — do not reapply ${token}.`
+			});
+		}
+	}
+
+	for (const token of tokens) {
+		// Strip any variant prefix for classification.
+		const segment = token.includes(':') ? token.slice(token.lastIndexOf(':') + 1) : token;
+		// ── Former scaffold aliases ───────────────────────────────
+		if (REMOVED_SCAFFOLD_ALIASES.includes(segment) && !(ctx.projectUtilities ?? []).includes(segment)) {
+			violations.push({
+				token,
+				severity: 'error',
+				message: `${segment} is a removed scaffold alias: it recreates a parallel token layer. Use Tailwind spacing/typography utilities or theme tokens.`
+			});
+			continue;
+		}
+		if (isSkeletonUtility(segment, ctx)) continue;
+		// ── Skeleton-looking utility that does not exist ──────────
+		// Checked BEFORE Tailwind namespaces: Skeleton owns these namespaces,
+		// except for the whitelisted Tailwind colliders (select-none, …).
+		if (SKELETON_LOOKING.some((namespace) => segment.startsWith(namespace)) && !segment.includes('[')) {
+			const root = segment.replace(/-.*$/, '');
+			const exception = SKELETON_TAILWIND_EXCEPTIONS[root]?.includes(segment.slice(root.length + 1));
+			if (!exception) {
+				violations.push({
+					token,
+					severity: 'error',
+					message: `${segment} does not exist in the installed Skeleton version. Check the class name or use a preset-* / size utility that exists.`
+				});
+				continue;
+			}
+		}
+		if (isTailwind(token)) continue;
+		// Unknown non-Skeleton tokens are #314 territory (CSS drift), not flagged here.
+	}
+	return violations;
+}
 
 /** Other UI kits that are forbidden in SvelteForge projects (ERROR). */
 export const FORBIDDEN_UI_KITS = [
@@ -308,5 +448,101 @@ export async function checkDesignSystem(projectRoot: string): Promise<Diagnostic
 		}
 	}
 
+	// ── 5. Skeleton markup composition (#335, ERROR) ───────────────
+	if (fs.existsSync(srcDir)) {
+		const markupCtx: MarkupContext = {
+			utilities: SKELETON_UTILITIES,
+			prefixes: SKELETON_UTILITY_PREFIXES,
+			projectUtilities: collectProjectUtilities(fs, path, srcDir)
+		};
+		const collectMarkup = (dir: string, out: string[] = []): string[] => {
+			for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+				const full = path.join(dir, entry.name);
+				if (entry.isDirectory()) collectMarkup(full, out);
+				else if (entry.name.endsWith('.svelte') || entry.name.endsWith('.html')) out.push(full);
+			}
+			return out;
+		};
+		for (const file of collectMarkup(srcDir)) {
+			const source = fs.readFileSync(file, 'utf-8');
+			const rel = path.relative(projectRoot, file);
+			for (const { className, violations } of checkSvelteMarkup(source, markupCtx)) {
+				for (const violation of violations) {
+					results.push({
+						module: 'ds',
+						status: violation.severity,
+						message: `${rel}: "${className}" — ${violation.message}`
+					});
+				}
+			}
+		}
+	}
+
 	return results;
+}
+
+/**
+ * Extract markup violations from a Svelte/HTML source (#335).
+ *
+ * Two families:
+ * - class="..." attributes on plain elements → primitive conflicts, invented
+ *   Skeleton-looking utilities, removed scaffold aliases;
+ * - class="..." on an SVForge wrapper component (Button, Card, …) containing
+ *   a Skeleton primitive → the wrapper already owns its primitive; the class
+ *   contract is "props = Skeleton choice, class = local Tailwind".
+ */
+export function checkSvelteMarkup(source: string, ctx: MarkupContext): { className: string; violations: MarkupViolation[] }[] {
+	const out: { className: string; violations: MarkupViolation[] }[] = [];
+	const wrapperNames = Object.keys(SVFORGE_CATALOG).join('|');
+	// class="..." (plain or on components). Single quotes and curly expressions
+	// are intentionally not parsed: deterministic rules only.
+	const classAttrPattern = new RegExp(
+		`<(?:${wrapperNames})\\b[^>]*?class="([^"]*)"|class="([^"]*)"`,
+		'g'
+	);
+	for (const match of source.matchAll(classAttrPattern)) {
+		const className = match[1] ?? match[2];
+		if (!className) continue;
+		const violations = checkClassString(className, ctx);
+		if (match[1] !== undefined) {
+			// SVForge wrapper: any Skeleton primitive inside class is an error.
+			const tokens = className.split(/\s+/).filter(Boolean);
+			for (const token of tokens) {
+				const segment = token.includes(':') ? token.slice(token.lastIndexOf(':') + 1) : token;
+				if (isSkeletonUtility(segment, ctx)) {
+					violations.push({
+						token,
+						severity: 'error',
+						message: `The SVForge wrapper already renders its Skeleton primitive: select the visual through its props (variant, size, …) — not through class ("${token}").`
+					});
+				} else if (segment.startsWith('rounded-') && !TAILWIND_RADIUS.test(segment.slice('rounded-'.length))) {
+					violations.push({
+						token,
+						severity: 'error',
+						message: `${segment} is not a Tailwind default radius and the wrapper already owns its shape: select the shape through props (or corner-shape-*).`
+					});
+				}
+			}
+		}
+		if (violations.length) out.push({ className, violations });
+	}
+	return out;
+}
+
+/** Collect @utility names redefined by the project's own CSS files. */
+function collectProjectUtilities(fs: typeof import('node:fs'), path: typeof import('node:path'), srcDir: string): string[] {
+	const names: string[] = [];
+	const walk = (dir: string) => {
+		if (!fs.existsSync(dir)) return;
+		for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+			const full = path.join(dir, entry.name);
+			if (entry.isDirectory()) walk(full);
+			else if (entry.name.endsWith('.css')) {
+				const source = fs.readFileSync(full, 'utf-8');
+				for (const match of source.matchAll(/@utility\s+([a-zA-Z0-9-]+)/g)) names.push(match[1]);
+			}
+		}
+	};
+	walk(srcDir);
+	return names;
 }
