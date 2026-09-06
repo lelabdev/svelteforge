@@ -6,7 +6,13 @@ on:
   workflow_dispatch:
 
 permissions:
-  id-token: write
+  contents: read
+
+concurrency:
+  # Publishing is repository-global: prod pushes and manual dispatches must
+  # never publish concurrently, even when they use different refs.
+  group: publish
+  cancel-in-progress: false
 
 jobs:
   publish-latest:
@@ -28,15 +34,15 @@ jobs:
           --health-retries 5
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
 
       - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
         with:
           bun-version: 1.3.14
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: 22
           registry-url: https://registry.npmjs.org
@@ -74,78 +80,38 @@ jobs:
         env:
           CI: 'true'
 
-      - name: Publish ui_toast@latest
-        run: cd packages/ui_toast && npm publish --access public --ignore-scripts
+      - name: Verify npm authentication
+        run: npm whoami
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: Publish dnd@latest
-        run: cd packages/dnd && npm publish --access public --ignore-scripts
+      # The plan is generated before any publication and records the exact
+      # commit, independent package versions, registry state, and dependency order.
+      - name: Generate release plan
+        run: node scripts/release-plan.mjs --check-registry --output /tmp/release-plan.json
+
+      - name: Verify package publish access
+        run: node scripts/release-plan.mjs --plan /tmp/release-plan.json --check-access
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: Publish graph@latest
-        run: cd packages/graph && npm publish --access public --ignore-scripts
+      - name: Show release plan
+        run: cat /tmp/release-plan.json
+
+      # Every package is packed and checked before the first npm publish.
+      - name: Preflight release tarballs
+        run: node scripts/release-plan.mjs --plan /tmp/release-plan.json --preflight
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: Publish tiptap@latest
-        run: cd packages/tiptap && npm publish --access public --ignore-scripts
+      # This command skips exact versions already in the registry, so rerunning
+      # after a partial failure safely resumes the release.
+      - name: Publish release plan
+        run: node scripts/release-plan.mjs --plan /tmp/release-plan.json --publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: Publish email@latest
-        run: cd packages/email && npm publish --access public --ignore-scripts
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: Publish oauth@latest
-        run: cd packages/oauth && npm publish --access public --ignore-scripts
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: Publish uploads@latest
-        run: cd packages/uploads && npm publish --access public --ignore-scripts
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: Publish blog@latest
-        run: cd packages/blog && npm publish --access public --ignore-scripts
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      # New foundation modules (#256): published with the other scoped
-      # @svforge/* packages, before the unscoped svforge.
-      - name: Publish realtime@latest
-        run: cd packages/realtime && npm publish --access public --ignore-scripts
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: Publish audit@latest
-        run: cd packages/audit && npm publish --access public --ignore-scripts
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: Publish notifications@latest
-        run: cd packages/notifications && npm publish --access public --ignore-scripts
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: Publish jobs@latest
-        run: cd packages/jobs && npm publish --access public --ignore-scripts
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: Publish chat@latest
-        run: cd packages/chat && npm publish --access public --ignore-scripts
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      # Unscoped package — published LAST: it's the one the current NPM_TOKEN
-      # cannot write (E404, ownership ludoloops). Modules go first so a token
-      # with scoped rights still ships them; svforge needs a token with write
-      # access on the unscoped name (#206 Phase 7).
-      - name: Publish svforge@latest
-        run: cd packages/svforge && npm publish --access public --ignore-scripts
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      # Consumer gate: install every exact published version and run tsc against
+      # generated imports from a clean external project.
+      - name: Consumer installation smoke test
+        run: node scripts/npm-consumer-smoke.mjs --plan /tmp/release-plan.json

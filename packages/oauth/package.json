@@ -30,7 +30,7 @@
 	},
 	"scripts": {
 		"prebuild": "bun scripts/prebuild.ts",
-		"build": "bun run prebuild && bunx tsdown && cp dist/index-*.d.ts dist/index.d.ts 2>/dev/null || true",
+		"build": "bun run prebuild && bunx tsdown",
 		"prepublishOnly": "bun run build"
 	},
 	"keywords": [
