@@ -190,10 +190,10 @@
 			{:else if col.key === 'actions'}
 				{@const user = asUser(row)}
 				<div class="flex items-center justify-end gap-1">
-					<button class="btn rounded p-2 preset-tonal-surface" onclick={() => openEdit(user)} aria-label={m.users_edit()}>
+					<button class="btn p-2 preset-tonal-surface" onclick={() => openEdit(user)} aria-label={m.users_edit()}>
 						<Pencil size={16} />
 					</button>
-					<button class="btn rounded p-2 preset-tonal-error" onclick={() => openDelete(user)} disabled={user.id === currentUserId} aria-label={m.users_delete()}>
+					<button class="btn p-2 preset-tonal-error" onclick={() => openDelete(user)} disabled={user.id === currentUserId} aria-label={m.users_delete()}>
 						<Trash size={16} />
 					</button>
 				</div>
@@ -214,7 +214,7 @@
 				<h3 class="text-lg font-bold">
 					{modal === 'create' ? m.users_modal_create() : modal === 'edit' ? m.users_modal_edit() : m.users_modal_delete()}
 				</h3>
-				<button class="btn rounded p-1 preset-tonal-surface" onclick={closeModal} aria-label={m.users_close()}>
+				<button class="btn p-1 preset-tonal-surface" onclick={closeModal} aria-label={m.users_close()}>
 					<X size={18} />
 				</button>
 			</div>
