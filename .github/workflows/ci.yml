@@ -41,6 +41,12 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile --ignore-scripts
 
+      # Generated-manifest freshness gate (#329): regenerate every manifest on
+      # the clean checkout and fail on any diff BEFORE the build step can
+      # regenerate over it and hide the drift.
+      - name: Check generated manifests freshness
+        run: node scripts/check-generated.mjs
+
       - name: Build all packages
         run: bun run --filter '*' build
 
