@@ -375,18 +375,25 @@ export async function checkDesignSystem(projectRoot: string): Promise<Diagnostic
 			return out;
 		};
 		const svelteFiles = walk(srcDir);
+		// Only exact approved catalog paths are exempt (#361): a new local
+		// component under components/svforge/ matching a Skeleton primitive is
+		// still an error. Components delivered by an installed addon (uploads,
+		// dnd, …) are approved while that addon is installed.
+		const catalogPaths = new Set(Object.values(SVFORGE_CATALOG).map((entry) => entry.path));
+		const installedModules = readManifestModules(fs, path, projectRoot);
+		const ADDON_DIRS = new Set(['audit', 'blog', 'chat', 'dnd', 'email', 'graph', 'jobs', 'notifications', 'oauth', 'realtime', 'tiptap', 'uploads']);
 		for (const file of svelteFiles) {
 			const base = path.basename(file, '.svelte');
-			// Only flag components OUTSIDE the canonical svforge dir (a component
-			// inside svforge/ is ours by construction).
-			if (file.startsWith(componentsDir)) continue;
-			if ((SKELETON_PRIMITIVES as readonly string[]).includes(base)) {
-				results.push({
-					module: 'ds',
-					status: 'error',
-					message: `Duplicated Skeleton primitive "${base}" at ${path.relative(projectRoot, file)}. Use ${base} from @skeletonlabs/skeleton-svelte or the svforge catalog instead.`
-				});
-			}
+			if (!(SKELETON_PRIMITIVES as readonly string[]).includes(base)) continue;
+			const relFromComponents = path.relative(componentsDir, file);
+			if (catalogPaths.has(relFromComponents)) continue;
+			const top = relFromComponents.split(path.sep)[0];
+			if (ADDON_DIRS.has(top) && installedModules.includes(top)) continue;
+			results.push({
+				module: 'ds',
+				status: 'error',
+				message: `Duplicated Skeleton primitive "${base}" at ${path.relative(projectRoot, file)}. Use ${base} from @skeletonlabs/skeleton-svelte or the svforge catalog instead.`
+			});
 		}
 	}
 
@@ -527,6 +534,18 @@ export function checkSvelteMarkup(source: string, ctx: MarkupContext): { classNa
 		if (violations.length) out.push({ className, violations });
 	}
 	return out;
+}
+
+/** Read the installed addon module ids from the project manifest (.svforge.json). */
+function readManifestModules(fs: typeof import('node:fs'), path: typeof import('node:path'), projectRoot: string): string[] {
+	const manifestPath = path.join(projectRoot, '.svforge.json');
+	if (!fs.existsSync(manifestPath)) return [];
+	try {
+		const modules = JSON.parse(fs.readFileSync(manifestPath, 'utf-8')).modules;
+		return Array.isArray(modules) ? modules.filter((module): module is string => typeof module === 'string') : [];
+	} catch {
+		return [];
+	}
 }
 
 /** Collect @utility names redefined by the project's own CSS files. */

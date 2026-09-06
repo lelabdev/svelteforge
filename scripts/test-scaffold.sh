@@ -294,7 +294,14 @@ if [ "$TEMPLATE" = "base" ] || [ "$TEMPLATE" = "dashboard" ] || [ "$TEMPLATE" = 
 	test -f svforge-modules.json || { echo "❌ svforge-modules.json missing (#236)"; exit 1; }
 	test -f .svforge.json || { echo "❌ .svforge.json missing (#234)"; exit 1; }
 	test -f llms.txt || { echo "❌ llms.txt missing (#234)"; exit 1; }
-	node svforge-check.mjs 2>&1 | grep -q "Design system is clean" || { echo "❌ svforge check not clean (#240)"; exit 1; }
+	# Assert the checker exit code AND zero diagnostics (ERROR or WARN) —
+	# not just one display string (#361 review).
+	check_output=$(node svforge-check.mjs 2>&1); check_status=$?
+	if [ "$check_status" -ne 0 ] || printf '%s' "$check_output" | grep -Eq '✗|⚠'; then
+		echo "❌ svforge check produced diagnostics or failed (exit $check_status) (#240, #335):"
+		echo "$check_output"
+		exit 1
+	fi
 fi
 
 # 6. AI-ready: AGENTS.md scaffolded at the project root (#203)

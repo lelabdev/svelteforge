@@ -14,7 +14,7 @@
  * WARN  — component outside canonical structure
  */
 import { readFileSync, readdirSync, existsSync, statSync } from 'node:fs';
-import { join, relative, basename } from 'node:path';
+import { join, relative, basename, sep } from 'node:path';
 
 const ROOT = process.cwd();
 const results = [];
@@ -97,16 +97,43 @@ function isTailwind(token) {
 }
 
 // Prefer the project's own installed Skeleton when it can be derived.
+// Primitives and utilities are derived independently: a consumer can install a
+// newer skeleton-svelte (new primitives) or skeleton (new utilities), and each
+// side falls back to the shipped inventory when its package is missing (#361).
 function deriveInventoryFromNodeModules() {
-	const utilitiesDir = join(ROOT, 'node_modules', '@skeletonlabs', 'skeleton', 'src', 'utilities');
-	if (!existsSync(utilitiesDir)) return null;
-	const inventory = { versions: {}, primitives: [...SKELETON_INVENTORY.primitives], utilities: [], utilityPrefixes: [] };
-	for (const file of walk(utilitiesDir, ['.css'])) {
-		const source = readFileSync(file, 'utf-8');
-		for (const match of source.matchAll(/@utility\s+([a-zA-Z0-9-]+)/g)) {
-			if (match[1].endsWith('-')) inventory.utilityPrefixes.push(match[1]);
-			else inventory.utilities.push(match[1]);
+	const inventory = {
+		versions: { ...SKELETON_INVENTORY.versions },
+		primitives: [...SKELETON_INVENTORY.primitives],
+		utilities: [...SKELETON_INVENTORY.utilities],
+		utilityPrefixes: [...SKELETON_INVENTORY.utilityPrefixes]
+	};
+	const svelteComponentsDir = join(ROOT, 'node_modules', '@skeletonlabs', 'skeleton-svelte', 'dist', 'components');
+	if (existsSync(svelteComponentsDir)) {
+		const derived = new Set();
+		for (const entry of readdirSync(svelteComponentsDir, { withFileTypes: true })) {
+			if (!entry.isDirectory()) continue;
+			const indexPath = join(svelteComponentsDir, entry.name, 'index.js');
+			if (!existsSync(indexPath)) continue;
+			const source = readFileSync(indexPath, 'utf-8');
+			for (const match of source.matchAll(/export \{ ([A-Za-z0-9]+) \} from '\.\/modules\/anatomy\.js'/g)) {
+				derived.add(match[1]);
+			}
 		}
+		if (derived.size) inventory.primitives = [...derived].sort();
+	}
+	const utilitiesDir = join(ROOT, 'node_modules', '@skeletonlabs', 'skeleton', 'src', 'utilities');
+	if (existsSync(utilitiesDir)) {
+		const utilities = new Set();
+		const utilityPrefixes = new Set();
+		for (const file of walk(utilitiesDir, ['.css'])) {
+			const source = readFileSync(file, 'utf-8');
+			for (const match of source.matchAll(/@utility\s+([a-zA-Z0-9-]+)/g)) {
+				if (match[1].endsWith('-')) utilityPrefixes.add(match[1]);
+				else utilities.add(match[1]);
+			}
+		}
+		if (utilities.size) inventory.utilities = [...utilities].sort();
+		if (utilityPrefixes.size) inventory.utilityPrefixes = [...utilityPrefixes].sort();
 	}
 	return inventory;
 }
@@ -129,12 +156,42 @@ for (const kit of FORBIDDEN_KITS) {
 
 // ── 2. Duplicated Skeleton primitives (ERROR) ────────────────────
 const componentsDir = join(ROOT, 'src', 'lib', 'components', 'svforge');
+// Only exact approved catalog paths are exempt. A new local component under
+// components/svforge/ (e.g. ui/Marquee.svelte) is still rejected when its name
+// matches a primitive of the installed Skeleton inventory (#361).
+const catalogPath = join(ROOT, 'svforge-catalog.json');
+const catalogPaths = new Set();
+if (existsSync(catalogPath)) {
+	try {
+		for (const entry of Object.values(JSON.parse(readFileSync(catalogPath, 'utf-8')))) {
+			if (typeof entry?.path === 'string') catalogPaths.add(entry.path);
+		}
+	} catch {
+		// unreadable catalog: nothing is exempt except installed addon dirs below
+	}
+}
+const manifestPath = join(ROOT, '.svforge.json');
+const installedModules = [];
+if (existsSync(manifestPath)) {
+	try {
+		const modules = JSON.parse(readFileSync(manifestPath, 'utf-8')).modules;
+		if (Array.isArray(modules)) installedModules.push(...modules);
+	} catch {
+		// unreadable manifest: addon dirs are not exempt
+	}
+}
+const ADDON_DIRS = new Set(['audit', 'blog', 'chat', 'dnd', 'email', 'graph', 'jobs', 'notifications', 'oauth', 'realtime', 'tiptap', 'uploads']);
 for (const file of walk(join(ROOT, 'src'), ['.svelte'])) {
 	const base = basename(file, '.svelte');
-	if (file.startsWith(componentsDir)) continue;
-	if (INVENTORY.primitives.includes(base)) {
-		results.push({ status: 'error', msg: `Duplicated Skeleton primitive "${base}" at ${relative(ROOT, file)}. Use it from @skeletonlabs/skeleton-svelte or the svforge catalog instead.` });
-	}
+	if (!INVENTORY.primitives.includes(base)) continue;
+	const relFromComponents = relative(componentsDir, file);
+	if (catalogPaths.has(relFromComponents)) continue; // approved catalog component
+	const top = relFromComponents.split(sep)[0];
+	// A component delivered by an installed addon (e.g. uploads/FileUpload)
+	// is approved while that addon is installed; its duplication against the
+	// Skeleton primitive remains a tracked product decision.
+	if (ADDON_DIRS.has(top) && installedModules.includes(top)) continue;
+	results.push({ status: 'error', msg: `Duplicated Skeleton primitive "${base}" at ${relative(ROOT, file)}. Use it from @skeletonlabs/skeleton-svelte or the svforge catalog instead.` });
 }
 
 // ── 3. Skeleton markup composition (#335, ERROR) ─────────────────
@@ -145,7 +202,6 @@ for (const file of walk(join(ROOT, 'src'), ['.css'])) {
 }
 
 let catalogWrappers = [];
-const catalogPath = join(ROOT, 'svforge-catalog.json');
 if (existsSync(catalogPath)) {
 	try {
 		catalogWrappers = Object.keys(JSON.parse(readFileSync(catalogPath, 'utf-8')));
@@ -227,7 +283,7 @@ for (const file of walk(join(ROOT, 'src'), ['.svelte'])) {
 const allowedDirs = new Set(['primitives', 'ui', 'layout', 'dnd', 'graph', 'tiptap', 'uploads']);
 for (const file of walk(componentsDir, ['.svelte'])) {
 	const rel = relative(componentsDir, file);
-	const top = rel.split(join.sep)[0];
+	const top = rel.split(sep)[0];
 	if (!allowedDirs.has(top)) {
 		results.push({ status: 'warn', msg: `Component ${rel} lives outside the canonical structure. Move it.` });
 	}

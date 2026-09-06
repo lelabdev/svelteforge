@@ -147,3 +147,67 @@ describe('checkDesignSystem integration (#335)', () => {
 		}
 	});
 });
+
+describe('svforge directory exemption (#361 review)', () => {
+	it('rejects a NEW local component under components/svforge/ui matching a Skeleton primitive', async () => {
+		const { mkdtempSync, mkdirSync, writeFileSync, rmSync } = await import('node:fs');
+		const { tmpdir } = await import('node:os');
+		const { join } = await import('node:path');
+		const root = mkdtempSync(join(tmpdir(), 'svforge-ds-exempt-'));
+		try {
+			writeFileSync(join(root, 'package.json'), JSON.stringify({ dependencies: {} }));
+			const uiDir = join(root, 'src/lib/components/svforge/ui');
+			mkdirSync(uiDir, { recursive: true });
+			// Catalog-approved component passes; a new local Marquee is rejected.
+			const primitivesDir = join(root, 'src/lib/components/svforge/primitives');
+			mkdirSync(primitivesDir, { recursive: true });
+			writeFileSync(join(primitivesDir, 'Button.svelte'), '<button class="btn" />');
+			writeFileSync(join(uiDir, 'Marquee.svelte'), '<div class="marquee">x</div>');
+			const results = await checkDesignSystem(root);
+			const errors = results.filter((result) => result.status === 'error');
+			expect(errors.some((result) => result.message.includes('Marquee'))).toBe(true);
+			expect(errors.some((result) => result.message.includes('primitives/Button.svelte'))).toBe(false);
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
+	});
+
+	it('scaffolded checker derives consumer primitives and detects a new local duplicate (#361)', async () => {
+		const { execFileSync } = await import('node:child_process');
+		const { mkdtempSync, mkdirSync, writeFileSync, rmSync, copyFileSync } = await import('node:fs');
+		const { tmpdir } = await import('node:os');
+		const { join } = await import('node:path');
+		const root = mkdtempSync(join(tmpdir(), 'svforge-consumer-inv-'));
+		try {
+			writeFileSync(join(root, 'package.json'), JSON.stringify({ dependencies: {} }));
+			writeFileSync(join(root, 'svforge-catalog.json'), '{}');
+			// Consumer installs a NEWER skeleton-svelte exporting a primitive the
+			// shipped inventory does not know.
+			const ultraDir = join(root, 'node_modules/@skeletonlabs/skeleton-svelte/dist/components/ultra-widget');
+			mkdirSync(ultraDir, { recursive: true });
+			writeFileSync(join(ultraDir, 'index.js'), "export { UltraWidget } from './modules/anatomy.js';\n");
+			const uiDir = join(root, 'src/lib/components/svforge/ui');
+			mkdirSync(uiDir, { recursive: true });
+			writeFileSync(join(uiDir, 'UltraWidget.svelte'), '<div>ultra</div>');
+
+			const checker = join(ROOT, 'packages/svforge/templates/base/root/svforge-check.mjs');
+			copyFileSync(checker, join(root, 'svforge-check.mjs'));
+
+			let caught = false;
+			try {
+				execFileSync('node', ['svforge-check.mjs'], { cwd: root, stdio: 'pipe' });
+			} catch (error) {
+				caught = true;
+				expect(String(error.stdout)).toContain('UltraWidget');
+			}
+			expect(caught, 'new consumer primitive duplicate must fail the checker').toBe(true);
+
+			// Without the consumer package, the shipped inventory has no
+			// UltraWidget: no duplication is reported for it (independent fallback).
+			rmSync(join(root, 'node_modules'), { recursive: true, force: true });
+			execFileSync('node', ['svforge-check.mjs'], { cwd: root, stdio: 'pipe' });
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
+	});
+});
