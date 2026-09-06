@@ -277,6 +277,14 @@ bash scripts/test-scaffold.sh dashboard
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for repository conventions and [docs/RELEASE.md](docs/RELEASE.md) for the release process.
 
+## Security
+
+Found a vulnerability? **Do not open a public issue.** Report it privately
+through [GitHub security advisories](https://github.com/lelabdev/svelteforge/security/advisories/new)
+— supported versions, response targets, safe-harbor boundaries, and guidance
+for leaked credentials or generated-project issues are documented in
+[SECURITY.md](SECURITY.md).
+
 ## License
 
 MIT
