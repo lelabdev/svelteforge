@@ -3,6 +3,7 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { readChangelog, validateChangelog } from './changelog.mjs';
 
 const SCRIPT_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const REQUIRED_FILES = ['README.md', 'package.json', 'LICENSE', 'dist/index.js', 'dist/index.d.ts'];
@@ -144,11 +145,18 @@ export function buildReleasePlan(root = SCRIPT_ROOT, commit = process.env.GITHUB
 		};
 	});
 
+	const orderedPackages = orderPackages(packages);
+	const changelog = validateChangelog(readChangelog(root), orderedPackages);
+	if (!changelog.valid) {
+		throw new Error(`Release plan rejected: ${changelog.errors.join(' ')}`);
+	}
+
 	return {
 		schemaVersion: 1,
 		versionPolicy: 'independent',
 		commit,
-		packages: orderPackages(packages)
+		changelog: { path: 'CHANGELOG.md', entries: changelog.entries.length },
+		packages: orderedPackages
 	};
 }
 

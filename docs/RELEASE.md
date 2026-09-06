@@ -11,9 +11,10 @@ Every workspace owns its version in `packages/*/package.json`. There is no
 monorepo-wide version bump: a package is released only when its own manifest
 version is not already present in the registry.
 
-The release planner enforces this policy and rejects invalid SemVer or a local
-version that is older than the latest published version. SemVer comparison
-follows the core and prerelease precedence rules and accepts build metadata.
+The release planner enforces this policy and rejects invalid SemVer, a local
+version that is older than the latest published version, or a package without a
+matching current entry in `CHANGELOG.md`. SemVer comparison follows the core
+and prerelease precedence rules and accepts build metadata.
 Its machine-readable output follows [`release-plan.schema.json`](./release-plan.schema.json)
 and contains:
 
@@ -21,7 +22,17 @@ and contains:
 - the exact commit being released;
 - every package name, version, manifest path and workspace directory;
 - local package dependencies and their publication order;
-- registry versions and whether the exact local version is already published.
+- registry versions and whether the exact local version is already published;
+- the changelog path and number of validated package release entries.
+
+`CHANGELOG.md` uses one marked entry per package release. Each entry must name
+an exact package and immutable version, date the release, and explicitly cover
+breaking changes, migrations, fixes, and deprecations. Use `None.` when a
+section is empty. Validate it locally with:
+
+```bash
+node scripts/changelog.mjs
+```
 
 This format is intentionally suitable for `svforge upgrade` and automated
 release tooling to identify the package versions belonging to one release.
@@ -43,6 +54,11 @@ node scripts/release-plan.mjs \
 The planner orders local dependencies before their dependents. Independent
 packages with no relationship are ordered deterministically, with scoped
 `@svforge/*` packages before the unscoped `svforge` package.
+
+The SvelteForge package embeds the validated entries during its prebuild.
+`svforge upgrade base` and `svforge upgrade dashboard` then print the release
+notes between the installed recipe version and the target recipe version. Use
+`--to <version>` to select an explicit target available in the installed addon.
 
 ## Workflow gates
 

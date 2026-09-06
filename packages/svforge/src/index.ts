@@ -33,6 +33,8 @@ export type { SvforgeManifest } from './ai-context';
 // Export upgrade command for programmatic use
 export { upgrade, printUpgradeResult, MODULE_RECIPES } from './upgrade';
 export type { UpgradeFile, UpgradeResult } from './upgrade';
+export { RELEASE_NOTES, entriesBetween } from './changelog';
+export type { ChangelogEntry } from './changelog';
 
 export default defineAddon({
 	id: 'svelteforge',

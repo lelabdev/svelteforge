@@ -3,11 +3,20 @@
   "$id": "https://github.com/lelabdev/svelteforge/release-plan.schema.json",
   "title": "SVForge release plan",
   "type": "object",
-  "required": ["schemaVersion", "versionPolicy", "commit", "packages"],
+  "required": ["schemaVersion", "versionPolicy", "commit", "changelog", "packages"],
   "properties": {
     "schemaVersion": { "const": 1 },
     "versionPolicy": { "const": "independent" },
     "commit": { "type": "string", "minLength": 1 },
+    "changelog": {
+      "type": "object",
+      "required": ["path", "entries"],
+      "properties": {
+        "path": { "const": "CHANGELOG.md" },
+        "entries": { "type": "integer", "minimum": 1 }
+      },
+      "additionalProperties": false
+    },
     "registry": { "type": "string", "format": "uri" },
     "packages": {
       "type": "array",

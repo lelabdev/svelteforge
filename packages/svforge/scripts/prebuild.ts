@@ -2,6 +2,7 @@ import { readDirRecursively } from '../../../scripts/prebuild-utils';
 import { readFileSync, writeFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { parseChangelog, readChangelog } from '../../../scripts/changelog.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -41,7 +42,31 @@ writeFileSync(
 	`// AUTO-GENERATED - DO NOT EDIT\n// Run bun run prebuild to regenerate (canonical version = package.json)\n\nexport const SDFORGE_RECIPE_VERSION = ${JSON.stringify(pkg.version)};\n`
 );
 
-console.log('✅ Generated src/templates.ts + src/recipe-version.ts');
+const changelogEntries = parseChangelog(readChangelog(join(__dirname, '../../..')));
+writeFileSync(
+	join(__dirname, '../src/changelog.ts'),
+	`// AUTO-GENERATED - DO NOT EDIT\n// Run bun run prebuild to regenerate from CHANGELOG.md\n\nexport interface ChangelogEntry {\n\tpackage: string;\n\tversion: string;\n\tdate: string;\n\tbody: string;\n}\n\nexport const RELEASE_NOTES: ChangelogEntry[] = ${JSON.stringify(changelogEntries, null, 2)};
+
+function compareVersions(left: string, right: string): number {
+\tconst parse = (version: string) => version.split(/[.-]/).map((part) => (/^\\d+$/.test(part) ? Number(part) : part));
+\tconst a = parse(left);
+\tconst b = parse(right);
+\tfor (let index = 0; index < 3; index++) {
+\t\tif (a[index] !== b[index]) return (a[index] as number) - (b[index] as number);
+\t}
+\treturn 0;
+}
+
+export function entriesBetween(entries: ChangelogEntry[], packageName: string, fromVersion: string | null, toVersion: string): ChangelogEntry[] {
+\treturn entries
+\t\t.filter((entry) => entry.package === packageName)
+\t\t.filter((entry) => (!fromVersion || compareVersions(entry.version, fromVersion) > 0) && compareVersions(entry.version, toVersion) <= 0)
+\t\t.sort((left, right) => compareVersions(left.version, right.version));
+}
+`
+);
+
+console.log('✅ Generated src/templates.ts + src/recipe-version.ts + src/changelog.ts');
 console.log(`   ${Object.keys(baseFiles).length} base files`);
 console.log(`   ${Object.keys(dashboardFiles).length} dashboard files`);
 console.log(`   ${Object.keys(dashboardRootFiles).length} dashboard root files`);
