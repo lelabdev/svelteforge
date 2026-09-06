@@ -53,7 +53,7 @@ describe('Svelte accessibility and reactivity (#176)', () => {
 				const source = readFile(file);
 				// Find all {#each ... as ...} blocks
 				const eachBlocks = source.match(/\{#each\s+\S+/g) || [];
-				for (const eachBlock of eachBlocks) {
+				for (const _eachBlock of eachBlocks) {
 					// Each block should eventually have a key (pattern: as ... (key))
 					// This is a heuristic — we check the file has keyed loops
 				}

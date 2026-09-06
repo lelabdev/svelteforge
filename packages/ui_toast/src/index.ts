@@ -5,8 +5,20 @@ import { files } from './templates';
  * Enrich the project's .svforge.json AI manifest (#234) without overwriting
  * user edits. Small inline helper — modules are standalone packages.
  */
-function enrichManifest(content, moduleId, capability, pattern) {
-	let manifest = { template: 'base', modules: [], capabilities: [], patterns: {} };
+interface SvforgeManifest {
+	template: string;
+	modules: string[];
+	capabilities: string[];
+	patterns: Record<string, string>;
+}
+
+function enrichManifest(
+	content: string | undefined,
+	moduleId: string,
+	capability: string,
+	pattern: string
+): string {
+	let manifest: SvforgeManifest = { template: 'base', modules: [], capabilities: [], patterns: {} };
 	try {
 		manifest = content && content.trim() ? JSON.parse(content) : manifest;
 	} catch {

@@ -13,6 +13,8 @@
  * This module is read-only: it never modifies project files.
  */
 
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import type { DiagnosticResult } from './doctor';
 
 export type Severity = 'ok' | 'warn' | 'error';
@@ -192,8 +194,6 @@ export const FORBIDDEN_UI_KITS = [
  *  - component files outside the canonical svforge structure
  */
 export async function checkDesignSystem(projectRoot: string): Promise<DiagnosticResult[]> {
-	const fs = require('node:fs') as typeof import('node:fs');
-	const path = require('node:path') as typeof import('node:path');
 	const results: DiagnosticResult[] = [];
 
 	const srcDir = path.join(projectRoot, 'src');
@@ -201,7 +201,7 @@ export async function checkDesignSystem(projectRoot: string): Promise<Diagnostic
 	const pkgPath = path.join(projectRoot, 'package.json');
 
 	// ── 1. Forbidden UI kits (ERROR) ──────────────────────────────
-	let pkg: Record<string, Record<string, string>> = {};
+	let pkg: Record<string, Record<string, string>>;
 	try {
 		pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8'));
 	} catch {
@@ -251,7 +251,7 @@ export async function checkDesignSystem(projectRoot: string): Promise<Diagnostic
 	}
 
 	// ── 3. Arbitrary hex colors outside theme (WARN) ──────────────
-	const themeFiles = ['src/lib/styles/svelteforge-theme.css', 'src/lib/styles/tokens.css', 'src/lib/styles/index.css'];
+
 	const nonThemeSvelte = fs.existsSync(srcDir)
 		? (() => {
 				const out: string[] = [];

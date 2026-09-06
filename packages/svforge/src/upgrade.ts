@@ -9,7 +9,7 @@
  * and preserves modified files unless `--force` is passed.
  */
 
-import { readFileSync, existsSync, writeFileSync, mkdirSync, copyFileSync, readdirSync, statSync } from 'node:fs';
+import { readFileSync, existsSync, writeFileSync, mkdirSync, copyFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { baseFiles, dashboardFiles } from './templates';
 import { SDFORGE_RECIPE_VERSION } from './recipe-version';

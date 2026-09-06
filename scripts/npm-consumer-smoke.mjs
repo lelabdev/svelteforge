@@ -68,7 +68,7 @@ export function runTypecheck(consumerRoot, tsc = join(consumerRoot, 'node_module
 			.map((value) => value.toString().trim())
 			.filter(Boolean)
 			.join('\n');
-		throw new Error(`TypeScript consumer resolution failed:\n${output || error.message}`);
+		throw new Error(`TypeScript consumer resolution failed:\n${output || error.message}`, { cause: error });
 	}
 }
 
