@@ -50,6 +50,11 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile --ignore-scripts
 
+      # Generated-manifest freshness gate (#329): a stale committed manifest
+      # must fail before anything is built, tested, or published.
+      - name: Check generated manifests freshness
+        run: node scripts/check-generated.mjs
+
       - name: Build all packages
         run: bun run --filter '*' build
 

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { join } from 'node:path';
 import { readDirRecursively } from '../scripts/prebuild-utils';
+import { discoverPrebuildPackages } from '../scripts/check-generated.mjs';
 
 const ROOT = process.cwd();
 
@@ -16,16 +17,11 @@ const ROOT = process.cwd();
  * template directories, so a forgotten prebuild fails immediately with the
  * exact command to run.
  */
-const modulePackages = [
-	'blog',
-	'dnd',
-	'email',
-	'graph',
-	'oauth',
-	'tiptap',
-	'ui_toast',
-	'uploads'
-] as const;
+// Discovered from workspace manifests (#329): every package with a prebuild
+// script is covered automatically — no manual list to forget on new modules.
+const modulePackages = discoverPrebuildPackages(ROOT)
+	.map((pkg) => pkg.directory.replace('packages/', ''))
+	.filter((directory) => directory !== 'svforge');
 
 describe('manifest freshness — templates.ts matches templates/ (#206)', () => {
 	it('svforge: baseFiles matches templates/base/src', async () => {
