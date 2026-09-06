@@ -1,5 +1,5 @@
 import { readDirRecursively } from '../../../scripts/prebuild-utils';
-import { readFileSync, writeFileSync } from 'fs';
+import { existsSync, readdirSync, readFileSync, writeFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { parseChangelog, readChangelog } from '../../../scripts/changelog.mjs';
@@ -20,6 +20,27 @@ const dashboardFiles = dashboardOverlay;
 // packages. The scaffolded checker (svforge-check.mjs) receives it injected
 // so its Skeleton knowledge can never drift from the shipped version.
 const skeletonInventory = buildSkeletonInventory(join(__dirname, '../../..'));
+
+// Approved addon component paths (#335): the EXACT .svelte paths the addons
+// deliver under src/lib/components/svforge/. Exemption is per precise path —
+// never per addon directory — so a new local component matching a Skeleton
+// primitive is still rejected.
+const addonComponentPaths: string[] = [];
+const packagesDir = join(__dirname, '../../..', 'packages');
+for (const entry of readdirSync(packagesDir, { withFileTypes: true })) {
+	if (!entry.isDirectory() || entry.name === 'svforge') continue;
+	const templatesDir = join(packagesDir, entry.name, 'templates');
+	if (!existsSync(templatesDir)) continue;
+	for (const [filePath] of Object.entries(readDirRecursively(templatesDir))) {
+		const marker = 'components/svforge/';
+		const index = filePath.indexOf(marker);
+		if (filePath.endsWith('.svelte') && index !== -1) {
+			const rel = filePath.slice(index + marker.length);
+			if (!addonComponentPaths.includes(rel)) addonComponentPaths.push(rel);
+		}
+	}
+}
+addonComponentPaths.sort();
 const baseRootFilesRaw = readDirRecursively(join(__dirname, '../templates/base/root'));
 const skeletonCheckerPath = '/svforge-check.mjs';
 if (!baseRootFilesRaw[skeletonCheckerPath]) {
@@ -31,6 +52,10 @@ if (!baseRootFilesRaw[skeletonCheckerPath].includes('/*__SKELETON_INVENTORY__*/'
 baseRootFilesRaw[skeletonCheckerPath] = baseRootFilesRaw[skeletonCheckerPath].replace(
 	/\/\*__SKELETON_INVENTORY__\*\/.*/,
 	`/*__SKELETON_INVENTORY__*/ ${JSON.stringify(skeletonInventory)}`
+);
+baseRootFilesRaw[skeletonCheckerPath] = baseRootFilesRaw[skeletonCheckerPath].replace(
+	/\/\*__ADDON_COMPONENTS__\*\/.*/,
+	`/*__ADDON_COMPONENTS__*/ ${JSON.stringify(addonComponentPaths)}`
 );
 const baseRootFiles = baseRootFilesRaw;
 // Root-level files (drizzle.config.ts, .env.example, scripts/setup.sh, static/robots.txt)
@@ -69,6 +94,11 @@ writeFileSync(
 	`// AUTO-GENERATED - DO NOT EDIT\n// Run bun run prebuild to regenerate (canonical version = package.json)\n\nexport const SDFORGE_RECIPE_VERSION = ${JSON.stringify(pkg.version)};\n`
 );
 
+writeFileSync(
+	join(__dirname, '../src/addon-components.ts'),
+	`// AUTO-GENERATED - DO NOT EDIT\n// Exact component paths the SVForge addons deliver under src/lib/components/svforge/.\n// Run bun run prebuild to regenerate.\n\nexport const ADDON_COMPONENT_PATHS: string[] = ${JSON.stringify(addonComponentPaths)};\n`
+);
+
 const changelogEntries = parseChangelog(readChangelog(join(__dirname, '../../..')));
 writeFileSync(
 	join(__dirname, '../src/changelog.ts'),
@@ -94,6 +124,7 @@ export function entriesBetween(entries: ChangelogEntry[], packageName: string, f
 );
 
 console.log('✅ Generated src/templates.ts + src/recipe-version.ts + src/changelog.ts + src/skeleton-inventory.ts');
+console.log(`   approved addon components: ${addonComponentPaths.length} paths`);
 console.log(`   ${Object.keys(baseFiles).length} base files`);
 console.log(`   ${Object.keys(dashboardFiles).length} dashboard files`);
 console.log(`   ${Object.keys(dashboardRootFiles).length} dashboard root files`);

@@ -295,8 +295,11 @@ if [ "$TEMPLATE" = "base" ] || [ "$TEMPLATE" = "dashboard" ] || [ "$TEMPLATE" = 
 	test -f .svforge.json || { echo "❌ .svforge.json missing (#234)"; exit 1; }
 	test -f llms.txt || { echo "❌ llms.txt missing (#234)"; exit 1; }
 	# Assert the checker exit code AND zero diagnostics (ERROR or WARN) —
-	# not just one display string (#361 review).
-	check_output=$(node svforge-check.mjs 2>&1); check_status=$?
+	# not just one display string (#361 review). The capture is set -e safe:
+	# the assignment failure is neutralized so the real scaffold error is
+	# always printed before the gate resolves it.
+	check_status=0
+	check_output=$(node svforge-check.mjs 2>&1) || check_status=$?
 	if [ "$check_status" -ne 0 ] || printf '%s' "$check_output" | grep -Eq '✗|⚠'; then
 		echo "❌ svforge check produced diagnostics or failed (exit $check_status) (#240, #335):"
 		echo "$check_output"

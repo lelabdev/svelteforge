@@ -23,6 +23,8 @@ const results = [];
 // @skeletonlabs packages (#335). Fallback: derive from the project's own
 // node_modules below when available.
 const SKELETON_INVENTORY = /*__SKELETON_INVENTORY__*/ {"versions":{},"primitives":[],"utilities":[],"utilityPrefixes":[]};
+// Exact addon-delivered component paths, approved per precise path (#361).
+const ADDON_COMPONENTS = /*__ADDON_COMPONENTS__*/ [];
 const FORBIDDEN_KITS = [
 	'@shadcn/svelte', 'shadcn-svelte', 'bits-ui', '@melt-ui/svelte',
 	'flowbite-svelte', 'svelteui', '@svelteuidev/core'
@@ -170,27 +172,13 @@ if (existsSync(catalogPath)) {
 		// unreadable catalog: nothing is exempt except installed addon dirs below
 	}
 }
-const manifestPath = join(ROOT, '.svforge.json');
-const installedModules = [];
-if (existsSync(manifestPath)) {
-	try {
-		const modules = JSON.parse(readFileSync(manifestPath, 'utf-8')).modules;
-		if (Array.isArray(modules)) installedModules.push(...modules);
-	} catch {
-		// unreadable manifest: addon dirs are not exempt
-	}
-}
-const ADDON_DIRS = new Set(['audit', 'blog', 'chat', 'dnd', 'email', 'graph', 'jobs', 'notifications', 'oauth', 'realtime', 'tiptap', 'uploads']);
 for (const file of walk(join(ROOT, 'src'), ['.svelte'])) {
 	const base = basename(file, '.svelte');
 	if (!INVENTORY.primitives.includes(base)) continue;
 	const relFromComponents = relative(componentsDir, file);
-	if (catalogPaths.has(relFromComponents)) continue; // approved catalog component
-	const top = relFromComponents.split(sep)[0];
-	// A component delivered by an installed addon (e.g. uploads/FileUpload)
-	// is approved while that addon is installed; its duplication against the
-	// Skeleton primitive remains a tracked product decision.
-	if (ADDON_DIRS.has(top) && installedModules.includes(top)) continue;
+	// Approved by exact path only: catalog components + the precise component
+	// paths the SVForge addons deliver. Never a whole addon directory.
+	if (catalogPaths.has(relFromComponents) || ADDON_COMPONENTS.includes(relFromComponents)) continue;
 	results.push({ status: 'error', msg: `Duplicated Skeleton primitive "${base}" at ${relative(ROOT, file)}. Use it from @skeletonlabs/skeleton-svelte or the svforge catalog instead.` });
 }
 

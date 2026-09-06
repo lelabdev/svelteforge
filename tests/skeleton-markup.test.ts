@@ -30,16 +30,14 @@ describe('skeleton inventory (#335)', () => {
 
 	it('protects newly exported primitives without editing a blacklist', () => {
 		// Marquee/Switch/TreeView were absent from the old hard-coded list (#335).
-		for (const primitive of ['Marquee', 'Switch', 'TreeView', 'Button']) {
-			expect(SKELETON_UTILITIES.length).toBeGreaterThan(0);
-		}
 		const committed = JSON.parse(
 			readFileSync(join(ROOT, 'packages/svforge/src/skeleton-inventory.ts'), 'utf-8')
 				.replace(/^[\s\S]*?SKELETON_PRIMITIVES: string\[\] = /, '')
 				.replace(/;[\s\S]*$/, '')
 		) as string[];
-		expect(committed).toContain('Marquee');
-		expect(committed).toContain('Switch');
+		for (const primitive of ['Marquee', 'Switch', 'TreeView', 'FileUpload']) {
+			expect(committed).toContain(primitive);
+		}
 	});
 });
 
@@ -198,7 +196,8 @@ describe('svforge directory exemption (#361 review)', () => {
 				execFileSync('node', ['svforge-check.mjs'], { cwd: root, stdio: 'pipe' });
 			} catch (error) {
 				caught = true;
-				expect(String(error.stdout)).toContain('UltraWidget');
+				const stdout = (error as { stdout?: string | Buffer }).stdout;
+				expect(String(stdout ?? '')).toContain('UltraWidget');
 			}
 			expect(caught, 'new consumer primitive duplicate must fail the checker').toBe(true);
 
