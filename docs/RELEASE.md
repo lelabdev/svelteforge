@@ -1,86 +1,95 @@
-# Release npm — modèle et état (#268)
+# npm release process
 
-## Modèle de release
+Publishing is driven by `.github/workflows/publish.yml`. Releases use npm token
+authentication through `secrets.NPM_TOKEN`; OIDC provenance is not enabled. The
+workflow has read-only repository permissions because npm publication does not
+need GitHub write access.
 
-La publication est pilotée par `.github/workflows/publish.yml` :
+## Independent versioning
 
-1. **Déclencheurs** : `push` sur `prod` **ou** `workflow_dispatch` (manuel, bouton
-   « Run workflow » sur GitHub Actions).
-2. **Gates** : le workflow build les 14 packages, lance les tests, puis exécute
-   les scaffolds `base`, `dashboard` et `dashboard-foundations` (avec
-   PostgreSQL réel, `CI=true`) — rien n'est publié si un scaffold casse.
-3. **Ordre de publication** : les **13 packages scoped `@svforge/*` d'abord**
-   (ui_toast → dnd → graph → tiptap → email → oauth → uploads → blog →
-   realtime → audit → notifications → jobs → chat), puis **`svforge`
-   (unscoped) en dernier** — un token qui n'aurait que des droits scoped peut
-   quand même livrer les modules ; `svforge` exige un token avec les droits
-   sur le nom unscoped.
-4. Chaque step est un `npm publish --access public --ignore-scripts` avec
-   `NODE_AUTH_TOKEN=${{ secrets.NPM_TOKEN }}`.
+Every workspace owns its version in `packages/*/package.json`. There is no
+monorepo-wide version bump: a package is released only when its own manifest
+version is not already present in the registry.
 
-## Versions
+The release planner enforces this policy and rejects invalid semver or a local
+version that is older than the latest published version. Its machine-readable
+output follows [`release-plan.schema.json`](./release-plan.schema.json) and
+contains:
 
-Les versions sont gérées dans chaque `packages/*/package.json`. Une
-publication échoue si la version locale n'est **pas strictement supérieure**
-à la version publiée sur npm.
+- the schema version and `independent` versioning policy;
+- the exact commit being released;
+- every package name, version, manifest path and workspace directory;
+- local package dependencies and their publication order;
+- registry versions and whether the exact local version is already published.
 
-## Exigences token (`secrets.NPM_TOKEN`)
+This format is intentionally suitable for `svforge upgrade` and automated
+release tooling to identify the package versions belonging to one release.
 
-Le compte npm associé au token doit avoir :
-
-- les droits **publish sur le scope `@svforge/*`** (créer les packages manquants
-  et pousser les versions) — `npm access grant read-write <compte>
-  @svforge/<package>` par package, ou les droits org si le scope a un org ;
-- les droits **publish sur `svforge` (unscoped)**.
-
-Le compte propriétaire actuel des packages existants est **`ludoloops`**
-(`npm view @svforge/ui_toast maintainers`). Pour débloquer la publication :
-ajouter le compte du token en collaborateur de chaque package
-(`npm owner add <compte> @svforge/<package>` et `npm owner add <compte>
-svforge`), ou publier avec un token de `ludoloops`.
-
-## État vérifié (août 2026 — audit #268)
-
-### Packages présents sur npmjs
-
-| Package | Version npm | État |
-|---|---|---|
-| `@svforge/ui_toast` | 0.0.1 | publié, **types hashés** (pre-#256) |
-| `@svforge/dnd` | 0.0.1 | publié, **types hashés** (pre-#256) |
-| `@svforge/tiptap` | 0.0.1 | publié, **types hashés** (pre-#256) |
-| `svforge` | 1.1.0 | publié |
-| `@svforge/{graph,email,oauth,uploads,blog,audit,notifications,jobs,realtime,chat}` | — | **jamais publiés** |
-
-> Les versions « 0.0.2 / 4.38.0 / 1.0.0 … » vues sur des packages homonymes
-> unscoped (`realtime`, `chat`, `blog` …) ne sont **pas les nôtres** — elles
-> appartiennent à des packages npm tiers sans rapport.
-
-### Tarballs (vérifiés sur l'état courant)
-
-Les 14 packages produisent des tarballs contenant exactement
-`README.md`, `package.json`, `dist/index.js` et `dist/index.d.ts` (noms
-stables, #256). Vérification : `cd packages/<p> && npm pack --dry-run`.
-
-### Installation depuis un registry (smoke test)
-
-Prouvé avec un registry local (Verdaccio) :
+Generate the plan locally without contacting npm:
 
 ```bash
-# publier les 14 packages sur le registry local
-cd packages/<p> && npm publish --registry http://127.0.0.1:4873
-# projet consommateur : installation + résolution des types
-npm install @svforge/realtime --registry=http://127.0.0.1:4873
-bunx tsc --noEmit   # 0 erreur sur @svforge/*
+bun run release:plan
 ```
 
-`sv add` depuis le registry npm réel ne peut pas être testé de bout en bout
-tant que les 10 packages `@svforge/*` manquants ne sont pas publiés : le CLI
-`sv` résout les addons community sur `registry.npmjs.org` en dur (pas de
-registry custom), donc un package absent → 404.
+Query npm and save the registry-aware plan:
 
-### Blocage actuel
+```bash
+node scripts/release-plan.mjs \
+  --check-registry \
+  --output /tmp/svforge-release-plan.json
+```
 
-`secrets.NPM_TOKEN` échoue avec `E404 … not in this registry` sur le premier
-step `npm publish` : le compte du token n'a pas les droits sur le scope
-`@svforge/*` (ni sur `svforge`). La publication réelle ne peut pas être
-terminée sans intervention sur les droits npm (voir « Exigences token »).
+The planner orders local dependencies before their dependents. Independent
+packages with no relationship are ordered deterministically, with scoped
+`@svforge/*` packages before the unscoped `svforge` package.
+
+## Workflow gates
+
+Before the first publication, the workflow:
+
+1. installs the pinned Bun and Node versions;
+2. builds all 14 packages and runs the repository tests;
+3. runs the base, dashboard, foundation and integration scaffold gates;
+4. verifies npm authentication with `npm whoami`;
+5. generates and prints the complete commit/version/registry plan;
+6. runs `npm pack --dry-run --json --ignore-scripts` for every package and
+   verifies exports, JavaScript, declarations, README, LICENSE and packaged
+   paths;
+7. publishes the plan in dependency order.
+
+The workflow uses a concurrency group so two releases for the same ref cannot
+run simultaneously. All third-party actions are pinned to commit SHAs.
+
+## Resuming a failed release
+
+The publish step reads the registry state captured by the plan. It skips an
+exact package version that already exists and publishes the remaining versions.
+A rerun therefore resumes after an intermediate failure instead of attempting
+to republish an immutable npm version. The plan must be regenerated on each
+run so it reflects the current registry state.
+
+An unchanged version produces no `npm publish` call.
+
+## Authentication and permissions
+
+The npm account behind `NPM_TOKEN` must be allowed to publish every scoped
+`@svforge/*` package and the unscoped `svforge` package. `npm whoami` verifies
+that the token is present and valid; npm itself remains the authority for
+package-level publish permissions.
+
+Do not print, commit or include npm tokens in release output. Never run the
+publish command locally or trigger the production workflow without explicit
+maintainer authorization.
+
+## Local preflight
+
+Build first, then inspect all package tarballs without publishing:
+
+```bash
+bun run build:all
+node scripts/release-plan.mjs --preflight
+```
+
+The preflight requires each package to contain `README.md`, `package.json`,
+`LICENSE`, `dist/index.js`, `dist/index.d.ts`, and every declared export or
+binary entry point.

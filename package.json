@@ -10,7 +10,8 @@
     "build": "bun run --filter svforge build",
     "build:all": "bun run --filter '*' build",
     "test": "vitest run --no-file-parallelism",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "release:plan": "node scripts/release-plan.mjs"
   },
   "devDependencies": {
     "@types/ws": "^8.5.14",

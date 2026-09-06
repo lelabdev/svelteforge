@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/lelabdev/svelteforge/release-plan.schema.json",
+  "title": "SVForge release plan",
+  "type": "object",
+  "required": ["schemaVersion", "versionPolicy", "commit", "packages"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "versionPolicy": { "const": "independent" },
+    "commit": { "type": "string", "minLength": 1 },
+    "registry": { "type": "string", "format": "uri" },
+    "packages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "version", "directory", "manifestPath", "localDependencies"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?$" },
+          "directory": { "type": "string", "pattern": "^packages/[^/]+$" },
+          "manifestPath": { "type": "string", "pattern": "^packages/[^/]+/package\\.json$" },
+          "localDependencies": {
+            "type": "array",
+            "items": { "type": "string" },
+            "uniqueItems": true
+          },
+          "registry": {
+            "type": "object",
+            "required": ["published", "latest", "availableVersions"],
+            "properties": {
+              "published": { "type": "boolean" },
+              "latest": { "type": ["string", "null"] },
+              "availableVersions": { "type": "array", "items": { "type": "string" } }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}
