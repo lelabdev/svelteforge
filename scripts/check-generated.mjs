@@ -17,7 +17,10 @@ import { fileURLToPath } from 'node:url';
 
 const SCRIPT_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
-export const FIX_COMMAND = "bun run --filter '*' build && git commit -am 'chore: regenerate generated manifests'";
+export const FIX_COMMAND = "bun run --filter '*' build";
+export const FIX_ADVICE =
+	'Review the regenerated files, then stage and commit them explicitly\n' +
+	'(including newly generated files — do not blind-commit with -a).';
 
 /** Discover every workspace package that generates artifacts via a prebuild script. */
 export function discoverPrebuildPackages(root = SCRIPT_ROOT) {
@@ -51,7 +54,7 @@ export function assertNoDrift(root = SCRIPT_ROOT, git = (args) => run('git', arg
 		throw new Error(
 			`Stale generated files committed (#329). Regeneration changed:\n` +
 			drift.map((line) => `  ${line}`).join('\n') +
-			`\nFix before committing:\n  ${FIX_COMMAND}`
+			`\nRegenerate with:\n  ${FIX_COMMAND}\n${FIX_ADVICE}`
 		);
 	}
 	return drift;
