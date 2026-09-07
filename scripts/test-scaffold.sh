@@ -284,7 +284,9 @@ if [ "$TEMPLATE" = "dashboard-integrations" ]; then
 		grep -q "$cap" .svforge.json || { echo "❌ capability '$cap' missing in .svforge.json (#296)"; exit 1; }
 	done
 	# Verify the uploads capability structurally, then regenerate its agent context.
-	bunx --no-install svforge context || { echo "❌ llms.txt regeneration failed (#338)"; exit 1; }
+	# The scaffold has no local svforge bin (sv add copies sources, it does not
+	# depend on the addon) — run the repo's own CLI against the project (#338).
+	bun "$REPO_ROOT/packages/svforge/bin/svforge.mjs" context || { echo "❌ llms.txt regeneration failed (#338)"; exit 1; }
 	bun -e '
 		const manifest = JSON.parse(await Bun.file(".svforge.json").text());
 		if (!Array.isArray(manifest.modules) || !manifest.modules.includes("uploads")) {
