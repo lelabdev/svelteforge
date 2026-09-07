@@ -63,7 +63,7 @@ Le dashboard et tous les modules DB (`audit`, `notifications`, `jobs`, `chat`) u
 - **ids** : `uuid('id').primaryKey().defaultRandom()` pour les tables métier ; `text` pour les tables Better Auth (user/session/account/verification)
 - **timestamps** : `timestamp('created_at', { withTimezone: true }).notNull().defaultNow()` — `withTimezone` partout
 - **JSON** : `jsonb` pour les champs structurés (`metadata`, `payload`, `result`)
-- **FK** : `.references(() => table.id, { onDelete: 'cascade' })` explicite
+- **FK** : identity/auth rows may use `.references(() => table.id, { onDelete: 'cascade' })` where Better Auth owns the lifecycle. Domain tables referencing `user` must **not** use `ON DELETE CASCADE` without an explicit product reason: dashboard lifecycle is deactivation, preserving historical identity.
 - **join tables** : PK composite explicite (`primaryKey({ columns: [...] })`) — PostgreSQL n'a pas de rowid implicite
 - **driver** : `postgres` (postgres.js) via `drizzle-orm/postgres-js` — jamais de `@libsql/client` / `sqlite-core`
 - **better-auth** : `drizzleAdapter(db, { provider: 'pg' })`

@@ -4,6 +4,9 @@ import { building } from '$app/environment';
 import { getTextDirection } from '$lib/paraglide/runtime';
 import { paraglideMiddleware } from '$lib/paraglide/server';
 import { auth } from '$lib/server/auth';
+import { db } from '$lib/server/db';
+import { user } from '$lib/server/db/schema';
+import { eq } from 'drizzle-orm';
 import { svelteKitHandler } from 'better-auth/svelte-kit';
 
 /**
@@ -26,8 +29,17 @@ export const handle: Handle = async ({ event, resolve }) =>
 
 		const session = await auth.api.getSession({ headers: event.request.headers });
 		if (session) {
-			event.locals.session = session.session;
-			event.locals.user = session.user;
+			// A disabled identity may be retained for domain/audit references, but
+			// it must never retain access through an old or newly-created session.
+			const [currentUser] = await db
+				.select({ disabled: user.disabled })
+				.from(user)
+				.where(eq(user.id, session.user.id))
+				.limit(1);
+			if (!currentUser?.disabled) {
+				event.locals.session = session.session;
+				event.locals.user = session.user;
+			}
 		}
 
 		return svelteKitHandler({

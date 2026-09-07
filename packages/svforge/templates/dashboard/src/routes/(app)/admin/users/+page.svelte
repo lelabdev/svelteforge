@@ -9,7 +9,7 @@
 	import { Button, Input } from '$lib/components/svforge/primitives';
 	import type { UserRow } from '$lib/types';
 	import UserPlus from 'phosphor-svelte/lib/UserPlus';
-	import Trash from 'phosphor-svelte/lib/Trash';
+	import Power from 'phosphor-svelte/lib/Power';
 	import Pencil from 'phosphor-svelte/lib/Pencil';
 	import X from 'phosphor-svelte/lib/X';
 
@@ -20,9 +20,9 @@
 	let feedback = $state<{ type: 'success' | 'error'; message: string } | null>(null);
 
 	// Modal state
-	let modal = $state<'create' | 'edit' | 'delete' | null>(null);
+	let modal = $state<'create' | 'edit' | 'status' | null>(null);
 	let editUser = $state<{ id: string; name: string; email: string } | null>(null);
-	let deleteTarget = $state<{ id: string; name: string } | null>(null);
+	let statusTarget = $state<{ id: string; name: string; disabled: boolean } | null>(null);
 
 	// Form fields
 	let formName = $state('');
@@ -63,15 +63,15 @@
 		modal = 'edit';
 	}
 
-	function openDelete(u: { id: string; name: string }) {
-		deleteTarget = { id: u.id, name: u.name };
-		modal = 'delete';
+	function openStatus(u: { id: string; name: string; disabled: boolean }) {
+		statusTarget = { id: u.id, name: u.name, disabled: u.disabled };
+		modal = 'status';
 	}
 
 	function closeModal() {
 		modal = null;
 		editUser = null;
-		deleteTarget = null;
+		statusTarget = null;
 	}
 
 	/**
@@ -85,8 +85,10 @@
 					return m.users_created();
 				case 'updated':
 					return m.users_updated();
-				case 'deleted':
-					return m.users_deleted();
+				case 'deactivated':
+					return m.users_deactivated();
+				case 'reactivated':
+					return m.users_reactivated();
 				case 'verified':
 					return m.users_verified_ok();
 				case 'unverified':
@@ -100,8 +102,8 @@
 				return m.users_email_exists();
 			case 'email_taken':
 				return m.users_email_taken();
-			case 'self_delete':
-				return m.users_self_delete();
+			case 'self_deactivate':
+				return m.users_self_deactivate();
 			case 'not_found':
 				return m.users_not_found();
 			case 'invalid_input':
@@ -110,8 +112,8 @@
 				return m.users_created_failed();
 			case 'update_failed':
 				return m.users_updated_failed();
-			case 'delete_failed':
-				return m.users_deleted_failed();
+			case 'status_failed':
+				return m.users_status_failed();
 			case 'verify_failed':
 				return m.users_verify_failed();
 			default:
@@ -176,25 +178,29 @@
 				</div>
 			{:else if col.key === 'status'}
 				{@const user = asUser(row)}
-				<!-- toggleVerify is a real form action too (#295): hidden inputs carry
-				     the id and the current state, use:enhance handles the result. -->
-				<form method="POST" action="?/toggleVerify" use:enhance={submitEnhance}>
-					<input type="hidden" name="id" value={user.id} />
-					<input type="hidden" name="verified" value={String(user.emailVerified)} />
-					<button type="submit" class="inline-flex" aria-label={user.emailVerified ? m.users_pending() : m.users_verified()}>
-						<Badge color={user.emailVerified ? 'success' : 'warning'}>
-							{user.emailVerified ? m.users_verified() : m.users_pending()}
-						</Badge>
-					</button>
-				</form>
+				{#if user.disabled}
+					<Badge color="warning">{m.users_disabled()}</Badge>
+				{:else}
+					<!-- toggleVerify is a real form action too (#295): hidden inputs carry
+					     the id and the current state, use:enhance handles the result. -->
+					<form method="POST" action="?/toggleVerify" use:enhance={submitEnhance}>
+						<input type="hidden" name="id" value={user.id} />
+						<input type="hidden" name="verified" value={String(user.emailVerified)} />
+						<button type="submit" class="inline-flex" aria-label={user.emailVerified ? m.users_pending() : m.users_verified()}>
+							<Badge color={user.emailVerified ? 'success' : 'warning'}>
+								{user.emailVerified ? m.users_verified() : m.users_pending()}
+							</Badge>
+						</button>
+					</form>
+				{/if}
 			{:else if col.key === 'actions'}
 				{@const user = asUser(row)}
 				<div class="flex items-center justify-end gap-1">
 					<button class="btn p-2 preset-tonal-surface" onclick={() => openEdit(user)} aria-label={m.users_edit()}>
 						<Pencil size={16} />
 					</button>
-					<button class="btn p-2 preset-tonal-error" onclick={() => openDelete(user)} disabled={user.id === currentUserId} aria-label={m.users_delete()}>
-						<Trash size={16} />
+					<button class="btn p-2 preset-tonal-warning" onclick={() => openStatus(user)} disabled={user.id === currentUserId} aria-label={user.disabled ? m.users_reactivate() : m.users_deactivate()}>
+						<Power size={16} />
 					</button>
 				</div>
 			{/if}
@@ -212,7 +218,7 @@
 		<Card class="w-full max-w-md" onclick={(e: Event) => e.stopPropagation()}>
 			<div class="mb-4 flex items-center justify-between">
 				<h3 class="text-lg font-bold">
-					{modal === 'create' ? m.users_modal_create() : modal === 'edit' ? m.users_modal_edit() : m.users_modal_delete()}
+					{modal === 'create' ? m.users_modal_create() : modal === 'edit' ? m.users_modal_edit() : statusTarget?.disabled ? m.users_modal_reactivate() : m.users_modal_deactivate()}
 				</h3>
 				<button class="btn p-1 preset-tonal-surface" onclick={closeModal} aria-label={m.users_close()}>
 					<X size={18} />
@@ -241,15 +247,16 @@
 						<Button type="submit">{modal === 'create' ? m.users_create() : m.common_save()}</Button>
 					</div>
 				</form>
-			{:else if modal === 'delete' && deleteTarget}
+			{:else if modal === 'status' && statusTarget}
 				<p class="mb-4 text-surface-500">
-					{m.users_delete_confirm({ name: deleteTarget.name })}
+					{statusTarget.disabled ? m.users_reactivate_confirm({ name: statusTarget.name }) : m.users_deactivate_confirm({ name: statusTarget.name })}
 				</p>
-				<form method="POST" action="?/delete" use:enhance={submitEnhance}>
-					<input type="hidden" name="id" value={deleteTarget.id} />
+				<form method="POST" action="?/toggleStatus" use:enhance={submitEnhance}>
+					<input type="hidden" name="id" value={statusTarget.id} />
+					<input type="hidden" name="disabled" value={String(!statusTarget.disabled)} />
 					<div class="flex justify-end gap-2">
 						<Button variant="ghost" type="button" onclick={closeModal}>{m.common_cancel()}</Button>
-						<Button color="error" type="submit">{m.users_delete_btn()}</Button>
+						<Button color={statusTarget.disabled ? 'success' : 'warning'} type="submit">{statusTarget.disabled ? m.users_reactivate_btn() : m.users_deactivate_btn()}</Button>
 					</div>
 				</form>
 			{/if}

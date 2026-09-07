@@ -101,9 +101,8 @@
   "settings_new_password": "Nouveau mot de passe",
   "settings_confirm_password": "Confirmer le nouveau mot de passe",
   "settings_password_mismatch": "Les mots de passe ne correspondent pas",
-  "settings_update_password": "Mettre à jour le mot de passe"
-,
-"demo_buttons": "Bouton",
+  "settings_update_password": "Mettre à jour le mot de passe",
+  "demo_buttons": "Bouton",
   "demo_card": "Carte",
   "demo_badge": "Badge",
   "demo_alert": "Alerte",
@@ -156,5 +155,18 @@
   "demo_richer_desc": "Accordion, Tabs, Avatar, Breadcrumb… sont fournis par",
   "demo_theme_desc": "Cliquez pour basculer entre les modes clair et sombre :",
   "demo_nav": "Démo",
-  "demo_submit": "Envoyer"
+  "demo_submit": "Envoyer",
+  "users_deactivate": "Désactiver l’utilisateur",
+  "users_reactivate": "Réactiver l’utilisateur",
+  "users_deactivated": "Utilisateur désactivé et sessions révoquées",
+  "users_reactivated": "Utilisateur réactivé",
+  "users_self_deactivate": "Vous ne pouvez pas désactiver votre propre compte administrateur",
+  "users_status_failed": "Échec de la mise à jour du statut utilisateur",
+  "users_modal_deactivate": "Désactiver l’utilisateur",
+  "users_modal_reactivate": "Réactiver l’utilisateur",
+  "users_deactivate_confirm": "Désactiver {name} ? Ses sessions actives seront révoquées, mais son identité et son historique seront conservés.",
+  "users_reactivate_confirm": "Réactiver {name} ? Cette personne pourra se reconnecter.",
+  "users_deactivate_btn": "Désactiver",
+  "users_reactivate_btn": "Réactiver",
+  "users_disabled": "Désactivé"
 }

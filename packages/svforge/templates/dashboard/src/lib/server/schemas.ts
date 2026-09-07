@@ -22,8 +22,9 @@ name: z.string().min(1),
 email: z.string().email()
 });
 
-export const deleteUserSchema = z.object({
-id: z.string().min(1)
+export const toggleUserStatusSchema = z.object({
+	id: z.string().min(1),
+	disabled: z.boolean()
 });
 
 export const toggleVerifySchema = z.object({
@@ -41,6 +42,6 @@ export type LoginSchema = typeof loginSchema;
 export type ChangePasswordSchema = typeof changePasswordSchema;
 export type CreateUserSchema = typeof createUserSchema;
 export type UpdateUserSchema = typeof updateUserSchema;
-export type DeleteUserSchema = z.infer<typeof deleteUserSchema>;
+export type ToggleUserStatusSchema = z.infer<typeof toggleUserStatusSchema>;
 export type ToggleVerifySchema = typeof toggleVerifySchema;
 export type SetupSchema = typeof setupSchema;

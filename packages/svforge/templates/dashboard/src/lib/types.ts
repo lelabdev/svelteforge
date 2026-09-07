@@ -3,6 +3,7 @@ export type UserRow = {
 	name: string;
 	email: string;
 	emailVerified: boolean;
+	disabled: boolean;
 	image: string | null;
 	createdAt: Date | null;
 };

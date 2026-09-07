@@ -12,7 +12,7 @@ const SERVER_FILE = join(
  * Regression tests for #167 — every admin action must be authorized.
  *
  * The admin page load checks admin status, but the SvelteKit form actions
- * (create, update, delete, toggleVerify) can be invoked directly and previously
+ * (create, update, toggleStatus, toggleVerify) can be invoked directly and previously
  * did not authorize the caller. These tests verify that each action body
  * contains an authorization guard before performing any mutation or query.
  *
@@ -47,7 +47,7 @@ describe('admin actions authorization (#167)', () => {
 		return source.slice(start, end + 1);
 	}
 
-	const actions = ['create', 'update', 'delete', 'toggleVerify'];
+	const actions = ['create', 'update', 'toggleStatus', 'toggleVerify'];
 
 	for (const action of actions) {
 		describe(`${action} action`, () => {
