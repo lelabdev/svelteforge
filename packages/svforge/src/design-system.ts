@@ -404,6 +404,33 @@ export function checkClassString(classString: string, ctx: MarkupContext): Marku
 }
 
 /** Other UI kits that are forbidden in SvelteForge projects (ERROR). */
+export const DESIGN_RULE_IDS = {
+	forbiddenUiKit: 'forbiddenUiKit',
+	duplicatedSkeletonPrimitive: 'duplicatedSkeletonPrimitive'
+} as const;
+
+/** Shared text for CLI and ESLint diagnostics (#346). */
+export const DESIGN_MESSAGES = {
+	forbiddenUiKit: (kit: string) =>
+		`Second UI kit detected: ${kit}. SvelteForge uses Skeleton as the single UI source. Remove it.`,
+	duplicatedSkeletonPrimitive: (name: string, file: string) =>
+		`Duplicated Skeleton primitive "${name}" at ${file}. Use ${name} from @skeletonlabs/skeleton-svelte or the svforge catalog instead.`
+} as const;
+
+export function isForbiddenUiKit(packageName: string): boolean {
+	return FORBIDDEN_UI_KITS.some((kit) => packageName === kit || packageName.startsWith(`${kit}/`));
+}
+
+/** Deterministic file-name check shared by the CLI and ESLint rule (#346). */
+export function duplicatedSkeletonPrimitiveName(filename: string, projectRoot: string): string | null {
+	const name = path.basename(filename, '.svelte');
+	if (!(SKELETON_PRIMITIVES as readonly string[]).includes(name)) return null;
+	const componentsDir = path.join(projectRoot, 'src/lib/components/svforge');
+	const rel = path.relative(componentsDir, filename).split(path.sep).join('/');
+	const catalogPaths = new Set(Object.values(SVFORGE_CATALOG).map((entry) => entry.path));
+	return catalogPaths.has(rel) ? null : name;
+}
+
 export const FORBIDDEN_UI_KITS = [
 	'@shadcn/svelte',
 	'shadcn-svelte',
@@ -494,14 +521,12 @@ export async function checkDesignSystem(
 		return results;
 	}
 	const allDeps = { ...(pkg.dependencies || {}), ...(pkg.devDependencies || {}) };
-	const installedKits = Object.keys(allDeps).filter((d) =>
-		FORBIDDEN_UI_KITS.some((kit) => d === kit || d.startsWith(`${kit}/`))
-	);
+	const installedKits = Object.keys(allDeps).filter(isForbiddenUiKit);
 	for (const kit of installedKits) {
 		results.push({
 			module: 'ds',
 			status: 'error',
-			message: `Second UI kit detected: ${kit}. SvelteForge uses Skeleton as the single UI source. Remove it.`
+			message: `[svforge/${DESIGN_RULE_IDS.forbiddenUiKit}] ${DESIGN_MESSAGES.forbiddenUiKit(kit)}`
 		});
 	}
 
@@ -520,21 +545,18 @@ export async function checkDesignSystem(
 		// component under components/svforge/ matching a Skeleton primitive is
 		// still an error. Components delivered by an installed addon (uploads,
 		// dnd, …) are approved while that addon is installed.
-		const catalogPaths = new Set(Object.values(SVFORGE_CATALOG).map((entry) => entry.path));
 		const installedModules = readManifestModules(fs, path, projectRoot);
 		for (const file of svelteFiles) {
-			const base = path.basename(file, '.svelte');
-			if (!(SKELETON_PRIMITIVES as readonly string[]).includes(base)) continue;
-			// POSIX-normalized: catalog/generated paths always use forward slashes.
+			const base = duplicatedSkeletonPrimitiveName(file, projectRoot);
+			if (!base) continue;
+			// POSIX-normalized: addon mappings use forward slashes.
 			const relFromComponents = path.relative(componentsDir, file).split(path.sep).join('/');
-			// Approved by exact path only: catalog components + the precise
-			// component paths of an INSTALLED addon — never a whole dir.
-			if (catalogPaths.has(relFromComponents)) continue;
+			// Installed addons are approved by exact component path only.
 			if (isApprovedAddonComponent(relFromComponents, installedModules)) continue;
 			results.push({
 				module: 'ds',
 				status: 'error',
-				message: `Duplicated Skeleton primitive "${base}" at ${path.relative(projectRoot, file)}. Use ${base} from @skeletonlabs/skeleton-svelte or the svforge catalog instead.`
+				message: `[svforge/${DESIGN_RULE_IDS.duplicatedSkeletonPrimitive}] ${DESIGN_MESSAGES.duplicatedSkeletonPrimitive(base, path.relative(projectRoot, file))}`
 			});
 		}
 	}

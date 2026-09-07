@@ -219,3 +219,18 @@ and `svforge upgrade`.
 
 ### Deprecations
 - None.
+
+<!-- svforge-release package="eslint-plugin-svforge" version="1.2.0" date="2026-09-06" -->
+## eslint-plugin-svforge@1.2.0 — 2026-09-06
+
+### Breaking changes
+- None.
+
+### Migrations
+- None.
+
+### Fixes
+- Initial release of deterministic SvelteForge design-system ESLint diagnostics.
+
+### Deprecations
+- None.

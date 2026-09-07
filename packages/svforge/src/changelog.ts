@@ -92,6 +92,12 @@ export const RELEASE_NOTES: ChangelogEntry[] = [
     "version": "0.0.1",
     "date": "2026-09-06",
     "body": "## @svforge/uploads@0.0.1 — 2026-09-06\n\n### Breaking changes\n- None.\n\n### Migrations\n- None.\n\n### Fixes\n- Initial documented release baseline for the uploads module.\n\n### Deprecations\n- None."
+  },
+  {
+    "package": "eslint-plugin-svforge",
+    "version": "1.2.0",
+    "date": "2026-09-06",
+    "body": "## eslint-plugin-svforge@1.2.0 — 2026-09-06\n\n### Breaking changes\n- None.\n\n### Migrations\n- None.\n\n### Fixes\n- Initial release of deterministic SvelteForge design-system ESLint diagnostics.\n\n### Deprecations\n- None."
   }
 ];
 

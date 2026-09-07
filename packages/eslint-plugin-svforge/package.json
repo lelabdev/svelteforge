@@ -1,0 +1,37 @@
+{
+	"name": "eslint-plugin-svforge",
+	"version": "1.2.0",
+	"type": "module",
+	"description": "ESLint rules for the SvelteForge design system",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"default": "./dist/index.js"
+		}
+	},
+	"files": [
+		"dist/"
+	],
+	"peerDependencies": {
+		"eslint": "^9.0.0 || ^10.0.0"
+	},
+	"dependencies": {
+		"svforge": "^1.2.0"
+	},
+	"devDependencies": {
+		"tsdown": "^0.22.14",
+		"typescript": "^6.0.3"
+	},
+	"scripts": {
+		"build": "tsdown"
+	},
+	"author": "Ludo (https://lelab.dev)",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/lelabdev/svelteforge.git",
+		"directory": "packages/eslint-plugin-svforge"
+	},
+	"license": "MIT",
+	"homepage": "https://github.com/lelabdev/svelteforge#readme",
+	"bugs": "https://github.com/lelabdev/svelteforge/issues"
+}

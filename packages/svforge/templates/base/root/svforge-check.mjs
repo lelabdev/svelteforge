@@ -32,7 +32,7 @@ const ADDON_COMPONENTS = /*__ADDON_COMPONENTS__*/ {};
 const AVOID_PATTERNS = /*__AVOID_PATTERNS__*/ [];
 const FORBIDDEN_KITS = [
 	'@shadcn/svelte', 'shadcn-svelte', 'bits-ui', '@melt-ui/svelte',
-	'flowbite-svelte', 'svelteui', '@svelteuidev/core'
+	'flowbite-svelte', 'skeletonlabs/skeleton-v2', 'svelteui', '@svelteuidev/core'
 ];
 const THEME_FILES = new Set([
 	'src/lib/styles/svelteforge-theme.css',
@@ -159,7 +159,7 @@ const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'));
 const allDeps = { ...(pkg.dependencies || {}), ...(pkg.devDependencies || {}) };
 for (const kit of FORBIDDEN_KITS) {
 	if (allDeps[kit]) {
-		results.push({ status: 'error', msg: `Second UI kit detected: ${kit}. Use Skeleton as the single UI source.` });
+		results.push({ status: 'error', msg: `[svforge/forbiddenUiKit] Second UI kit detected: ${kit}. SvelteForge uses Skeleton as the single UI source. Remove it.` });
 	}
 }
 
@@ -217,7 +217,7 @@ for (const file of walk(join(ROOT, 'src'), ['.svelte'])) {
 		(moduleId) => (ADDON_COMPONENTS[moduleId] ?? []).includes(relFromComponents)
 	);
 	if (owningAddon !== undefined) continue; // exact component of an installed addon
-	results.push({ status: 'error', msg: `Duplicated Skeleton primitive "${base}" at ${relative(ROOT, file)}. Use it from @skeletonlabs/skeleton-svelte or the svforge catalog instead.` });
+	results.push({ status: 'error', msg: `[svforge/duplicatedSkeletonPrimitive] Duplicated Skeleton primitive "${base}" at ${relative(ROOT, file)}. Use ${base} from @skeletonlabs/skeleton-svelte or the svforge catalog instead.` });
 }
 
 // ── 3. Skeleton markup composition (#335, ERROR) ─────────────────

@@ -10,7 +10,11 @@ export {
 	checkDesignSystem,
 	SVFORGE_CATALOG,
 	SKELETON_PRIMITIVES,
-	FORBIDDEN_UI_KITS
+	FORBIDDEN_UI_KITS,
+	DESIGN_RULE_IDS,
+	DESIGN_MESSAGES,
+	isForbiddenUiKit,
+	duplicatedSkeletonPrimitiveName
 } from './design-system';
 export type { CatalogEntry, Severity, DesignSystemCheckOptions } from './design-system';
 export {
