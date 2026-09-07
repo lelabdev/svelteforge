@@ -25,6 +25,8 @@ const results = [];
 const SKELETON_INVENTORY = /*__SKELETON_INVENTORY__*/ {"versions":{},"primitives":[],"utilities":[],"utilityPrefixes":[]};
 // Exact addon-delivered component paths, approved per precise path (#361).
 const ADDON_COMPONENTS = /*__ADDON_COMPONENTS__*/ {};
+// Catalog avoid patterns (#342): conservative markup heuristics, WARN only.
+const AVOID_PATTERNS = /*__AVOID_PATTERNS__*/ [];
 const FORBIDDEN_KITS = [
 	'@shadcn/svelte', 'shadcn-svelte', 'bits-ui', '@melt-ui/svelte',
 	'flowbite-svelte', 'svelteui', '@svelteuidev/core'
@@ -281,6 +283,35 @@ for (const file of walk(join(ROOT, 'src'), ['.svelte'])) {
 	const meaningful = hexes.filter((h) => !content.match(new RegExp(`(path|fill|stroke)[^\\n]*${h.replace('#', '\\#')}`)));
 	if (meaningful.length > 0) {
 		results.push({ status: 'warn', msg: `Arbitrary hex colors in ${relative(ROOT, file)}: ${[...new Set(meaningful)].join(', ')}. Use theme tokens instead.` });
+	}
+}
+
+// ── 4b. Catalog avoid patterns (WARN) (#342) ─────────────────────
+// Conservative markup heuristics derived from the catalog avoid lists.
+// Canonical implementations under components/svforge/ are excluded.
+{
+	const detectAvoid = (source) => {
+		const findings = [];
+		for (const pattern of AVOID_PATTERNS) {
+			const elementRegex = new RegExp(`<${pattern.element}(\\s[^>]*)?>`, 'gi');
+			for (const match of source.matchAll(elementRegex)) {
+				const classMatch = (match[1] ?? '').match(/class=(?:"([^"]*)"|'([^']*)'|\{([^}]*)\})/);
+				const tokens = (classMatch?.[1] ?? classMatch?.[2] ?? classMatch?.[3] ?? '').trim().split(/\s+/).filter(Boolean);
+				if (pattern.legitTokens.some((prefix) => tokens.some((token) => token.startsWith(prefix)))) continue;
+				const has = (prefix) => tokens.some((token) => token.startsWith(prefix));
+				const styled = pattern.styleTokens.length === 0 || (pattern.match === 'all' ? pattern.styleTokens.every(has) : pattern.styleTokens.some(has));
+				if (styled) findings.push({ component: pattern.component, reason: pattern.reason });
+			}
+		}
+		return findings;
+	};
+	for (const file of walk(join(ROOT, 'src'), ['.svelte'])) {
+		const rel = relative(ROOT, file);
+		if (rel.includes('components/svforge/')) continue;
+		const findings = detectAvoid(readFileSync(file, 'utf-8'));
+		for (const { component, reason } of findings) {
+			results.push({ status: 'warn', msg: `${relative(ROOT, file)}: ${reason} — consider ${component}` });
+		}
 	}
 }
 

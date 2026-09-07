@@ -1,4 +1,5 @@
 import { readDirRecursively } from '../../../scripts/prebuild-utils';
+import { AVOID_PATTERNS } from '../src/design-system';
 import { readFileSync, writeFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
@@ -39,10 +40,15 @@ baseRootFilesRaw[skeletonCheckerPath] = baseRootFilesRaw[skeletonCheckerPath].re
 	/\/\*__SKELETON_INVENTORY__\*\/.*/,
 	`/*__SKELETON_INVENTORY__*/ ${JSON.stringify(skeletonInventory)}`
 );
-baseRootFilesRaw[skeletonCheckerPath] = baseRootFilesRaw[skeletonCheckerPath].replace(
-	/\/\*__ADDON_COMPONENTS__\*\/.*/,
-	`/*__ADDON_COMPONENTS__*/ ${JSON.stringify(addonComponents)}`
-);
+baseRootFilesRaw[skeletonCheckerPath] = baseRootFilesRaw[skeletonCheckerPath]
+	.replace(
+		/\/\*__ADDON_COMPONENTS__\*\/.*/,
+		`/*__ADDON_COMPONENTS__*/ ${JSON.stringify(addonComponents)}`
+	)
+	.replace(
+		/\/\*__AVOID_PATTERNS__\*\/.*/,
+		`/*__AVOID_PATTERNS__*/ ${JSON.stringify(AVOID_PATTERNS)}`
+	);
 const baseRootFiles = baseRootFilesRaw;
 // Root-level files (drizzle.config.ts, .env.example, scripts/setup.sh, static/robots.txt)
 // are embedded here and written at the PROJECT ROOT by the dashboard mode (#187).

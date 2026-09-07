@@ -474,6 +474,18 @@ export async function checkDesignSystem(projectRoot: string): Promise<Diagnostic
 		for (const file of collectMarkup(srcDir)) {
 			const source = fs.readFileSync(file, 'utf-8');
 			const rel = path.relative(projectRoot, file);
+			// Catalog avoid patterns (#342, WARN) — the canonical implementations
+			// under src/lib/components/svforge/ never warn about their own markup.
+			const relPosix = rel.split(path.sep).join('/');
+			if (!relPosix.includes('components/svforge/')) {
+				for (const { component, reason } of checkAvoidPatterns(source)) {
+					results.push({
+						module: 'ds',
+						status: 'warn',
+						message: `${rel}: ${reason} — consider ${component}`
+					});
+				}
+			}
 			for (const { className, violations } of checkSvelteMarkup(source, markupCtx)) {
 				for (const violation of violations) {
 					results.push({
@@ -535,6 +547,114 @@ export function checkSvelteMarkup(source: string, ctx: MarkupContext): { classNa
 		if (violations.length) out.push({ className, violations });
 	}
 	return out;
+}
+
+/**
+ * Machine-readable avoid patterns derived from the catalog's `avoid` lists
+ * (#342). Conservative markup heuristics only — each entry targets a native
+ * element and names the catalog component that should be used instead.
+ * Findings are WARN: the heuristic can legitimately miss hand-styled markup
+ * through dynamic classes, and that is fine for a warning.
+ *
+ * This array is JSON-serializable: the prebuild injects it into the
+ * scaffolded checker (svforge-check.mjs) so project-side checks apply the
+ * same rules.
+ */
+export interface AvoidPattern {
+	/** Native element the heuristic targets. */
+	element: string;
+	/** Catalog component recommended instead. */
+	component: string;
+	/** Class prefixes that count as hand-styling. */
+	styleTokens: string[];
+	/** Class prefixes marking a legitimate Skeleton/SVForge usage. */
+	legitTokens: string[];
+	/** How styleTokens combine: any (one suffices) or all (all required). */
+	match: 'any' | 'all';
+	/** Human-readable reason shown in the diagnostic. */
+	reason: string;
+}
+
+export const AVOID_PATTERNS: AvoidPattern[] = [
+	{
+		element: 'table',
+		component: 'Table',
+		styleTokens: [],
+		legitTokens: [],
+		match: 'any',
+		reason: 'raw <table>: the SVForge Table component is the canonical data table (columns, slots, styling)'
+	},
+	{
+		element: 'button',
+		component: 'Button',
+		styleTokens: ['preset-filled-', 'preset-tonal-', 'preset-outlined-', 'bg-', 'shadow-'],
+		legitTokens: ['btn'],
+		match: 'any',
+		reason: 'hand-styled <button>: use the SVForge Button component (or the Skeleton btn class)'
+	},
+	{
+		element: 'input',
+		component: 'Input',
+		styleTokens: ['border-', 'shadow-', 'bg-', 'rounded-'],
+		legitTokens: ['input'],
+		match: 'any',
+		reason: 'hand-styled <input>: use the SVForge Input component (or the Skeleton input class)'
+	},
+	{
+		element: 'select',
+		component: 'Select',
+		styleTokens: ['border-', 'shadow-', 'bg-', 'rounded-'],
+		legitTokens: ['select'],
+		match: 'any',
+		reason: 'hand-styled <select>: use the SVForge Select component (or the Skeleton select class)'
+	},
+	{
+		element: 'textarea',
+		component: 'Textarea',
+		styleTokens: ['border-', 'shadow-', 'bg-', 'rounded-'],
+		legitTokens: ['textarea'],
+		match: 'any',
+		reason: 'hand-styled <textarea>: use the SVForge Textarea component (or the Skeleton textarea class)'
+	},
+	{
+		element: 'div',
+		component: 'Card',
+		styleTokens: ['border-', 'shadow-', 'rounded-'],
+		legitTokens: ['card'],
+		match: 'all',
+		reason: 'card-like <div> (border + shadow + radius): use the SVForge Card component'
+	}
+];
+
+/** Extract the class attribute value of an element match (static classes only). */
+function extractClassAttr(attrs: string): string {
+	const match = attrs.match(/class=(?:"([^"]*)"|'([^']*)'|\{([^}]*)\})/);
+	return (match?.[1] ?? match?.[2] ?? match?.[3] ?? '').trim();
+}
+
+/**
+ * Detect avoid-pattern violations in a .svelte source (#342). Conservative:
+ * dynamic class expressions are ignored (no tokens → no finding), and
+ * legitimate Skeleton class usage never warns.
+ */
+export function checkAvoidPatterns(source: string): { component: string; reason: string }[] {
+	const findings: { component: string; reason: string }[] = [];
+	for (const pattern of AVOID_PATTERNS) {
+		const elementRegex = new RegExp(`<${pattern.element}(\\s[^>]*)?>`, 'gi');
+		for (const match of source.matchAll(elementRegex)) {
+			const tokens = extractClassAttr(match[1] ?? '').split(/\s+/).filter(Boolean);
+			if (pattern.legitTokens.some((prefix) => tokens.some((token) => token.startsWith(prefix)))) continue;
+			if (pattern.styleTokens.length === 0) {
+				findings.push({ component: pattern.component, reason: pattern.reason });
+				continue;
+			}
+			const has = (prefix: string) => tokens.some((token) => token.startsWith(prefix));
+			const styled =
+				pattern.match === 'all' ? pattern.styleTokens.every(has) : pattern.styleTokens.some(has);
+			if (styled) findings.push({ component: pattern.component, reason: pattern.reason });
+		}
+	}
+	return findings;
 }
 
 /**
