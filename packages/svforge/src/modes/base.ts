@@ -15,6 +15,11 @@ const LEFTHOOK_CONFIG = `pre-commit:
 
 type HookMode = 'none' | 'lefthook';
 
+// `sv add --install` is valid before `git init`. The conditional preserves an
+// installation failure inside a repository while making the lifecycle script a
+// successful no-op outside one.
+const LEFTHOOK_PREPARE = 'if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then lefthook install; fi';
+
 /**
  * Apply Base mode files via sv.file()
  * Base = all UI components, layouts, styles, utils, schemas
@@ -73,8 +78,8 @@ export function applyBaseMode(
 				prepare: prepare?.includes('lefthook install')
 					? prepare
 					: prepare
-						? `${prepare} && lefthook install`
-						: 'lefthook install'
+						? `${prepare} && ${LEFTHOOK_PREPARE}`
+						: LEFTHOOK_PREPARE
 			};
 			return `${JSON.stringify(pkg, null, 2)}\n`;
 		});

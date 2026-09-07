@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
@@ -20,6 +20,18 @@ function run(project: string, command: string, args: string[] = []) {
 	return spawnSync(process.execPath, [command, ...args], { cwd: project, encoding: 'utf-8' });
 }
 
+function runCommand(project: string, command: string, args: string[]) {
+	const result = spawnSync(command, args, { cwd: project, encoding: 'utf-8' });
+	if (result.error) throw result.error;
+	return result;
+}
+
+function expectSuccess(project: string, command: string, args: string[]) {
+	const result = runCommand(project, command, args);
+	expect(result.status, result.stderr).toBe(0);
+	return result;
+}
+
 describe('strict design-system checks (#344)', () => {
 	it('keeps WARN advisory normally but makes them block in strict mode for packaged and generated checkers', () => {
 		const project = warningProject();
@@ -37,6 +49,48 @@ describe('strict design-system checks (#344)', () => {
 			rmSync(project, { recursive: true, force: true });
 		}
 	});
+
+	it('installs Lefthook only after Git is initialized and blocks a real commit', () => {
+		const parent = mkdtempSync(join(tmpdir(), 'sf-lefthook-integration-'));
+		const project = join(parent, 'app');
+		const sv = join(ROOT, 'node_modules/.bin/sv');
+		const addon = `file:${join(ROOT, 'packages/svforge')}=template:base+testing:vitest+hooks:lefthook`;
+		try {
+			// Build the local file: addon so `sv add` exercises exactly what a
+			// consumer receives, including its package lifecycle script.
+			expectSuccess(join(ROOT, 'packages/svforge'), 'bun', ['run', 'build']);
+			expectSuccess(parent, sv, [
+				'create',
+				'app',
+				'--template',
+				'minimal',
+				'--types',
+				'ts',
+				'--no-install',
+				'--no-add-ons',
+				'--no-download-check'
+			]);
+
+			// A freshly created project is not a Git repository. `--install bun`
+			// must still succeed; prepare intentionally does nothing in this case.
+			expectSuccess(project, sv, ['add', addon, '--install', 'bun', '--no-download-check']);
+			expect(existsSync(join(project, '.git'))).toBe(false);
+
+			expectSuccess(project, 'git', ['init']);
+			expectSuccess(project, 'bun', ['install']);
+			expect(existsSync(join(project, '.git/hooks/pre-commit'))).toBe(true);
+			expectSuccess(project, 'git', ['config', 'user.email', 'tests@example.com']);
+			expectSuccess(project, 'git', ['config', 'user.name', 'SvelteForge tests']);
+			writeFileSync(join(project, 'src', 'Warning.svelte'), '<div class="p-[13px]">warning</div>');
+			expectSuccess(project, 'git', ['add', 'src/Warning.svelte']);
+
+			const commit = runCommand(project, 'git', ['commit', '-m', 'strict hook must block']);
+			expect(commit.status).not.toBe(0);
+			expect(`${commit.stdout}\n${commit.stderr}`).toContain('WARN');
+		} finally {
+			rmSync(parent, { recursive: true, force: true });
+		}
+	}, 120_000);
 
 	it('adds an opt-in Lefthook adapter that blocks the same warning', () => {
 		const files = new Map<string, (content: string) => string>();

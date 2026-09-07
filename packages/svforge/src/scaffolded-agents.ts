@@ -119,8 +119,9 @@ violations (second UI kit, duplicated primitives) and WARN (arbitrary values).
 
 No Git hook is installed by default. To opt in while scaffolding or re-adding
 SvelteForge, select Lefthook (CLI: \`sv add svforge=hooks:lefthook\`). It
-installs a \`pre-commit\` hook after \`bun install\` that runs
-\`node svforge-check.mjs --strict\`: both WARN and ERROR block the commit.
+installs a \`pre-commit\` hook after \`bun install\` in a Git repository (the
+install is a no-op until you run \`git init\`; run \`bun install\` again then)
+that runs \`node svforge-check.mjs --strict\`: both WARN and ERROR block the commit.
 Lefthook only invokes it when relevant staged \`.svelte\`, \`.html\`, \`.css\`,
 or \`.json\` files changed; when invoked, the checker examines the whole project
 because it has no partial-file mode. Remove it with
