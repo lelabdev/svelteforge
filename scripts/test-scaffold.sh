@@ -279,13 +279,13 @@ if [ "$TEMPLATE" = "dashboard-integrations" ]; then
 	for mod in oauth email uploads; do
 		grep -q "\"$mod\"" .svforge.json || { echo "❌ module $mod missing in .svforge.json (#284)"; exit 1; }
 	done
-	for cap in "oauth (Google/GitHub)" "email (Resend)" "uploads (S3/R2 presigned)"; do
+	for cap in "oauth (Google/GitHub)" "email (Resend)" "uploads (S3-compatible: POST hard limit, PUT best-effort fallback)"; do
 		grep -q "$cap" llms.txt || { echo "❌ capability '$cap' missing in llms.txt (#284)"; exit 1; }
 		grep -q "$cap" .svforge.json || { echo "❌ capability '$cap' missing in .svforge.json (#296)"; exit 1; }
 	done
-	# uploads security test pack proves the presign contract (#279/#284)
-	grep -q "returns a presigned URL for a valid upload" src/routes/api/upload/upload-security.test.ts \
-		|| { echo "❌ upload test pack lacks the presign contract test (#284)"; exit 1; }
+	# Upload security test pack proves the storage-enforced POST hard limit (#338).
+	grep -q "makes a lying declared size unable to store an oversized object in hard-limit mode" src/routes/api/upload/upload-security.test.ts \
+		|| { echo "❌ upload test pack lacks the POST hard-limit test (#338)"; exit 1; }
 fi
 
 # 5. Assert testing-profile files land at the project ROOT, not src/ (#186)
