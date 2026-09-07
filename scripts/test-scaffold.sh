@@ -306,7 +306,7 @@ if [ "$TEMPLATE" = "dashboard-integrations" ]; then
 		}
 	'
 	# Upload security test pack proves the storage-enforced POST hard limit (#338).
-	grep -q "makes a lying declared size unable to store an oversized object in hard-limit mode" src/routes/api/upload/upload-security.test.ts \
+	grep -q "rejects a lying declared size with an oversized multipart payload without retaining an object" src/routes/api/upload/upload-security.test.ts \
 		|| { echo "❌ upload test pack lacks the POST hard-limit test (#338)"; exit 1; }
 fi
 
