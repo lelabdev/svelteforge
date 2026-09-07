@@ -1,5 +1,5 @@
 import type { SvApi } from 'sv';
-import { agentInstructionFiles } from '../scaffolded-agents';
+import { scaffoldedAgents } from '../scaffolded-agents';
 import { buildManifest, renderLlmstxt } from '../ai-context';
 
 // Files that must land at the PROJECT ROOT, not under src/ (#235):
@@ -75,12 +75,9 @@ export function applyBaseMode(
 		sv.file(path.slice(1), () => content);
 	}
 
-	// AI-ready: scaffold the agent instruction files at the project root
-	// (#203, #347): canonical AGENTS.md + generated bridges for agents that
-	// read a different file (Claude Code, Copilot, Cursor).
-	for (const [file, content] of Object.entries(agentInstructionFiles('base'))) {
-		sv.file(file, () => content);
-	}
+	// AI-ready: scaffold AGENTS.md at the project root (#203, #347) — the
+	// sole agent convention of a SvelteForge project.
+	sv.file('AGENTS.md', () => scaffoldedAgents('base'));
 
 	// AI context (#234): machine-readable manifest + llms.txt, derived from
 	// the real scaffold state. The dashboard mode overrides with its template.

@@ -82,15 +82,7 @@ async function main() {
 		}
 		const manifest = fs.readFileSync(manifestPath, 'utf-8');
 		fs.writeFileSync(llmstxtPath, api.regenerateLlmstxt(manifest));
-		// Re-materialize the copied instruction bridges (#347 review): the
-		// Copilot/Cursor files embed the canonical AGENTS.md content and can
-		// drift when it is edited later. The @-import bridge (CLAUDE.md)
-		// never drifts.
-		const synced = api.syncInstructionBridges(fs, path, projectRoot);
 		console.log('✓ llms.txt regenerated from .svforge.json (#234).');
-		if (synced.length) {
-			console.log(`✓ instruction bridges re-synced from AGENTS.md: ${synced.join(', ')} (#347).`);
-		}
 		return;
 	}
 

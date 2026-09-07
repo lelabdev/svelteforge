@@ -192,55 +192,11 @@ A scaffold includes:
 
 ## Agent instruction support (#347)
 
-**Decision: an explicitly supported subset.** SvelteForge documents exactly which instruction files it scaffolds and for which agent — it does not claim generic agent support. The canonical agent instructions are scaffolded as `AGENTS.md`; the bridges below are **generated from that same source at scaffold time**. Edit the canonical file (or the generator), never the bridges.
+**Decision: AGENTS.md is the sole agent convention of a SvelteForge project.** Every convention an agent needs — positioning, valid Skeleton v5 classes, reuse order, design-system contract, i18n rules — is scaffolded in one `AGENTS.md` file at the project root. There is exactly one file to read and one file to edit.
 
-Each generated project ships:
+SVForge scaffolds no tool-specific instruction file (no Claude, Gemini, Copilot, or Cursor variant) and ships no synchronization or drift machinery. Whether a given tool loads `AGENTS.md` automatically is that tool's own feature — SVForge does not claim generic tool support.
 
-| File | Agent that actually loads it | Derivation |
-|------|------------------------------|------------|
-| `AGENTS.md` | Codex CLI, Zed, opencode, and every reader of the [agents.md](https://agents.md) convention | canonical source |
-| `CLAUDE.md` | Claude Code (it reads `CLAUDE.md`, **not** `AGENTS.md`) | one-line `@AGENTS.md` [import](https://code.claude.com/docs/en/memory) — never drifts |
-| `.github/copilot-instructions.md` | GitHub Copilot (no `AGENTS.md` import mechanism) | full canonical content, generated |
-| `.cursor/rules/svforge.mdc` | Cursor (project rules with `alwaysApply: true`) | full canonical content, generated |
-
-**Copy drift control.** The Copilot and Cursor files are materialized copies: they are identical at scaffold time, and they can go stale if `AGENTS.md` is edited later. Two enforceable paths keep them honest:
-
-- `npx svforge context` re-materializes both copies from the current `AGENTS.md` (same command that regenerates `llms.txt`);
-- `svforge check` reports a `WARN` when a copy no longer embeds the current canonical content.
-
-The `@`-import bridge (`CLAUDE.md`) never drifts — it contains no canonical content to stale out.
-
-These instruction files are **advisory**: they tell agents what to prefer. Mechanical enforcement stays in `svforge check` (no second UI kit, no duplicated primitives, no invented utilities) and in `svelte-check`/tests. Instruction files are never the only guardrail, and `svforge check` does not depend on them.
-
-Typical workflow:
-
-```text
-PRD / feature request
-        ↓
-read AGENTS.md + llms.txt + .svforge.json
-        ↓
-reuse existing components and modules
-        ↓
-implement product-specific code
-        ↓
-svforge check + svelte-check + tests + build
-```
-
-Useful commands:
-
-```bash
-# Validate SVForge design-system/project rails
-svforge check
-
-# Regenerate llms.txt from the project manifest
-svforge context
-
-# Explicit, reviewable template upgrade
-svforge upgrade base
-svforge upgrade dashboard
-```
-
-Upgrades are intentionally conservative: generated files are owned by the consumer project, and locally modified files are not silently overwritten.
+These instructions are **advisory**: they tell agents what to prefer. Mechanical enforcement stays in `svforge check` (no second UI kit, no duplicated primitives, no invented utilities) and in `svelte-check`/tests. Instruction files are never the only guardrail, and `svforge check` does not depend on them.
 
 ## Boring by design
 
