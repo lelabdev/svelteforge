@@ -64,7 +64,7 @@ describe('independent release plan (#330)', () => {
 		expect(workflow).toContain('group: publish');
 		expect(workflow).not.toContain('group: publish-${{ github.ref }}');
 		expect(workflow).toContain('cancel-in-progress: false');
-		expect(workflow).toContain('actions/checkout@11d5960a326750d5838078e36cf38b85af677262');
+		expect(workflow).toContain('actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09');
 		expect(workflow).toContain('oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6');
 		expect(workflow).toContain('actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020');
 		expect(workflow).not.toContain('id-token: write');
