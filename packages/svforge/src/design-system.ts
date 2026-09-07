@@ -25,11 +25,36 @@ import { ADDON_COMPONENTS } from './addon-components';
 
 export type Severity = 'ok' | 'warn' | 'error';
 
+/**
+ * One conservative avoid matcher, co-located with the catalog entry it
+ * belongs to (#342 review). `component` is derived from the catalog key —
+ * there is no second hand-maintained list to drift away from the catalog.
+ */
+export interface AvoidPatternSpec {
+	/** Native element the heuristic targets. */
+	element: string;
+	/** Class prefixes that count as hand-styling. */
+	styleTokens: string[];
+	/** Class prefixes marking a legitimate Skeleton/SVForge usage. */
+	legitTokens: string[];
+	/** How styleTokens combine: any (one suffices) or all (all required). */
+	match: 'any' | 'all';
+	/** Human-readable reason shown in the diagnostic. */
+	reason: string;
+}
+
 export interface CatalogEntry {
 	path: string;
 	category: 'primitives' | 'ui' | 'layout';
 	useFor: string[];
 	avoid?: string[];
+	/**
+	 * Machine-readable subset of the `avoid` contract (#342 review): only the
+	 * reliably detectable cases. Every entry that declares these MUST also
+	 * document the human-readable `avoid` list (validated by
+	 * `deriveAvoidPatterns`).
+	 */
+	avoidPatterns?: AvoidPatternSpec[];
 }
 
 /**
@@ -45,7 +70,18 @@ export const SVFORGE_CATALOG: Record<string, CatalogEntry> = {
 		path: 'primitives/Button.svelte',
 		category: 'primitives',
 		useFor: ['primary/secondary actions', 'form submits', 'links as buttons'],
-		avoid: ['raw <button class="...">', 'reinventing variants']
+		avoid: ['raw <button class="...">', 'reinventing variants'],
+		avoidPatterns: [
+			{
+				element: 'button',
+				// No bare 'bg-': structural buttons (modal overlays, icon toggles)
+				// legitimately use bg utilities — #342 gate caught AdminLayout.
+				styleTokens: ['preset-filled-', 'preset-tonal-', 'preset-outlined-', 'shadow-'],
+				legitTokens: ['btn'],
+				match: 'any',
+				reason: 'hand-styled <button>: use the SVForge Button component (or the Skeleton btn class)'
+			}
+		]
 	},
 	Badge: {
 		path: 'primitives/Badge.svelte',
@@ -69,19 +105,46 @@ export const SVFORGE_CATALOG: Record<string, CatalogEntry> = {
 		path: 'primitives/Input.svelte',
 		category: 'primitives',
 		useFor: ['text inputs'],
-		avoid: ['raw <input>']
+		avoid: ['raw <input>'],
+		avoidPatterns: [
+			{
+				element: 'input',
+				styleTokens: ['border-', 'shadow-', 'bg-', 'rounded-'],
+				legitTokens: ['input'],
+				match: 'any',
+				reason: 'hand-styled <input>: use the SVForge Input component (or the Skeleton input class)'
+			}
+		]
 	},
 	Select: {
 		path: 'primitives/Select.svelte',
 		category: 'primitives',
 		useFor: ['dropdown selection'],
-		avoid: ['raw <select>']
+		avoid: ['raw <select>'],
+		avoidPatterns: [
+			{
+				element: 'select',
+				styleTokens: ['border-', 'shadow-', 'bg-', 'rounded-'],
+				legitTokens: ['select'],
+				match: 'any',
+				reason: 'hand-styled <select>: use the SVForge Select component (or the Skeleton select class)'
+			}
+		]
 	},
 	Textarea: {
 		path: 'primitives/Textarea.svelte',
 		category: 'primitives',
 		useFor: ['multi-line text'],
-		avoid: ['raw <textarea>']
+		avoid: ['raw <textarea>'],
+		avoidPatterns: [
+			{
+				element: 'textarea',
+				styleTokens: ['border-', 'shadow-', 'bg-', 'rounded-'],
+				legitTokens: ['textarea'],
+				match: 'any',
+				reason: 'hand-styled <textarea>: use the SVForge Textarea component (or the Skeleton textarea class)'
+			}
+		]
 	},
 
 	// ── ui (composed) ─────────────────────────────────────────────
@@ -89,7 +152,16 @@ export const SVFORGE_CATALOG: Record<string, CatalogEntry> = {
 		path: 'ui/Card.svelte',
 		category: 'ui',
 		useFor: ['content blocks', 'elevated surfaces', 'stat cards'],
-		avoid: ['custom div + border + shadow']
+		avoid: ['custom div + border + shadow'],
+		avoidPatterns: [
+			{
+				element: 'div',
+				styleTokens: ['border-', 'shadow-', 'rounded-'],
+				legitTokens: ['card'],
+				match: 'all',
+				reason: 'card-like <div> (border + shadow + radius): use the SVForge Card component'
+			}
+		]
 	},
 	Alert: {
 		path: 'ui/Alert.svelte',
@@ -101,7 +173,16 @@ export const SVFORGE_CATALOG: Record<string, CatalogEntry> = {
 		path: 'ui/Table.svelte',
 		category: 'ui',
 		useFor: ['data tables', 'CRUD lists'],
-		avoid: ['raw <table> with ad-hoc classes']
+		avoid: ['raw <table> with ad-hoc classes'],
+		avoidPatterns: [
+			{
+				element: 'table',
+				styleTokens: [],
+				legitTokens: [],
+				match: 'any',
+				reason: 'raw <table>: the SVForge Table component is the canonical data table (columns, slots, styling)'
+			}
+		]
 	},
 	Logo: {
 		path: 'ui/Logo.svelte',
@@ -458,6 +539,8 @@ export async function checkDesignSystem(projectRoot: string): Promise<Diagnostic
 
 	// ── 5. Skeleton markup composition (#335, ERROR) ───────────────
 	if (fs.existsSync(srcDir)) {
+		const approvedPaths = new Set(Object.values(SVFORGE_CATALOG).map((entry) => entry.path));
+		const installedModules = readManifestModules(fs, path, projectRoot);
 		const markupCtx: MarkupContext = {
 			utilities: SKELETON_UTILITIES,
 			prefixes: SKELETON_UTILITY_PREFIXES,
@@ -474,6 +557,24 @@ export async function checkDesignSystem(projectRoot: string): Promise<Diagnostic
 		for (const file of collectMarkup(srcDir)) {
 			const source = fs.readFileSync(file, 'utf-8');
 			const rel = path.relative(projectRoot, file);
+			// Catalog avoid patterns (#342, WARN). Exact-path exemption only
+			// (#342 review, mirroring #361): the canonical implementation at its
+			// exact catalog path (plus precise installed-addon component paths)
+			// never warns about its own markup — an unapproved new component in
+			// the same directory still does.
+			// Catalog paths and addon mappings are relative to componentsDir.
+			const relPosix = path.relative(componentsDir, file).split(path.sep).join('/');
+			const isCanonicalImplementation =
+				approvedPaths.has(relPosix) || isApprovedAddonComponent(relPosix, installedModules);
+			if (!isCanonicalImplementation) {
+				for (const { component, reason } of checkAvoidPatterns(source)) {
+					results.push({
+						module: 'ds',
+						status: 'warn',
+						message: `${rel}: ${reason} — consider ${component}`
+					});
+				}
+			}
 			for (const { className, violations } of checkSvelteMarkup(source, markupCtx)) {
 				for (const violation of violations) {
 					results.push({
@@ -535,6 +636,80 @@ export function checkSvelteMarkup(source: string, ctx: MarkupContext): { classNa
 		if (violations.length) out.push({ className, violations });
 	}
 	return out;
+}
+
+/**
+ * Machine-readable avoid patterns derived from the catalog's `avoid` lists
+ * (#342). Conservative markup heuristics only — each entry targets a native
+ * element and names the catalog component that should be used instead.
+ * Findings are WARN: the heuristic can legitimately miss hand-styled markup
+ * through dynamic classes, and that is fine for a warning.
+ *
+ * This array is JSON-serializable: the prebuild injects it into the
+ * scaffolded checker (svforge-check.mjs) so project-side checks apply the
+ * same rules.
+ */
+export interface AvoidPattern extends AvoidPatternSpec {
+	/** Catalog component recommended instead (the catalog key). */
+	component: string;
+}
+
+/**
+ * Derive the flat matcher list from the catalog (#342 review): the catalog
+ * entry IS the single source. An entry declaring `avoidPatterns` must also
+ * document its human-readable `avoid` contract — a mismatch throws so the
+ * two can never drift silently.
+ */
+export function deriveAvoidPatterns(
+	catalog: Record<string, CatalogEntry> = SVFORGE_CATALOG
+): AvoidPattern[] {
+	const patterns: AvoidPattern[] = [];
+	for (const [component, entry] of Object.entries(catalog)) {
+		if (!entry.avoidPatterns) continue;
+		if (!entry.avoid || entry.avoid.length === 0) {
+			throw new Error(
+				`Catalog entry ${component} declares avoidPatterns but has an empty avoid contract (#342).`
+			);
+		}
+		for (const spec of entry.avoidPatterns) patterns.push({ ...spec, component });
+	}
+	return patterns;
+}
+
+/** Flat matchers used by the checks; injected into the scaffolded checker. */
+export const AVOID_PATTERNS: AvoidPattern[] = deriveAvoidPatterns();
+
+/** Extract the class attribute value of an element match (static classes only). */
+function extractClassAttr(attrs: string): string {
+	const match = attrs.match(/class=(?:"([^"]*)"|'([^']*)'|\{([^}]*)\})/);
+	return (match?.[1] ?? match?.[2] ?? match?.[3] ?? '').trim();
+}
+
+/**
+ * Detect avoid-pattern violations in a .svelte source (#342). Conservative:
+ * dynamic class expressions are ignored (no tokens → no finding), and
+ * legitimate Skeleton class usage never warns.
+ */
+export function checkAvoidPatterns(source: string): { component: string; reason: string }[] {
+	const findings: { component: string; reason: string }[] = [];
+	for (const pattern of AVOID_PATTERNS) {
+		const elementRegex = // Case-sensitive: native HTML elements are lowercase — a PascalCase Svelte
+			// component (<Table …>) must not match the raw-element heuristic.
+			new RegExp(`<${pattern.element}(\\s[^>]*)?>`, 'g');
+		for (const match of source.matchAll(elementRegex)) {
+			const tokens = extractClassAttr(match[1] ?? '').split(/\s+/).filter(Boolean);
+			if (pattern.legitTokens.some((prefix) => tokens.some((token) => token.startsWith(prefix)))) continue;
+			if (pattern.styleTokens.length === 0) {
+				findings.push({ component: pattern.component, reason: pattern.reason });
+				continue;
+			}
+			const has = (prefix: string) => tokens.some((token) => token.startsWith(prefix));
+			const styled =
+				pattern.match === 'all' ? pattern.styleTokens.every(has) : pattern.styleTokens.some(has);
+			if (styled) findings.push({ component: pattern.component, reason: pattern.reason });
+		}
+	}
+	return findings;
 }
 
 /**

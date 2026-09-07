@@ -25,6 +25,8 @@ const results = [];
 const SKELETON_INVENTORY = /*__SKELETON_INVENTORY__*/ {"versions":{},"primitives":[],"utilities":[],"utilityPrefixes":[]};
 // Exact addon-delivered component paths, approved per precise path (#361).
 const ADDON_COMPONENTS = /*__ADDON_COMPONENTS__*/ {};
+// Catalog avoid patterns (#342): conservative markup heuristics, WARN only.
+const AVOID_PATTERNS = /*__AVOID_PATTERNS__*/ [];
 const FORBIDDEN_KITS = [
 	'@shadcn/svelte', 'shadcn-svelte', 'bits-ui', '@melt-ui/svelte',
 	'flowbite-svelte', 'svelteui', '@svelteuidev/core'
@@ -162,14 +164,26 @@ const componentsDir = join(ROOT, 'src', 'lib', 'components', 'svforge');
 // components/svforge/ (e.g. ui/Marquee.svelte) is still rejected when its name
 // matches a primitive of the installed Skeleton inventory (#361).
 const catalogPath = join(ROOT, 'svforge-catalog.json');
+// The project catalog is NESTED (designSystem.primitives/ui/layout) — collect
+// component entries recursively, not just the first level.
 const catalogPaths = new Set();
+const catalogWrappers = [];
+const collectCatalogEntries = (node) => {
+	if (!node || typeof node !== 'object' || Array.isArray(node)) return;
+	for (const [key, value] of Object.entries(node)) {
+		if (!value || typeof value !== 'object' || Array.isArray(value)) continue;
+		if (typeof value.path === 'string') {
+			catalogPaths.add(value.path);
+			catalogWrappers.push(key); // the entry name IS the component name
+		}
+		collectCatalogEntries(value);
+	}
+};
 if (existsSync(catalogPath)) {
 	try {
-		for (const entry of Object.values(JSON.parse(readFileSync(catalogPath, 'utf-8')))) {
-			if (typeof entry?.path === 'string') catalogPaths.add(entry.path);
-		}
+		collectCatalogEntries(JSON.parse(readFileSync(catalogPath, 'utf-8')));
 	} catch {
-		// unreadable catalog: nothing is exempt except installed addon dirs below
+		// unreadable catalog: nothing is exempt except installed addon paths
 	}
 }
 // .svforge.json modules gate the addon-path exemptions (#361): the exact
@@ -204,15 +218,6 @@ const projectUtilities = [];
 for (const file of walk(join(ROOT, 'src'), ['.css'])) {
 	const source = readFileSync(file, 'utf-8');
 	for (const match of source.matchAll(/@utility\s+([a-zA-Z0-9-]+)/g)) projectUtilities.push(match[1]);
-}
-
-let catalogWrappers = [];
-if (existsSync(catalogPath)) {
-	try {
-		catalogWrappers = Object.keys(JSON.parse(readFileSync(catalogPath, 'utf-8')));
-	} catch {
-		// unreadable catalog: wrapper rule skipped, deterministic rules stay on
-	}
 }
 
 function classViolations(classString) {
@@ -281,6 +286,44 @@ for (const file of walk(join(ROOT, 'src'), ['.svelte'])) {
 	const meaningful = hexes.filter((h) => !content.match(new RegExp(`(path|fill|stroke)[^\\n]*${h.replace('#', '\\#')}`)));
 	if (meaningful.length > 0) {
 		results.push({ status: 'warn', msg: `Arbitrary hex colors in ${relative(ROOT, file)}: ${[...new Set(meaningful)].join(', ')}. Use theme tokens instead.` });
+	}
+}
+
+// ── 4b. Catalog avoid patterns (WARN) (#342) ─────────────────────
+// Conservative markup heuristics derived from the catalog avoid lists.
+// Canonical implementations under components/svforge/ are excluded.
+{
+	const detectAvoid = (source) => {
+		const findings = [];
+		for (const pattern of AVOID_PATTERNS) {
+			const elementRegex = // Case-sensitive: native HTML elements are lowercase — a PascalCase Svelte
+			// component (<Table …>) must not match the raw-element heuristic.
+			new RegExp(`<${pattern.element}(\\s[^>]*)?>`, 'g');
+			for (const match of source.matchAll(elementRegex)) {
+				const classMatch = (match[1] ?? '').match(/class=(?:"([^"]*)"|'([^']*)'|\{([^}]*)\})/);
+				const tokens = (classMatch?.[1] ?? classMatch?.[2] ?? classMatch?.[3] ?? '').trim().split(/\s+/).filter(Boolean);
+				if (pattern.legitTokens.some((prefix) => tokens.some((token) => token.startsWith(prefix)))) continue;
+				const has = (prefix) => tokens.some((token) => token.startsWith(prefix));
+				const styled = pattern.styleTokens.length === 0 || (pattern.match === 'all' ? pattern.styleTokens.every(has) : pattern.styleTokens.some(has));
+				if (styled) findings.push({ component: pattern.component, reason: pattern.reason });
+			}
+		}
+		return findings;
+	};
+	for (const file of walk(join(ROOT, 'src'), ['.svelte'])) {
+		// Exact-path exemption only (#342 review, mirroring #361): the canonical
+		// implementation at its exact catalog path (plus precise installed-addon
+		// component paths) is exempt — an unapproved new component in the same
+		// directory still warns.
+		const relFromComponents = relative(componentsDir, file).split(sep).join('/');
+		const isCanonicalImplementation =
+			catalogPaths.has(relFromComponents) ||
+			installedModules.some((moduleId) => (ADDON_COMPONENTS[moduleId] ?? []).includes(relFromComponents));
+		if (isCanonicalImplementation) continue;
+		const findings = detectAvoid(readFileSync(file, 'utf-8'));
+		for (const { component, reason } of findings) {
+			results.push({ status: 'warn', msg: `${relative(ROOT, file)}: ${reason} — consider ${component}` });
+		}
 	}
 }
 
