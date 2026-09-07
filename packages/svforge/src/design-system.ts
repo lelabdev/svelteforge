@@ -411,9 +411,38 @@ export const FORBIDDEN_UI_KITS = [
  *  - a Skeleton-provided primitive duplicated as a project-local component
  *  - hex colors used outside theme files when tokens exist
  *  WARN
- *  - arbitrary colors/radius/spacing not using tokens
+ *  - hex colors used outside theme files (covered by the dedicated hex scan)
+ *  - arbitrary radius/spacing classes: rounded-[…], p-/m-/gap-/space-[…]
+ *    (#345) — structural/product-specific arbitrary values (w-[…], h-[…],
+ *    text-[…], position offsets) are intentionally allowed and NOT reported,
+ *    and arbitrary colors stay under the hex scan rather than class scan
  *  - component files outside the canonical svforge structure
  */
+/**
+ * Arbitrary radius/spacing detection (#345). Returns the offending class
+ * tokens (Tailwind variants preserved) of a class string. Conservative:
+ * only radius and spacing namespaces are reported — width/height/font-size/
+ * offsets stay allowed as structural or product-specific values, and colors
+ * remain under the dedicated hex scan.
+ */
+const ARBITRARY_SPACING_NAMESPACES = [
+	'p', 'px', 'py', 'pt', 'pr', 'pb', 'pl',
+	'm', 'mx', 'my', 'mt', 'mr', 'mb', 'ml',
+	'gap', 'space-x', 'space-y'
+] as const;
+
+export function checkArbitraryTokens(classString: string): string[] {
+	const offenders: string[] = [];
+	for (const token of classString.split(/\s+/).filter(Boolean)) {
+		const segment = token.includes(':') ? token.slice(token.lastIndexOf(':') + 1) : token;
+		const ns = segment.slice(0, segment.indexOf('-['));
+		const isRadius = segment.startsWith('rounded-[');
+		const isSpacing = (ARBITRARY_SPACING_NAMESPACES as readonly string[]).includes(ns) && segment.includes('-[');
+		if (isRadius || isSpacing) offenders.push(token);
+	}
+	return offenders;
+}
+
 export async function checkDesignSystem(projectRoot: string): Promise<DiagnosticResult[]> {
 	const results: DiagnosticResult[] = [];
 
@@ -509,6 +538,22 @@ export async function checkDesignSystem(projectRoot: string): Promise<Diagnostic
 				status: 'warn',
 				message: `Arbitrary hex colors in ${rel}: ${[...new Set(meaningful)].join(', ')}. Use theme tokens instead.`
 			});
+		}
+		// Arbitrary radius/spacing (#345, WARN) — canonical implementations
+		// under components/svforge/ are exempt from this heuristic.
+		const relPosix = rel.split(path.sep).join('/');
+		if (!relPosix.includes('components/svforge/')) {
+			const offenders = new Set<string>();
+			for (const match of content.matchAll(/class="([^"]*)"/g)) {
+				for (const token of checkArbitraryTokens(match[1])) offenders.add(token);
+			}
+			if (offenders.size > 0) {
+				results.push({
+					module: 'ds',
+					status: 'warn',
+					message: `Arbitrary radius/spacing in ${rel}: ${[...offenders].join(', ')}. Use the Tailwind scale or theme tokens instead.`
+				});
+			}
 		}
 	}
 

@@ -11,7 +11,8 @@
  *         primitives on one element, Skeleton primitive injected through
  *         `class` into an SVForge wrapper, invented Skeleton-looking utility,
  *         removed scaffold alias, hex outside theme
- * WARN  — component outside canonical structure
+ * WARN  — hex outside theme, arbitrary radius/spacing classes (#345),
+ *         catalog avoid patterns (#342), component outside canonical structure
  */
 import { readFileSync, readdirSync, existsSync, statSync } from 'node:fs';
 import { join, relative, basename, sep } from 'node:path';
@@ -323,6 +324,52 @@ for (const file of walk(join(ROOT, 'src'), ['.svelte'])) {
 		const findings = detectAvoid(readFileSync(file, 'utf-8'));
 		for (const { component, reason } of findings) {
 			results.push({ status: 'warn', msg: `${relative(ROOT, file)}: ${reason} — consider ${component}` });
+		}
+	}
+}
+
+// ── 4c. Arbitrary radius/spacing (WARN) (#345) ───────────────────
+// Conservative: only radius and spacing namespaces. Structural or
+// product-specific arbitrary values (w-[…], h-[…], text-[…], offsets) and
+// colors (hex scan above) stay allowed. Scanned syntax: static double-quoted
+// class="…" attributes only — dynamic class={…} and single-quoted attributes
+// are intentionally NOT scanned. Canonical implementations are exempt per
+// exact path only (#361 model), same as the avoid patterns above.
+{
+	const ARBITRARY_SPACING_NAMESPACES = [
+		'p', 'px', 'py', 'pt', 'pr', 'pb', 'pl', 'ps', 'pe',
+		'm', 'mx', 'my', 'mt', 'mr', 'mb', 'ml', 'ms', 'me',
+		'gap', 'gap-x', 'gap-y', 'space-x', 'space-y'
+	];
+	const DIRECTIONAL_RADIUS = /^rounded-(?:t|r|b|l|tl|tr|bl|br)$/;
+	const checkArbitraryTokens = (classString) => {
+		const offenders = [];
+		for (const token of classString.split(/\s+/).filter(Boolean)) {
+			const segment = token.includes(':') ? token.slice(token.lastIndexOf(':') + 1) : token;
+			// Negative margins: -m-[3px] — the leading dash is not part of the ns.
+			const body = segment.startsWith('-') ? segment.slice(1) : segment;
+			const bracket = body.indexOf('-[');
+			if (bracket === -1) continue;
+			const ns = body.slice(0, bracket);
+			const isRadius = ns === 'rounded' || DIRECTIONAL_RADIUS.test(ns);
+			const isSpacing = ARBITRARY_SPACING_NAMESPACES.includes(ns);
+			if (isRadius || isSpacing) offenders.push(token);
+		}
+		return offenders;
+	};
+	for (const file of walk(join(ROOT, 'src'), ['.svelte'])) {
+		const relFromComponents = relative(componentsDir, file).split(sep).join('/');
+		const isCanonicalImplementation =
+			catalogPaths.has(relFromComponents) ||
+			installedModules.some((moduleId) => (ADDON_COMPONENTS[moduleId] ?? []).includes(relFromComponents));
+		if (isCanonicalImplementation) continue;
+		const source = readFileSync(file, 'utf-8');
+		const offenders = new Set();
+		for (const match of source.matchAll(/class="([^"]*)"/g)) {
+			for (const token of checkArbitraryTokens(match[1])) offenders.add(token);
+		}
+		if (offenders.size > 0) {
+			results.push({ status: 'warn', msg: `Arbitrary radius/spacing in ${relative(ROOT, file)}: ${[...offenders].join(', ')}. Use the Tailwind scale or theme tokens instead.` });
 		}
 	}
 }
