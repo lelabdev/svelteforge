@@ -15,16 +15,25 @@ reports its element, Skeleton-utility, and composition-sequence overlap.
 The detector parses Svelte with `svelte/compiler` and normalizes element and
 component sequences, attribute names, Skeleton utilities, blocks, and snippet
 composition. Reference fingerprints are read from the installed project's
-`svforge-catalog.json` paths; there is no second component list. The generated
-Skeleton inventory remains the authority for exact Skeleton primitive names,
-which are already ERROR diagnostics.
+`svforge-catalog.json` paths and from every installed
+`@skeletonlabs/skeleton-svelte/dist/components/**/*.svelte` source. A finding
+therefore identifies either the SVForge component or the matching `Skeleton
+<component>/<anatomy>` source, including when a copied Skeleton file is
+renamed. The generated Skeleton inventory remains the authority for exact
+Skeleton primitive names, which are already ERROR diagnostics.
 
-Fingerprints are cached in-process by file key. The checker does no network or
-filesystem writes. It is linear in component count for fingerprinting, then
-compares each local component with the small catalog (currently 14 entries).
-Across the base/dashboard scaffold matrix this is expected to remain below one
-second; keep it opt-in and WARN-only until a matrix benchmark and false-positive
-review justify a calibrated threshold or enforceable severity.
+Fingerprints are cached in-process by file key **and source SHA-256**, so an
+editor buffer or file changed at the same path is re-fingerprinted. The checker
+does no network or filesystem writes. It is linear in component count for
+fingerprinting, then compares each local component with the SVForge catalog and
+the installed Skeleton sources.
+
+Calibration is covered by the behavioral test matrix: `base`,
+`dashboard-vitest`, and `dashboard-playwright` each get an ordinary Hero layout
+variation and the detector must produce no finding in a combined measured time
+below one second. The initial local calibration completed in **719 ms** (three
+profiles, Skeleton 5.0.1). Keep it opt-in and WARN-only until broader
+false-positive review justifies an enforceable severity.
 
 The threshold is currently 0.86. Normal page/layout variations should stay
 below it; a renamed copy with class-order changes should report the canonical

@@ -336,20 +336,19 @@ for (const file of walk(join(ROOT, 'src'), ['.svelte'])) {
 }
 
 // ── 4c. Experimental AST structural duplication (WARN, #353) ────
-// Opt-in while the threshold is calibrated. This intentionally uses the
-// Svelte compiler AST instead of text matching; catalog files are the sole
-// reference inventory, while INVENTORY.primitives remains the Skeleton
-// name-based authority above.
-if (process.env.SVFORGE_EXPERIMENTAL_STRUCTURAL_DUPLICATION === '1' && catalogEntries.length) {
+// Opt-in while the threshold is calibrated. References include both the
+// project's SVForge catalog and the installed Skeleton source, so a renamed
+// Skeleton anatomy file is caught even when its filename is unrelated.
+if (process.env.SVFORGE_EXPERIMENTAL_STRUCTURAL_DUPLICATION === '1') {
 	try {
 		const { parse } = await import('svelte/compiler');
 		const fingerprint = (source) => {
 			const out = { elements: [], utilities: [], props: [], composition: [], sequence: [] };
 			const add = (key, value) => out[key].push(value);
 			const visit = (node) => {
-				if (!node || typeof node !== 'object') return;
-				if (['Element', 'Component', 'SvelteComponent'].includes(node.type)) {
-					const token = `${node.type === 'Element' ? 'element' : 'component'}:${typeof node.name === 'string' ? node.name : 'dynamic'}`;
+				if (!node || typeof node !== 'object' || typeof node.type !== 'string') return;
+				if (['RegularElement', 'Component', 'SvelteComponent'].includes(node.type)) {
+					const token = `${node.type === 'RegularElement' ? 'element' : 'component'}:${typeof node.name === 'string' ? node.name : 'dynamic'}`;
 					add('elements', token); add('sequence', token);
 					for (const attribute of node.attributes ?? []) {
 						if (attribute.type !== 'Attribute') continue;
@@ -364,19 +363,25 @@ if (process.env.SVFORGE_EXPERIMENTAL_STRUCTURAL_DUPLICATION === '1' && catalogEn
 				if (/^(?:IfBlock|EachBlock|AwaitBlock|KeyBlock|SnippetBlock)$/.test(node.type)) { add('composition', node.type); add('sequence', `block:${node.type}`); }
 				if (node.type === 'RenderTag') { add('composition', 'RenderTag'); add('sequence', 'composition:RenderTag'); }
 				for (const [key, value] of Object.entries(node)) if (!['metadata', 'parent', 'loc'].includes(key)) {
-					if (Array.isArray(value)) value.forEach(visit); else if (value && typeof value === 'object' && value.type) visit(value);
+					if (Array.isArray(value)) value.forEach(visit); else visit(value);
 				}
 			};
-			visit(parse(source).html);
+			visit(parse(source, { modern: true }).fragment);
 			for (const key of ['elements', 'utilities', 'props', 'composition']) out[key] = [...new Set(out[key])].sort();
 			return out;
 		};
-		const overlap = (a, b) => { if (!a.length && !b.length) return 1; const left = new Set(a), right = new Set(b); let common = 0; for (const token of left) if (right.has(token)) common++; return (2 * common) / (left.size + right.size); };
+		const overlap = (a, b) => { if (!a.length && !b.length) return 1; if (!a.length || !b.length) return 0; const left = new Set(a), right = new Set(b); let common = 0; for (const token of left) if (right.has(token)) common++; return (2 * common) / (left.size + right.size); };
 		const sequence = (a, b) => { if (!a.length || !b.length) return 0; const row = Array(b.length + 1).fill(0); for (const token of a) { let previous = 0; for (let i = 1; i <= b.length; i++) { const saved = row[i]; row[i] = token === b[i - 1] ? previous + 1 : Math.max(row[i], row[i - 1]); previous = saved; } } return (2 * row[b.length]) / (a.length + b.length); };
-		const references = catalogEntries.map(({ component, path: catalogFile }) => ({ component, fingerprint: fingerprint(readFileSync(join(componentsDir, catalogFile), 'utf-8')) })).filter(Boolean);
+		const references = [
+			...catalogEntries.map(({ component, path: catalogFile }) => ({ component, fingerprint: fingerprint(readFileSync(join(componentsDir, catalogFile), 'utf-8')) })),
+			...walk(join(ROOT, 'node_modules', '@skeletonlabs', 'skeleton-svelte', 'dist', 'components'), ['.svelte']).map((file) => {
+				const parts = relative(join(ROOT, 'node_modules', '@skeletonlabs', 'skeleton-svelte', 'dist', 'components'), file).split(sep);
+				return { component: `Skeleton ${parts[0]}/${parts.slice(1).join('/').replace(/\.svelte$/, '')}`, fingerprint: fingerprint(readFileSync(file, 'utf-8')) };
+			})
+		];
 		for (const file of walk(join(ROOT, 'src', 'lib', 'components'), ['.svelte'])) {
 			const rel = relative(componentsDir, file).split(sep).join('/');
-			if (catalogPaths.has(rel) || INVENTORY.primitives.includes(basename(file, '.svelte'))) continue;
+			if (catalogPaths.has(rel)) continue;
 			const candidate = fingerprint(readFileSync(file, 'utf-8'));
 			for (const reference of references) {
 				const score = overlap(candidate.elements, reference.fingerprint.elements) * .35 + overlap(candidate.utilities, reference.fingerprint.utilities) * .2 + overlap(candidate.props, reference.fingerprint.props) * .2 + overlap(candidate.composition, reference.fingerprint.composition) * .1 + sequence(candidate.sequence, reference.fingerprint.sequence) * .15;
