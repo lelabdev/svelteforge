@@ -66,7 +66,7 @@ const DASHBOARD_PATTERNS: Record<string, string> = {
 /** Capabilities contributed by each module (#236 metadata + #234 context). */
 export const MODULE_CAPABILITIES: Record<string, { capability: string; pattern?: string; note?: string }> = {
 	email: { capability: 'email (Resend)', pattern: 'src/lib/server/email.ts', note: 'Transactional emails via RESEND_API_KEY' },
-	uploads: { capability: 'uploads (S3/R2 presigned)', pattern: 'src/routes/api/upload/+server.ts', note: 'FileUpload at src/lib/components/svforge/uploads/' },
+	uploads: { capability: 'uploads (S3-compatible: POST hard limit, PUT best-effort fallback)', pattern: 'src/routes/api/upload/+server.ts (S3_UPLOAD_SIZE_POLICY)', note: 'POST is storage-enforced; PUT is an explicit best-effort fallback' },
 	oauth: { capability: 'oauth (Google/GitHub)', pattern: 'src/lib/components/svforge/ui/OAuthButtons.svelte', note: 'Requires dashboard' },
 	ui_toast: { capability: 'toasts (Skeleton Toast)', pattern: 'src/lib/components/svforge/ui/Toaster.svelte', note: 'Add <Toaster /> to root layout' },
 	dnd: { capability: 'drag & drop', pattern: 'src/lib/components/svforge/dnd/SortableList.svelte' },

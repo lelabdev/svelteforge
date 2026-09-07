@@ -79,7 +79,7 @@
     },
     "uploads": {
       "id": "uploads",
-      "description": "File uploads (S3/R2, presigned, security test pack opt-in)",
+      "description": "File uploads (S3-compatible POST hard limit, PUT best-effort fallback)",
       "requires": [
         "base"
       ],

@@ -114,6 +114,7 @@ export default defineAddon({
 
 	run: ({ sv, options }) => {
 		sv.dependency('@aws-sdk/client-s3', '^3.1111.0');
+		sv.dependency('@aws-sdk/s3-presigned-post', '^3.1111.0');
 		sv.dependency('@aws-sdk/s3-request-presigner', '^3.1111.0');
 		// Test pack needs vitest + a test script in the target project (#182)
 		if (options.testpack) {
@@ -149,13 +150,14 @@ export default defineAddon({
 		);
 
 		// AI context (#234): declare this module in .svforge.json.
-		sv.file('.svforge.json', (content) => enrichManifest(content, 'uploads', 'uploads (S3/R2 presigned)', 'src/routes/api/upload/+server.ts'));
-		sv.file('llms.txt', (content) => mergeLlmstxt(content, 'uploads (S3/R2 presigned)', 'src/routes/api/upload/+server.ts'));
+		sv.file('.svforge.json', (content) => enrichManifest(content, 'uploads', 'uploads (S3-compatible: POST hard limit, PUT best-effort fallback)', 'src/routes/api/upload/+server.ts (S3_UPLOAD_SIZE_POLICY)'));
+		sv.file('llms.txt', (content) => mergeLlmstxt(content, 'uploads (S3-compatible: POST hard limit, PUT best-effort fallback)', 'src/routes/api/upload/+server.ts (S3_UPLOAD_SIZE_POLICY)'));
 	},
 
 	nextSteps: ({ options }) => [
 		'@svforge/uploads installed!',
 		'Add S3/R2 credentials to .env: S3_ENDPOINT, S3_REGION, S3_BUCKET, S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY',
+		'Upload size policy: POST is storage-enforced by default (requires provider POST policies). Set S3_UPLOAD_SIZE_POLICY=presigned-put only as an explicitly best-effort fallback.',
 		'Usage: <FileUpload onUpload={(key) => console.log(key)} /> — key is the persistent object key, not the expiring presigned URL',
 		...(options.testpack
 			? ['Test pack installed: bun run test (upload endpoint security)']

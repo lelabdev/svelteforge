@@ -100,19 +100,23 @@ describe('FileUpload ↔ /api/upload contract (#279)', () => {
 		expect(onUpload).not.toHaveBeenCalled();
 	});
 
-	it('calls onUpload with the persistent object key on success', async () => {
-		vi.stubGlobal(
-			'fetch',
-			vi
-				.fn()
-				.mockResolvedValueOnce(
-					new Response(JSON.stringify({ url: 'https://signed.example/x', key: 'uploads/uuid-avatar.png' }), {
-						status: 200,
-						headers: { 'Content-Type': 'application/json' }
-					})
+	it('submits hard-limit uploads as a presigned POST and calls onUpload with the key', async () => {
+		const fetchMock = vi
+			.fn()
+			.mockResolvedValueOnce(
+				new Response(
+					JSON.stringify({
+						method: 'POST',
+						url: 'https://signed.example/x',
+						fields: { key: 'uploads/uuid-avatar.png', 'Content-Type': 'image/png' },
+						key: 'uploads/uuid-avatar.png',
+						sizePolicy: 'storage-enforced'
+					}),
+					{ status: 200, headers: { 'Content-Type': 'application/json' } }
 				)
-				.mockResolvedValueOnce(new Response(null, { status: 200 }))
-		);
+			)
+			.mockResolvedValueOnce(new Response(null, { status: 204 }));
+		vi.stubGlobal('fetch', fetchMock);
 
 		const target = document.createElement('div');
 		const onUpload = vi.fn();
@@ -121,6 +125,8 @@ describe('FileUpload ↔ /api/upload contract (#279)', () => {
 		attachFile(target, makeFile()).dispatchEvent(new Event('change', { bubbles: true }));
 
 		await vi.waitFor(() => expect(onUpload).toHaveBeenCalledTimes(1));
+		expect(fetchMock.mock.calls[1][1]).toMatchObject({ method: 'POST' });
+		expect(fetchMock.mock.calls[1][1].body).toBeInstanceOf(FormData);
 		expect(onUpload).toHaveBeenCalledWith('uploads/uuid-avatar.png');
 	});
 

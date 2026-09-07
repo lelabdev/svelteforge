@@ -1,6 +1,6 @@
 # @svforge/uploads
 
-SVForge Uploads — file uploads to S3/R2 with presigned URLs.
+SVForge Uploads — authenticated file uploads to S3-compatible storage.
 
 ## Install
 
@@ -10,14 +10,11 @@ npx sv add @svforge/uploads
 
 ## What it does
 
-- Adds `@aws-sdk/client-s3` and `@aws-sdk/s3-request-presigner` dependencies
-- Creates a server-side S3 client (`$lib/server/s3`)
-- Creates a presigned URL API endpoint (`/api/upload`)
-- Creates a `FileUpload` component with drag-and-drop support
+- Adds an S3 client and authenticated `/api/upload` signing endpoint
+- Adds a `FileUpload` component with direct-to-storage uploads
+- Uses a presigned **POST** policy with `content-length-range` by default
 
 ## Environment Variables
-
-Add these to your `.env`:
 
 ```env
 S3_ENDPOINT=https://your-s3-or-r2-endpoint
@@ -25,9 +22,25 @@ S3_REGION=auto
 S3_BUCKET=your-bucket-name
 S3_ACCESS_KEY_ID=your-access-key
 S3_SECRET_ACCESS_KEY=your-secret-key
+# Default: presigned-post. Use presigned-put only when POST policies are unsupported.
+S3_UPLOAD_SIZE_POLICY=presigned-post
 ```
 
-Works with **AWS S3**, **Cloudflare R2**, **Backblaze B2**, **MinIO**, or any S3-compatible storage.
+## Size policies
+
+`presigned-post` is the default **storage-enforced** policy. It requires an
+S3-compatible backend that supports presigned POST policies and enforces the
+10 MB `content-length-range` before an object is stored. A client cannot bypass
+that limit by lying about its declared size.
+
+Set `S3_UPLOAD_SIZE_POLICY=presigned-put` only when the backend does not
+support POST policies. This fallback validates the declared size before signing
+but is explicitly **best-effort**: a holder of the PUT URL may upload a larger
+object. Do not use it where a hard storage limit is required; use a provider
+with POST policies or add a size-limited server proxy/post-upload verification.
+
+AWS S3 supports the default. Verify POST-policy support with any other
+S3-compatible backend before selecting it.
 
 ## Usage
 
@@ -39,12 +52,7 @@ Works with **AWS S3**, **Cloudflare R2**, **Backblaze B2**, **MinIO**, or any S3
 <FileUpload onUpload={(key) => console.log('Uploaded:', key)} />
 ```
 
-## How it works
-
-1. The client requests a presigned PUT URL from `/api/upload`
-2. The server generates a presigned URL with 60s expiry
-3. The client uploads the file directly to S3/R2 (no server bandwidth used)
-4. The `onUpload` callback receives the object key
+The callback receives the persistent object key, never an expiring URL.
 
 ## License
 

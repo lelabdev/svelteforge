@@ -5,6 +5,11 @@ vi.mock('$lib/server/s3', () => ({
 	getS3: () => ({})
 }));
 
+const createPresignedPost = vi.fn().mockResolvedValue({
+	url: 'https://signed.example/post',
+	fields: { key: 'uploads/signed-key', 'Content-Type': 'image/png' }
+});
+vi.mock('@aws-sdk/s3-presigned-post', () => ({ createPresignedPost }));
 vi.mock('@aws-sdk/s3-request-presigner', () => ({
 	getSignedUrl: vi.fn().mockResolvedValue('https://signed.example/url')
 }));
@@ -65,12 +70,24 @@ describe('upload endpoint security (test pack)', () => {
 		expect(rest).not.toMatch(/\/|\.\./);
 	});
 
-	it('returns a presigned URL for a valid upload', async () => {
+	it('issues a storage-enforced POST policy for a valid upload', async () => {
 		const res = await POST(
 			makeRequest({ filename: 'avatar.png', contentType: 'image/png', size: 500 })
 		);
 		expect(res.status).toBe(200);
 		const body = await res.json();
+		expect(body.method).toBe('POST');
+		expect(body.sizePolicy).toBe('storage-enforced');
 		expect(body.url).toContain('signed');
+	});
+
+	it('makes a lying declared size unable to store an oversized object in hard-limit mode', async () => {
+		await POST(makeRequest({ filename: 'avatar.png', contentType: 'image/png', size: 1 }));
+		expect(createPresignedPost).toHaveBeenCalledWith(
+			expect.anything(),
+			expect.objectContaining({
+				Conditions: expect.arrayContaining([['content-length-range', 1, 10 * 1024 * 1024]])
+			})
+		);
 	});
 });

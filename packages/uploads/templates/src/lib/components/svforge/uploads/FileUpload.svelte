@@ -49,14 +49,27 @@
 				throw new Error(message);
 			}
 
-			const { url, key } = await res.json();
+			const upload = await res.json();
+			const { url, key } = upload;
 
-			// 3. PUT the file directly to the presigned URL.
-			const uploadRes = await fetch(url, {
-				method: 'PUT',
-				body: file,
-				headers: { 'Content-Type': file.type }
-			});
+			// 3. POST policies carry a storage-enforced content-length-range.
+			// PUT is the documented best-effort fallback for providers lacking it.
+			const uploadRes =
+				upload.method === 'POST'
+					? await fetch(url, {
+							method: 'POST',
+							body: (() => {
+								const form = new FormData();
+								for (const [name, value] of Object.entries(upload.fields)) form.append(name, value as string);
+								form.append('file', file);
+								return form;
+							})()
+						})
+					: await fetch(url, {
+							method: 'PUT',
+							body: file,
+							headers: { 'Content-Type': file.type }
+						});
 			if (!uploadRes.ok) throw new Error(m.uploads_failed());
 
 			// 4. Deliver the persistent key — never the expiring URL.
