@@ -18,7 +18,7 @@
 	let mobileOpen = $state(false);
 </script>
 
-<nav class={cn('sticky top-0 z-50 border-b border-surface-200-800 bg-surface-50-950/80 backdrop-blur-md', className)} {...rest}>
+<nav class={cn('sticky top-0 z-50 border-b border-surface-200-800 bg-surface-50-950/80 text-surface-950-50 backdrop-blur-md', className)} {...rest}>
 	<div class="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
 		<!-- Brand -->
 		<a href="/" class="text-xl font-bold">
