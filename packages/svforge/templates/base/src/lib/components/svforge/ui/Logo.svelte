@@ -22,6 +22,12 @@
 			background-position: 0% 50%;
 		}
 	}
+	@media (prefers-reduced-motion: reduce) {
+		.logo {
+			animation: none;
+		}
+	}
+
 	.logo {
 		font-family: 'Space Grotesk Variable', sans-serif;
 		color: transparent;

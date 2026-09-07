@@ -3,13 +3,13 @@
 	import Sun from 'phosphor-svelte/lib/Sun';
 	import Moon from 'phosphor-svelte/lib/Moon';
 	import { onMount } from 'svelte';
+	import { followSystemTheme } from '$lib/utils/theme';
 
 	interface Props {
 		class?: string;
 	}
 
 	let { class: className = '' }: Props = $props();
-
 	let isDark = $state(true);
 
 	function applyMode(dark: boolean) {
@@ -20,14 +20,15 @@
 
 	onMount(() => {
 		const stored = localStorage.getItem('theme-mode');
-		if (stored) {
-			// User has a manual preference
-			isDark = stored === 'dark';
-		} else {
-			// Follow system
-			isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-		}
+		const media = window.matchMedia('(prefers-color-scheme: dark)');
+		const followsSystem = stored !== 'dark' && stored !== 'light';
+		isDark = stored === 'dark' || (followsSystem && media.matches);
 		applyMode(isDark);
+
+		return followSystemTheme(stored, media, (dark) => {
+			isDark = dark;
+			applyMode(isDark);
+		});
 	});
 
 	function toggle() {

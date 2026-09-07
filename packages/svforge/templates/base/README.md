@@ -13,10 +13,10 @@ UI-only starter with components, a complete Skeleton v5 theme, and layouts. No a
 - **Table** — column-based table with optional rich-cell renderer
 - **Navbar** — responsive sticky nav with mobile menu + theme toggle
 - **Footer** — configurable links + copyright
-- **ThemeToggle** — light/dark toggle with system detection
-- **Logo** — brand logo
-- **Seo** — Open Graph + Twitter Card meta tags
-- **generateSitemap()** — XML sitemap generator utility
+- **ThemeToggle** — light/dark toggle with system detection and no-hydration-flash initialization
+- **Logo** — brand logo that respects reduced-motion preferences
+- **Seo** — canonical, Open Graph and Twitter Card meta tags with absolute URLs
+- **generateSitemap()** — XML sitemap generator utility with escaped output
 
 > Richer components (Accordion, Tabs, Avatar, Breadcrumb, dialogs…) are NOT
 > re-implemented here — use the official ones from `@skeletonlabs/skeleton-svelte`
@@ -50,6 +50,12 @@ src/lib/styles/svelteforge-theme.css
 - **No generic `tokens.css` or `index.css` layer** is scaffolded by default
 
 If a consumer project later develops a real repeated design need that Skeleton/Tailwind do not model, it can add a project-specific layer at that point. The generic boilerplate does not pre-invent one.
+
+## SEO and theme customization
+
+- **Base URL**: pass your deployed absolute URL to `generateSitemap()` (for example, `https://example.com`). `Seo` resolves relative `url` and `image` props against the current page URL.
+- **Title, description and image**: pass product-specific values to `<Seo title="…" description="…" image="/social-card.png" />`; replace the default route titles as you build your app.
+- **Theme initialization**: `static/theme-init.js` runs before hydration. Keep it external when editing it so strict CSP policies can allow it without `unsafe-inline`.
 
 ## Next Steps
 
