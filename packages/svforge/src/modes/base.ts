@@ -39,8 +39,12 @@ export function applyBaseMode(
 			...pkg.scripts,
 			test: 'vitest run',
 			'test:watch': 'vitest',
+			// #343: the design-system check rides on `bun run check` —
+			// self-contained local invocation (no network install). The checker
+			// exits non-zero on ERROR and zero on WARN-only, so plain && keeps
+			// "ERROR fails the command, WARN stays informational".
 			check:
-				'svelte-kit sync && paraglide-js compile --project ./project.inlang --outdir ./src/lib/paraglide && svelte-check --tsconfig ./tsconfig.json'
+				'svelte-kit sync && paraglide-js compile --project ./project.inlang --outdir ./src/lib/paraglide && svelte-check --tsconfig ./tsconfig.json && node svforge-check.mjs'
 		};
 		return `${JSON.stringify(pkg, null, 2)}\n`;
 	});
