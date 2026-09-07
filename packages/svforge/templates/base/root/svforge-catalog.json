@@ -16,7 +16,7 @@
 			"Table": { "path": "ui/Table.svelte", "useFor": ["data tables", "CRUD lists"], "avoid": ["raw <table>"] },
 			"Logo": { "path": "ui/Logo.svelte", "useFor": ["brand mark"] },
 			"Seo": { "path": "ui/Seo.svelte", "useFor": ["meta/SEO head"], "avoid": ["hand-written meta spam"] },
-			"ThemeToggle": { "path": "ui/ThemeToggle.svelte", "useFor": ["dark/light switch"], "avoid": ["custom theme switcher"] }
+			"ThemeToggle": { "path": "ui/ThemeToggle.svelte", "useFor": ["application dark/light switching; reuse this ThemeToggle for application theme changes"], "avoid": ["local button that changes the application theme"] }
 		},
 		"layout": {
 			"Navbar": { "path": "layout/Navbar.svelte", "useFor": ["top navigation"], "avoid": ["custom header per page"] },

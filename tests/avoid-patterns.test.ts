@@ -155,9 +155,9 @@ describe('avoid patterns: exact-path canonical exemption (#342 review)', () => {
 				expect(entry.avoid?.length, `${name}: avoid contract required with avoidPatterns`).toBeGreaterThan(0);
 			}
 		}
-		// The detectable set is exactly these six components.
+		// The detectable set is intentionally conservative.
 		expect(AVOID_PATTERNS.map((pattern) => pattern.component).sort()).toEqual(
-			['Button', 'Card', 'Input', 'Select', 'Table', 'Textarea'].sort()
+			['Button', 'Card', 'Input', 'Select', 'Table', 'Textarea', 'ThemeToggle'].sort()
 		);
 	});
 
@@ -174,5 +174,25 @@ describe('avoid patterns: exact-path canonical exemption (#342 review)', () => {
 				}
 			})
 		).toThrow(/empty avoid contract/);
+	});
+});
+
+describe('ThemeToggle reuse (#354)', () => {
+	it('flags a clearly ad-hoc local theme button and recommends ThemeToggle', () => {
+		const findings = checkAvoidPatterns(
+			'<button class="btn hover:preset-tonal-surface p-2" aria-label="Toggle theme" onclick={toggleTheme}><Sun /></button>'
+		);
+		expect(findings).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({ component: 'ThemeToggle', reason: expect.stringContaining('ThemeToggle') })
+			])
+		);
+	});
+
+	it('allows intentional mode-specific content without a theme-control warning', () => {
+		const findings = checkAvoidPatterns(
+			'<aside class="bg-surface-50 p-4 dark:bg-surface-950">This illustration intentionally stays light.</aside>'
+		);
+		expect(findings.map((finding) => finding.component)).not.toContain('ThemeToggle');
 	});
 });

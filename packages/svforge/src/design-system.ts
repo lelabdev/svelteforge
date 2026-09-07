@@ -39,6 +39,8 @@ export interface AvoidPatternSpec {
 	legitTokens: string[];
 	/** How styleTokens combine: any (one suffices) or all (all required). */
 	match: 'any' | 'all';
+	/** Optional source-level signal required alongside class tokens (for example an accessible control label). */
+	attributePattern?: string;
 	/** Human-readable reason shown in the diagnostic. */
 	reason: string;
 }
@@ -199,8 +201,18 @@ export const SVFORGE_CATALOG: Record<string, CatalogEntry> = {
 	ThemeToggle: {
 		path: 'ui/ThemeToggle.svelte',
 		category: 'ui',
-		useFor: ['dark/light switch'],
-		avoid: ['custom theme switcher']
+		useFor: ['application dark/light switching'],
+		avoid: ['local button that changes the application theme'],
+		avoidPatterns: [
+			{
+				element: 'button',
+				styleTokens: ['btn'],
+				legitTokens: [],
+				match: 'all',
+				attributePattern: 'aria-label\\s*=\\s*[\"\'][^\"\']*(?:theme|dark mode|light mode)[^\"\']*[\"\']',
+				reason: 'ad-hoc application theme control: reuse the SVForge ThemeToggle component'
+			}
+		]
 	},
 
 	// ── layout ────────────────────────────────────────────────────
@@ -758,7 +770,9 @@ export function checkAvoidPatterns(source: string): { component: string; reason:
 			// component (<Table …>) must not match the raw-element heuristic.
 			new RegExp(`<${pattern.element}(\\s[^>]*)?>`, 'g');
 		for (const match of source.matchAll(elementRegex)) {
-			const tokens = extractClassAttr(match[1] ?? '').split(/\s+/).filter(Boolean);
+			const attrs = match[1] ?? '';
+			const tokens = extractClassAttr(attrs).split(/\s+/).filter(Boolean);
+			if (pattern.attributePattern && !new RegExp(pattern.attributePattern, 'i').test(attrs)) continue;
 			if (pattern.legitTokens.some((prefix) => tokens.some((token) => token.startsWith(prefix)))) continue;
 			if (pattern.styleTokens.length === 0) {
 				findings.push({ component: pattern.component, reason: pattern.reason });
