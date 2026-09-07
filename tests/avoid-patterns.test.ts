@@ -33,8 +33,17 @@ describe('avoid pattern matchers (#342)', () => {
 	});
 
 	it('flags a hand-styled <button> and recommends Button', () => {
-		const findings = checkAvoidPatterns('<button class="bg-primary-500 rounded px-4">Go</button>');
+		const findings = checkAvoidPatterns('<button class="preset-filled-primary-500 px-4">Go</button>');
 		expect(findings.map((finding) => finding.component)).toContain('Button');
+	});
+
+	it('does not flag structural buttons like modal overlays (negative case)', () => {
+		// #342 gate caught this shape in AdminLayout: a fullscreen close
+				// overlay is not a hand-styled Button recreation.
+		const findings = checkAvoidPatterns(
+			'<button type="button" aria-label="close" class="fixed inset-0 z-40 w-full cursor-default bg-black/50 lg:hidden"></button>'
+		);
+		expect(findings).toEqual([]);
 	});
 
 	it('flags hand-styled <input>, <select> and <textarea>', () => {

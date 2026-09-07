@@ -74,7 +74,9 @@ export const SVFORGE_CATALOG: Record<string, CatalogEntry> = {
 		avoidPatterns: [
 			{
 				element: 'button',
-				styleTokens: ['preset-filled-', 'preset-tonal-', 'preset-outlined-', 'bg-', 'shadow-'],
+				// No bare 'bg-': structural buttons (modal overlays, icon toggles)
+				// legitimately use bg utilities — #342 gate caught AdminLayout.
+				styleTokens: ['preset-filled-', 'preset-tonal-', 'preset-outlined-', 'shadow-'],
 				legitTokens: ['btn'],
 				match: 'any',
 				reason: 'hand-styled <button>: use the SVForge Button component (or the Skeleton btn class)'
