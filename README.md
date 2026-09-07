@@ -198,6 +198,37 @@ SVForge scaffolds no tool-specific instruction file (no Claude, Gemini, Copilot,
 
 These instructions are **advisory**: they tell agents what to prefer. Mechanical enforcement stays in `svforge check` (no second UI kit, no duplicated primitives, no invented utilities) and in `svelte-check`/tests. Instruction files are never the only guardrail, and `svforge check` does not depend on them.
 
+Typical workflow:
+
+```text
+PRD / feature request
+        ↓
+read AGENTS.md + llms.txt + .svforge.json
+        ↓
+reuse existing components and modules
+        ↓
+implement product-specific code
+        ↓
+svforge check + svelte-check + tests + build
+```
+
+Useful commands:
+
+```bash
+# Validate SVForge design-system/project rails
+svforge check
+
+# Regenerate llms.txt from the project manifest
+svforge context
+
+# Explicit, reviewable template upgrade
+svforge upgrade base
+svforge upgrade dashboard
+```
+
+Upgrades are intentionally conservative: generated files are owned by the consumer project, and locally modified files are not silently overwritten.
+
+
 ## Boring by design
 
 SVForge favors standard pieces that can survive the lifetime of an application:
