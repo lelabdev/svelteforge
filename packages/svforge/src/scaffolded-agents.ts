@@ -6,6 +6,12 @@
  * from the code (the mechanism that produced #195: LLMs trained on Skeleton v4
  * "know" variant-* exists).
  *
+ * Recorded decision (#347): AGENTS.md is the SOLE agent convention of a
+ * SvelteForge project. No tool-specific instruction file (Claude, Gemini,
+ * Copilot, Cursor, …) is scaffolded, and no sync or drift machinery exists —
+ * one file to read, one file to edit. Whether a given tool loads AGENTS.md
+ * automatically is that tool's own feature, not something SVForge claims.
+ *
  * NOTE: this is a TS constant written via sv.file(), NOT a template file —
  * the prebuild only ships templates/<name>/src/** (gotcha documented in the repo
  * AGENTS.md). A root template file would be silently undelivered.
@@ -49,6 +55,14 @@ Skeleton v5 utilities are exclusively:
 
 \`svforge check\` validates every class against the actually installed Skeleton inventory: inventing a
 utility or stacking two incompatible primitives fails before merge.
+
+## Advisory vs enforced
+
+This file is **advisory**: it tells agents what to prefer. The mechanical
+enforcement is \`npx svforge check\` — design-system violations (second UI kit,
+duplicated primitives, invented utilities) fail THERE, not here. This file is
+the sole agent convention of the project: keep it accurate when the
+conventions change.
 
 ## Component conventions (\`src/lib/components/svforge/\`)
 

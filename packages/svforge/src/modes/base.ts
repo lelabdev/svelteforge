@@ -75,7 +75,8 @@ export function applyBaseMode(
 		sv.file(path.slice(1), () => content);
 	}
 
-	// AI-ready: scaffold an AGENTS.md at the project root (#203)
+	// AI-ready: scaffold AGENTS.md at the project root (#203, #347) — the
+	// sole agent convention of a SvelteForge project.
 	sv.file('AGENTS.md', () => scaffoldedAgents('base'));
 
 	// AI context (#234): machine-readable manifest + llms.txt, derived from

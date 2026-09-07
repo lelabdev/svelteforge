@@ -74,7 +74,8 @@ export function applyDashboardMode(
 		sv.file(path.slice(1), () => content);
 	}
 
-	// AI-ready: scaffold an AGENTS.md at the project root (#203)
+	// AI-ready: scaffold AGENTS.md at the project root (#203, #347) — the
+	// sole agent convention of a SvelteForge project.
 	sv.file('AGENTS.md', () => scaffoldedAgents('dashboard'));
 
 	// AI context (#234): override the base manifest with the dashboard state.

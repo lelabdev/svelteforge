@@ -184,11 +184,19 @@ SVForge projects carry their own implementation context so an agent can inspect 
 
 A scaffold includes:
 
-- **`AGENTS.md`** — project conventions and implementation rules;
+- **`AGENTS.md`** — project conventions and implementation rules (canonical agent instructions);
 - **`.svforge.json`** — machine-readable template/modules/capabilities state;
 - **`llms.txt`** — concise context generated from the project state;
 - **`svforge-catalog.json`** — reusable component catalog;
 - **`svforge-modules.json`** — module metadata and composition information.
+
+## Agent instruction support (#347)
+
+**Decision: AGENTS.md is the sole agent convention of a SvelteForge project.** Every convention an agent needs — positioning, valid Skeleton v5 classes, reuse order, design-system contract, i18n rules — is scaffolded in one `AGENTS.md` file at the project root. There is exactly one file to read and one file to edit.
+
+SVForge scaffolds no tool-specific instruction file (no Claude, Gemini, Copilot, or Cursor variant) and ships no synchronization or drift machinery. Whether a given tool loads `AGENTS.md` automatically is that tool's own feature — SVForge does not claim generic tool support.
+
+These instructions are **advisory**: they tell agents what to prefer. Mechanical enforcement stays in `svforge check` (no second UI kit, no duplicated primitives, no invented utilities) and in `svelte-check`/tests. Instruction files are never the only guardrail, and `svforge check` does not depend on them.
 
 Typical workflow:
 
@@ -219,6 +227,7 @@ svforge upgrade dashboard
 ```
 
 Upgrades are intentionally conservative: generated files are owned by the consumer project, and locally modified files are not silently overwritten.
+
 
 ## Boring by design
 
