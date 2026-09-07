@@ -276,13 +276,35 @@ if [ "$TEMPLATE" = "base-ui-modules" ]; then
 	done
 fi
 if [ "$TEMPLATE" = "dashboard-integrations" ]; then
-	for mod in oauth email uploads; do
+	for mod in oauth email; do
 		grep -q "\"$mod\"" .svforge.json || { echo "❌ module $mod missing in .svforge.json (#284)"; exit 1; }
 	done
-	for cap in "oauth (Google/GitHub)" "email (Resend)" "uploads (S3-compatible: POST hard limit, PUT best-effort fallback)"; do
+	for cap in "oauth (Google/GitHub)" "email (Resend)"; do
 		grep -q "$cap" llms.txt || { echo "❌ capability '$cap' missing in llms.txt (#284)"; exit 1; }
 		grep -q "$cap" .svforge.json || { echo "❌ capability '$cap' missing in .svforge.json (#296)"; exit 1; }
 	done
+	# Verify the uploads capability structurally, then regenerate its agent context.
+	bunx --no-install svforge context || { echo "❌ llms.txt regeneration failed (#338)"; exit 1; }
+	bun -e '
+		const manifest = JSON.parse(await Bun.file(".svforge.json").text());
+		if (!Array.isArray(manifest.modules) || !manifest.modules.includes("uploads")) {
+			throw new Error("uploads module missing in .svforge.json (#284)");
+		}
+		const entries = Object.entries(manifest.patterns ?? {}).filter(
+			([, pattern]) => typeof pattern === "string" && pattern.startsWith("src/routes/api/upload/")
+		);
+		const [capability, pattern] = entries[0] ?? [];
+		if (entries.length !== 1 || typeof capability !== "string" || typeof pattern !== "string" || !manifest.capabilities?.includes(capability)) {
+			throw new Error("uploads capability missing structured manifest data (#296)");
+		}
+		const lines = (await Bun.file("llms.txt").text()).split("\n");
+		const header = lines.indexOf("## Capabilities installed");
+		const end = lines.findIndex((line, index) => index > header && line.startsWith("## "));
+		const capabilities = lines.slice(header + 1, end === -1 ? lines.length : end);
+		if (header === -1 || !capabilities.includes(`- ${capability}`)) {
+			throw new Error("regenerated llms.txt omits the uploads capability (#284)");
+		}
+	'
 	# Upload security test pack proves the storage-enforced POST hard limit (#338).
 	grep -q "makes a lying declared size unable to store an oversized object in hard-limit mode" src/routes/api/upload/upload-security.test.ts \
 		|| { echo "❌ upload test pack lacks the POST hard-limit test (#338)"; exit 1; }
