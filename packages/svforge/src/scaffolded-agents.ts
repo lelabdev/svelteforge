@@ -202,10 +202,8 @@ export function scaffoldedAgents(template: 'base' | 'dashboard'): string {
  * - `.cursor/rules/svforge.mdc` — Cursor's project-rule location
  *   (`alwaysApply: true`), with the canonical content embedded.
  *
- * Agents outside this subset (Gemini CLI reads GEMINI.md by default, and
- * only reads AGENTS.md after a manual `context.fileName` change) are out of
- * scope: they are documented as requiring user configuration, not claimed
- * as zero-configuration support (#347 review).
+ * Agents outside this subset are out of scope: no instruction file is
+ * scaffolded for them and no support is claimed (#347 review).
  *
  * Copilot and Cursor files are MATERIALIZED COPIES: they can drift after a
  * later AGENTS.md edit. `svforge context` re-materializes them from the
@@ -235,6 +233,24 @@ export function agentInstructionFiles(template: 'base' | 'dashboard'): Record<st
 	};
 }
 
+/**
+ * The exact expected content of a materialized bridge (#347 review): the
+ * generated prefix (Copilot HTML comment or Cursor YAML frontmatter) plus
+ * the CURRENT canonical content, byte-for-byte. Returns undefined when the
+ * on-disk file has an unrecognized shape (left alone, never rewritten).
+ */
+export function expectedBridgeContent(
+	current: string,
+	canonical: string,
+	bridge: string
+): string | undefined {
+	const prefixMatch = bridge.endsWith('.mdc')
+		? current.match(/^-{3}\n[\s\S]*?\n-{3}\n\n/)
+		: current.match(/^<!--[\s\S]*?-->\n\n/);
+	if (!prefixMatch) return undefined;
+	return prefixMatch[0] + canonical + (bridge.endsWith('.mdc') ? '\n' : '');
+}
+
 /** Bridges that embed the canonical content (materialized copies). */
 export const MATERIALIZED_BRIDGES = ['.github/copilot-instructions.md', '.cursor/rules/svforge.mdc'] as const;
 
@@ -255,15 +271,10 @@ export function syncInstructionBridges(
 		const bridgePath = path.join(projectRoot, bridge);
 		if (!fs.existsSync(bridgePath)) continue; // never create what the scaffold did not
 		const current = fs.readFileSync(bridgePath, 'utf-8');
-		if (current.includes(canonical)) continue; // already in sync
-		// The generated prefix is a copilot HTML comment or a Cursor YAML
-		// frontmatter; everything after it is the canonical content.
-		const prefixMatch = bridge.endsWith('.mdc')
-			? current.match(/^-{3}\n[\s\S]*?\n-{3}\n\n/)
-			: current.match(/^<!--[\s\S]*?-->\n\n/);
-		if (!prefixMatch) continue; // unknown shape: leave it alone
-		const updated = prefixMatch[0] + canonical + (bridge.endsWith('.mdc') ? '\n' : '');
-		fs.writeFileSync(bridgePath, updated);
+		const expected = expectedBridgeContent(current, canonical, bridge);
+		if (expected === undefined) continue; // unknown shape: leave it alone
+		if (current === expected) continue; // already in sync
+		fs.writeFileSync(bridgePath, expected);
 		written.push(bridge);
 	}
 	return written;

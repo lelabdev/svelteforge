@@ -192,7 +192,7 @@ A scaffold includes:
 
 ## Agent instruction support (#347)
 
-**Decision: an explicitly supported subset.** SvelteForge documents exactly which instruction files it scaffolds and for which agent — it does not claim generic agent support. The canonical agent instructions are scaffolded as `AGENTS.md`; the bridges below are **generated from that same source at scaffold time**. Edit the canonical file (or the generator), never the bridges. Agents outside this subset are not claimed as supported: for example, Gemini CLI reads `GEMINI.md` by default and only loads `AGENTS.md` after a manual [`context.fileName`](https://github.com/google-gemini/gemini-cli/blob/main/docs/cli/gemini-md.md) change — that is user configuration, not zero-configuration support.
+**Decision: an explicitly supported subset.** SvelteForge documents exactly which instruction files it scaffolds and for which agent — it does not claim generic agent support. The canonical agent instructions are scaffolded as `AGENTS.md`; the bridges below are **generated from that same source at scaffold time**. Edit the canonical file (or the generator), never the bridges.
 
 Each generated project ships:
 

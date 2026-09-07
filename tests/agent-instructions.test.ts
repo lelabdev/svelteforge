@@ -7,11 +7,11 @@ import { applyDashboardMode } from '../packages/svforge/src/modes/dashboard';
 /**
  * #347 — Agent instruction support.
  *
- * Strategy: agent-agnostic. `AGENTS.md` is the canonical file; every other
- * instruction file (CLAUDE.md, .github/copilot-instructions.md,
- * .cursor/rules/svforge.mdc) is a GENERATED BRIDGE derived from the same
- * single source, so variants cannot drift. Instructions are advisory; the
- * mechanical enforcement stays `svforge check`.
+ * Strategy: an explicitly supported subset. `AGENTS.md` is the canonical
+ * file; the documented bridges (CLAUDE.md, .github/copilot-instructions.md,
+ * .cursor/rules/svforge.mdc) are GENERATED from that single source and are
+ * compared exactly against it. Instructions are advisory; the mechanical
+ * enforcement stays `svforge check`.
  */
 
 const EXPECTED_FILES = [
@@ -85,6 +85,13 @@ describe('agent instruction files (#347)', () => {
 			expect(readFileSync(join(root, 'CLAUDE.md'), 'utf-8')).toBe(files['CLAUDE.md']);
 			// A second run is a no-op (already in sync).
 			expect(syncInstructionBridges(fs, path, root)).toEqual([]);
+			// A copy that drifted AROUND the canonical text (extra line) is still
+			// re-synced: the comparison is exact, not substring-based.
+			writeFileSync(join(root, '.github/copilot-instructions.md'), files['.github/copilot-instructions.md'] + '\nlocal note\n');
+			expect(syncInstructionBridges(fs, path, root)).toEqual(['.github/copilot-instructions.md']);
+			const resynced = readFileSync(join(root, '.github/copilot-instructions.md'), 'utf-8');
+			expect(resynced).toContain(edited);
+			expect(resynced).not.toContain('local note');
 			// Missing canonical file → nothing to do, no crash.
 			const emptyRoot = mkdtempSync(join(tmpdir(), 'svforge-bridge-empty-'));
 			try {
@@ -144,6 +151,18 @@ describe('agent instruction files (#347)', () => {
 			}
 			expect(output).toContain('copilot-instructions.md is stale');
 			expect(output).toContain('svforge context');
+			// Exactness: re-sync then append one local line → stale again.
+			const agentApi = await import('../packages/svforge/src/scaffolded-agents');
+			const fsMod = await import('node:fs');
+			const pathMod = await import('node:path');
+			agentApi.syncInstructionBridges(fsMod, pathMod, root);
+			fsMod.appendFileSync(join(root, '.github/copilot-instructions.md'), '\nlocal note\n');
+			try {
+				output = execFileSync('node', ['svforge-check.mjs'], { cwd: root, encoding: 'utf-8' });
+			} catch (error) {
+				output = String((error as { stdout?: string }).stdout ?? '');
+			}
+			expect(output).toContain('does not match the current AGENTS.md exactly');
 		} finally {
 			rmSync(root, { recursive: true, force: true });
 		}
