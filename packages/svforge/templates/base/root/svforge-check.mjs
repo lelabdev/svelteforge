@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @ts-nocheck
 /**
  * SVForge design-system check (#240, #335).
  *
@@ -15,11 +16,11 @@
  *         catalog avoid patterns (#342), component outside canonical structure
  */
 import { readFileSync, readdirSync, existsSync, statSync } from 'node:fs';
-import { join, relative, basename, sep } from 'node:path';
+import { join, relative, basename, sep, resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 
-const ROOT = process.cwd();
-const STRICT = process.argv.includes('--strict');
-const results = [];
+let ROOT = process.cwd();
+let results = [];
 
 // Skeleton inventory injected at scaffold time from the actually shipped
 // @skeletonlabs packages (#335). Fallback: derive from the project's own
@@ -144,13 +145,15 @@ function deriveInventoryFromNodeModules() {
 	return inventory;
 }
 
-const INVENTORY = deriveInventoryFromNodeModules() ?? SKELETON_INVENTORY;
+export function checkDesignSystem(projectRoot = process.cwd()) {
+	ROOT = resolve(projectRoot);
+	results = [];
+	const INVENTORY = deriveInventoryFromNodeModules() ?? SKELETON_INVENTORY;
 
 // ── 1. Forbidden UI kits (ERROR) ─────────────────────────────────
 const pkgPath = join(ROOT, 'package.json');
 if (!existsSync(pkgPath)) {
-	console.log('✗ [ds] ERROR: no package.json — run from the project root.');
-	process.exit(1);
+	return [{ status: 'error', msg: 'no package.json — run from the project root.' }];
 }
 const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'));
 const allDeps = { ...(pkg.dependencies || {}), ...(pkg.devDependencies || {}) };
@@ -386,12 +389,22 @@ for (const file of walk(componentsDir, ['.svelte'])) {
 	}
 }
 
-// ── Report ───────────────────────────────────────────────────────
-if (results.length === 0) {
-	console.log('✓ [ds] no design-system violations found.');
-	process.exit(0);
+	return results;
 }
-for (const result of results) {
-	console.log(`${result.status === 'error' ? '✗' : '⚠'} [ds] ${result.status.toUpperCase()}: ${result.msg}`);
+
+export function printDesignSystemResults(diagnostics) {
+	if (diagnostics.length === 0) {
+		console.log('✓ [ds] no design-system violations found.');
+		return;
+	}
+	for (const result of diagnostics) {
+		console.log(`${result.status === 'error' ? '✗' : '⚠'} [ds] ${result.status.toUpperCase()}: ${result.msg}`);
+	}
 }
-process.exit(results.some((result) => result.status === 'error' || (STRICT && result.status === 'warn')) ? 1 : 0);
+
+if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
+	const diagnostics = checkDesignSystem();
+	printDesignSystemResults(diagnostics);
+	process.exitCode = diagnostics.some((result) => result.status === 'error' || (process.argv.includes('--strict') && result.status === 'warn')) ? 1 : 0;
+}
+
