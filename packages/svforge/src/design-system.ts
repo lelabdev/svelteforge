@@ -411,9 +411,48 @@ export const FORBIDDEN_UI_KITS = [
  *  - a Skeleton-provided primitive duplicated as a project-local component
  *  - hex colors used outside theme files when tokens exist
  *  WARN
- *  - arbitrary colors/radius/spacing not using tokens
+ *  - hex colors used outside theme files (covered by the dedicated hex scan)
+ *  - arbitrary radius/spacing classes (#345): rounded-[…], rounded-{t,r,b,l,
+ *    tl,tr,bl,br}-[…], p/m/gap/space namespaces with any direction or logical
+ *    side (px, pt, ps, pe, mx, ms, me, gap-x, gap-y, …), including negative
+ *    values (-m-[…]). Scanned syntax: static double-quoted class="…"
+ *    attributes only — dynamic class={…} and single-quoted attributes are
+ *    intentionally NOT scanned. Structural/product-specific values (w-[…],
+ *    h-[…], text-[…], position offsets) stay allowed, and arbitrary colors
+ *    remain under the hex scan rather than the class scan.
  *  - component files outside the canonical svforge structure
  */
+/**
+ * Arbitrary radius/spacing detection (#345). Returns the offending class
+ * tokens (Tailwind variants preserved) of a class string. Conservative:
+ * only radius and spacing namespaces are reported — width/height/font-size/
+ * offsets stay allowed as structural or product-specific values, and colors
+ * remain under the dedicated hex scan.
+ */
+const ARBITRARY_SPACING_NAMESPACES = [
+	'p', 'px', 'py', 'pt', 'pr', 'pb', 'pl', 'ps', 'pe',
+	'm', 'mx', 'my', 'mt', 'mr', 'mb', 'ml', 'ms', 'me',
+	'gap', 'gap-x', 'gap-y', 'space-x', 'space-y'
+] as const;
+
+const DIRECTIONAL_RADIUS = /^rounded-(?:t|r|b|l|tl|tr|bl|br)$/;
+
+export function checkArbitraryTokens(classString: string): string[] {
+	const offenders: string[] = [];
+	for (const token of classString.split(/\s+/).filter(Boolean)) {
+		const segment = token.includes(':') ? token.slice(token.lastIndexOf(':') + 1) : token;
+		// Negative margins: -m-[3px] — the leading dash is not part of the ns.
+		const body = segment.startsWith('-') ? segment.slice(1) : segment;
+		const bracket = body.indexOf('-[');
+		if (bracket === -1) continue;
+		const ns = body.slice(0, bracket);
+		const isRadius = ns === 'rounded' || DIRECTIONAL_RADIUS.test(ns);
+		const isSpacing = (ARBITRARY_SPACING_NAMESPACES as readonly string[]).includes(ns);
+		if (isRadius || isSpacing) offenders.push(token);
+	}
+	return offenders;
+}
+
 export async function checkDesignSystem(projectRoot: string): Promise<DiagnosticResult[]> {
 	const results: DiagnosticResult[] = [];
 
@@ -509,6 +548,28 @@ export async function checkDesignSystem(projectRoot: string): Promise<Diagnostic
 				status: 'warn',
 				message: `Arbitrary hex colors in ${rel}: ${[...new Set(meaningful)].join(', ')}. Use theme tokens instead.`
 			});
+		}
+		// Arbitrary radius/spacing (#345, WARN). Exact-path exemption only
+		// (#345 review, mirroring #361): the canonical implementation at its
+		// exact catalog path (plus precise installed-addon component paths) is
+		// exempt — an unapproved new component in the same directory warns.
+		const relPosix = path.relative(componentsDir, file).split(path.sep).join('/');
+		const approvedPaths = new Set(Object.values(SVFORGE_CATALOG).map((entry) => entry.path));
+		const installedModules = readManifestModules(fs, path, projectRoot);
+		const isCanonicalImplementation =
+			approvedPaths.has(relPosix) || isApprovedAddonComponent(relPosix, installedModules);
+		if (!isCanonicalImplementation) {
+			const offenders = new Set<string>();
+			for (const match of content.matchAll(/class="([^"]*)"/g)) {
+				for (const token of checkArbitraryTokens(match[1])) offenders.add(token);
+			}
+			if (offenders.size > 0) {
+				results.push({
+					module: 'ds',
+					status: 'warn',
+					message: `Arbitrary radius/spacing in ${rel}: ${[...offenders].join(', ')}. Use the Tailwind scale or theme tokens instead.`
+				});
+			}
 		}
 	}
 
