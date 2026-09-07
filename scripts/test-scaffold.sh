@@ -152,7 +152,38 @@ fi
 # 4. Build the scaffolded project — the actual assertion
 bun run build
 
-# 4a. Svelte/TypeScript quality gate (#266): run the generated project's own
+# 4a. Production Vite build gate (#350): an AI-created component that shadows
+# a Skeleton primitive must block `bun run build`, not only `bun run check`.
+# Exercise both primary scaffolds after their clean builds and always remove the
+# fixture before continuing with their normal checks.
+if [ "$TEMPLATE" = "base" ] || [ "$TEMPLATE" = "dashboard" ]; then
+	DS_FIXTURE="src/lib/features/ai/Dialog.svelte"
+	mkdir -p "$(dirname "$DS_FIXTURE")"
+	echo '<div>duplicate</div>' > "$DS_FIXTURE"
+	set +e
+	ds_build_output=$(bun run build 2>&1)
+	ds_build_status=$?
+	set -e
+	rm -rf src/lib/features/ai
+	if [ "$ds_build_status" -eq 0 ]; then
+		echo "❌ bun run build passed despite a duplicated Skeleton primitive (#350):"
+		echo "$ds_build_output"
+		exit 1
+	fi
+	if ! printf '%s' "$ds_build_output" | grep -q 'Duplicated Skeleton primitive "Dialog"'; then
+		echo "❌ Vite build did not report the duplicated Skeleton primitive (#350):"
+		echo "$ds_build_output"
+		exit 1
+	fi
+	if ! printf '%s' "$ds_build_output" | grep -q '@skeletonlabs/skeleton-svelte'; then
+		echo "❌ Vite build did not identify Skeleton as the canonical source (#350):"
+		echo "$ds_build_output"
+		exit 1
+	fi
+	echo "✓ Vite build gate rejects duplicated Skeleton primitives (#350)"
+fi
+
+# 4b. Svelte/TypeScript quality gate (#266): run the generated project's own
 # check script on the main scaffolds. dashboard-foundations joined after #265
 # fixed the UUID number/string drift in the DB modules.
 if [ "$TEMPLATE" = "base" ] || [ "$TEMPLATE" = "dashboard" ] || [ "$TEMPLATE" = "dashboard-playwright" ] || [ "$TEMPLATE" = "dashboard-foundations" ] || [ "$TEMPLATE" = "base-ui-modules" ] || [ "$TEMPLATE" = "dashboard-integrations" ] || [ "$TEMPLATE" = "base-blog" ]; then

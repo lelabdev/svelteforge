@@ -5,10 +5,12 @@ import { tmpdir } from 'node:os';
 import { pathToFileURL } from 'node:url';
 import { baseRootFiles } from '../packages/svforge/src/templates';
 
+const DESIGN_SYSTEM_ROOT_FILES = ['/svforge-check.mjs', '/svforge-design-system-vite-plugin.mjs'] as const;
+
 function project(): string {
 	const root = mkdtempSync(join(tmpdir(), 'sf-vite-design-system-'));
 	writeFileSync(join(root, 'package.json'), JSON.stringify({ name: 'probe' }));
-	for (const file of ['/svforge-check.mjs', '/svforge-design-system-vite-plugin.mjs']) {
+	for (const file of DESIGN_SYSTEM_ROOT_FILES) {
 		writeFileSync(join(root, file), baseRootFiles[file]);
 	}
 	mkdirSync(join(root, 'src/lib/components/svforge/primitives'), { recursive: true });
