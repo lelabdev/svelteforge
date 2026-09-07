@@ -17,7 +17,6 @@ import { applyDashboardMode } from '../packages/svforge/src/modes/dashboard';
 const EXPECTED_FILES = [
 	'AGENTS.md',
 	'CLAUDE.md',
-	'GEMINI.md',
 	'.github/copilot-instructions.md',
 	'.cursor/rules/svforge.mdc'
 ];
@@ -42,15 +41,6 @@ describe('agent instruction files (#347)', () => {
 		expect(claude).toMatch(/@AGENTS\.md/);
 		expect(claude.length).toBeLessThan(300);
 		expect(claude).not.toContain('Positioning');
-	});
-
-	it('bridges Gemini CLI through an @AGENTS.md import (#361 review)', () => {
-		// Gemini CLI reads GEMINI.md by default, NOT AGENTS.md (gemini-md.md),
-		// and supports @file imports. The bridge must be a one-line import.
-		const gemini = agentInstructionFiles('base')['GEMINI.md'];
-		expect(gemini).toMatch(/@AGENTS\.md/);
-		expect(gemini.length).toBeLessThan(300);
-		expect(gemini).not.toContain('Positioning');
 	});
 
 	it('derives the Copilot instructions from the canonical AGENTS.md content', () => {
@@ -84,7 +74,6 @@ describe('agent instruction files (#347)', () => {
 			writeFileSync(join(root, '.github/copilot-instructions.md'), files['.github/copilot-instructions.md']);
 			writeFileSync(join(root, '.cursor/rules/svforge.mdc'), files['.cursor/rules/svforge.mdc']);
 			writeFileSync(join(root, 'CLAUDE.md'), files['CLAUDE.md']);
-			writeFileSync(join(root, 'GEMINI.md'), files['GEMINI.md']);
 			// Edit the canonical file afterwards — the copies go stale.
 			const edited = files['AGENTS.md'].replace('# AGENTS.md', '# AGENTS.md (v2)');
 			writeFileSync(join(root, 'AGENTS.md'), edited);
@@ -94,7 +83,6 @@ describe('agent instruction files (#347)', () => {
 			expect(readFileSync(join(root, '.cursor/rules/svforge.mdc'), 'utf-8')).toContain(edited);
 			// @-import bridges are left untouched (they embed no canonical content).
 			expect(readFileSync(join(root, 'CLAUDE.md'), 'utf-8')).toBe(files['CLAUDE.md']);
-			expect(readFileSync(join(root, 'GEMINI.md'), 'utf-8')).toBe(files['GEMINI.md']);
 			// A second run is a no-op (already in sync).
 			expect(syncInstructionBridges(fs, path, root)).toEqual([]);
 			// Missing canonical file → nothing to do, no crash.
@@ -114,7 +102,7 @@ describe('agent instruction files (#347)', () => {
 		const files = agentInstructionFiles('dashboard');
 		for (const key of EXPECTED_FILES) {
 			const content = files[key];
-			if (key === 'CLAUDE.md' || key === 'GEMINI.md') {
+			if (key === 'CLAUDE.md') {
 				expect(content).toMatch(/@AGENTS\.md/);
 			} else {
 				expect(content).toContain('Golden references');
