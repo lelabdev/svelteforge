@@ -34,6 +34,29 @@ describe('arbitrary radius/spacing token detection (#345)', () => {
 		]);
 	});
 
+	it('flags gap axes, logical sides, negative margins and directional radius', () => {
+		expect(checkArbitraryTokens('gap-x-[3px] gap-y-[2px] ps-[3px] me-[4px] ms-[5px] pe-[6px]')).toEqual([
+			'gap-x-[3px]',
+			'gap-y-[2px]',
+			'ps-[3px]',
+			'me-[4px]',
+			'ms-[5px]',
+			'pe-[6px]'
+		]);
+		expect(checkArbitraryTokens('-m-[3px] -mx-[2px] rounded-t-[3px] rounded-bl-[4px]')).toEqual([
+			'-m-[3px]',
+			'-mx-[2px]',
+			'rounded-t-[3px]',
+			'rounded-bl-[4px]'
+		]);
+	});
+
+	it('scanned syntax is static double-quoted class only (documented limit)', () => {
+		// Single-quoted and dynamic class expressions are intentionally not
+				// scanned (#345 review) — documented in the checker docstring.
+		expect(checkArbitraryTokens("p-[13px]")).toEqual(['p-[13px]']);
+	});
+
 	it('allows standard scale classes (negative case)', () => {
 		expect(checkArbitraryTokens('p-4 rounded-xl rounded-full gap-6 m-0')).toEqual([]);
 	});
@@ -44,6 +67,11 @@ describe('arbitrary radius/spacing token detection (#345)', () => {
 
 	it('leaves colors to the hex scan (documented split)', () => {
 		expect(checkArbitraryTokens('bg-[#ff0000]')).toEqual([]);
+	});
+
+	it('flags directional radius but leaves untouched radius scale classes', () => {
+		expect(checkArbitraryTokens('rounded-tl-[10px] rounded-tr-[10px]')).toEqual(['rounded-tl-[10px]', 'rounded-tr-[10px]']);
+		expect(checkArbitraryTokens('rounded-t-xl rounded-br-full rounded-l-2xl')).toEqual([]);
 	});
 
 	it('reports arbitrary radius/spacing as WARN in project routes', async () => {
@@ -72,22 +100,26 @@ describe('arbitrary radius/spacing token detection (#345)', () => {
 		}
 	});
 
-	it('does not warn for canonical implementations under components/svforge/', async () => {
+	it('exempts the exact catalog path but warns for unapproved components in the same directory (#345 review)', async () => {
 		const { mkdtempSync, mkdirSync, writeFileSync, rmSync } = await import('node:fs');
 		const { tmpdir } = await import('node:os');
 		const { join } = await import('node:path');
 		const root = mkdtempSync(join(tmpdir(), 'svforge-arbitrary-canonical-'));
 		try {
 			writeFileSync(join(root, 'package.json'), JSON.stringify({ dependencies: {} }));
-			const cardDir = join(root, 'src/lib/components/svforge/ui');
-			mkdirSync(cardDir, { recursive: true });
-			writeFileSync(join(cardDir, 'Card.svelte'), '<div class="rounded-[7px] p-[13px]">x</div>');
+			const uiDir = join(root, 'src/lib/components/svforge/ui');
+			mkdirSync(uiDir, { recursive: true });
+			// Exact catalog path of the canonical Card implementation — exempt.
+			writeFileSync(join(uiDir, 'Card.svelte'), '<div class="rounded-[7px] p-[13px]">x</div>');
+			// Unapproved new component in the SAME directory — must still warn.
+			writeFileSync(join(uiDir, 'CustomCard.svelte'), '<div class="rounded-[9px] p-[15px]">x</div>');
 			const results = await checkDesignSystem(root);
-			expect(
-				results.filter(
-					(result) => result.status === 'warn' && result.message.includes('Arbitrary radius/spacing')
-				)
-			).toEqual([]);
+			const warns = results.filter(
+				(result) => result.status === 'warn' && result.message.includes('Arbitrary radius/spacing')
+			);
+			expect(warns).toHaveLength(1);
+			expect(warns[0].message).toContain('CustomCard.svelte');
+			expect(warns[0].message).not.toContain('ui/Card.svelte');
 		} finally {
 			rmSync(root, { recursive: true, force: true });
 		}
