@@ -117,6 +117,13 @@ Every scaffold is agent-ready: `AGENTS.md` (conventions), `.svforge.json`
 (design-system harness). Modules merge their capability into the manifest and
 `llms.txt` at install time.
 
+## Tailwind arbitrary values
+
+The design-system checker is the single policy for arbitrary spacing and radius
+values. The Tailwind v4 ESLint plugin was evaluated but is not installed: its
+rules either reject accepted structural values or miss non-scale spacing/radius
+values. See [the evaluation record](docs/tailwind-linting.md).
+
 ## Upgrade
 
 `svforge upgrade <base|dashboard>` updates the recipe files (`src/**`) of an
