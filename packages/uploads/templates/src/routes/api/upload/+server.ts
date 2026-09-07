@@ -2,12 +2,16 @@ import { PutObjectCommand } from '@aws-sdk/client-s3';
 import { createPresignedPost } from '@aws-sdk/s3-presigned-post';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { getS3 } from '$lib/server/s3';
+import { MAX_FILE_SIZE, MAX_POST_BODY_SIZE } from '$lib/uploads/post-form';
 import { env } from '$env/dynamic/private';
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 
-/** Maximum upload size in bytes (10 MB). */
-const MAX_FILE_SIZE = 10 * 1024 * 1024;
+/**
+ * The S3 POST policy applies to the complete multipart request. FileUpload
+ * reserves a bounded 64 KiB envelope, so this is the largest file that its
+ * at-limit multipart form can submit under the 10 MiB request policy.
+ */
 
 /**
  * Upload policy selected by the deployment.
@@ -65,7 +69,9 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	if (typeof size !== 'number' || !Number.isFinite(size) || size <= 0) {
 		return json({ error: 'Valid file size required' }, { status: 400 });
 	}
-	if (size > MAX_FILE_SIZE) return json({ error: `File exceeds maximum size of ${MAX_FILE_SIZE} bytes` }, { status: 413 });
+	if (size > MAX_FILE_SIZE) {
+		return json({ error: `File exceeds maximum size of ${MAX_FILE_SIZE} bytes` }, { status: 413 });
+	}
 
 	const key = `uploads/${crypto.randomUUID()}-${sanitizeFilename(filename)}`;
 	const sizePolicy = getSizePolicy();
@@ -75,7 +81,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			Key: key,
 			Fields: { 'Content-Type': contentType },
 			Conditions: [
-				['content-length-range', 1, MAX_FILE_SIZE],
+				['content-length-range', 1, MAX_POST_BODY_SIZE],
 				['eq', '$Content-Type', contentType]
 			],
 			Expires: 60

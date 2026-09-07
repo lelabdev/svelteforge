@@ -1,5 +1,6 @@
 <script lang="ts">
 	import * as m from '$lib/paraglide/messages.js';
+	import { createUploadForm } from '$lib/uploads/post-form';
 
 	/**
 	 * Called once the file has been uploaded to S3/R2, with the PERSISTENT
@@ -58,12 +59,7 @@
 				upload.method === 'POST'
 					? await fetch(url, {
 							method: 'POST',
-							body: (() => {
-								const form = new FormData();
-								for (const [name, value] of Object.entries(upload.fields)) form.append(name, value as string);
-								form.append('file', file);
-								return form;
-							})()
+							body: createUploadForm(upload.fields, file)
 						})
 					: await fetch(url, {
 							method: 'PUT',

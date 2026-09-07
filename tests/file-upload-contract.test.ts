@@ -2,6 +2,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { readFileSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { compile } from 'svelte/compiler';
 import { mount } from 'svelte';
 
@@ -31,7 +32,12 @@ beforeEach(async () => {
 	const source = readFileSync(FILE_UPLOAD, 'utf8');
 	const { js } = compile(source, { generate: 'client', filename: 'FileUpload.svelte' });
 	mkdirSync(dirname(COMPILED), { recursive: true });
-	writeFileSync(COMPILED, js.code);
+	// The compiled fixture lives under tests/__gen__, so point its additional
+	// upload-form helper at the template source rather than that fixture dir.
+	writeFileSync(
+		COMPILED,
+		js.code.replace('$lib/uploads/post-form', pathToFileURL(join(ROOT, 'packages/uploads/templates/src/lib/uploads/post-form.ts')).href)
+	);
 	Component = (await import(join(ROOT, 'tests/__gen__/FileUpload.compiled.js'))).default;
 });
 

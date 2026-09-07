@@ -29,9 +29,12 @@ S3_UPLOAD_SIZE_POLICY=presigned-post
 ## Size policies
 
 `presigned-post` is the default **storage-enforced** policy. It requires an
-S3-compatible backend that supports presigned POST policies and enforces the
-10 MB `content-length-range` before an object is stored. A client cannot bypass
-that limit by lying about its declared size.
+S3-compatible backend that supports presigned POST policies and enforces a
+10 MiB `content-length-range` on the complete multipart request before an
+object is stored. Multipart fields and boundaries are part of that request, so
+`FileUpload` reserves a bounded 64 KiB envelope: the largest accepted file is
+10,420,224 bytes (9.94 MiB), not 10 MiB. A client cannot bypass the 10 MiB
+storage request limit by lying about its declared size.
 
 Set `S3_UPLOAD_SIZE_POLICY=presigned-put` only when the backend does not
 support POST policies. This fallback validates the declared size before signing
