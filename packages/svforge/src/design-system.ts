@@ -209,7 +209,7 @@ export const SVFORGE_CATALOG: Record<string, CatalogEntry> = {
 				styleTokens: ['btn'],
 				legitTokens: [],
 				match: 'all',
-				attributePattern: 'aria-label\\s*=\\s*[\"\'][^\"\']*(?:theme|dark mode|light mode)[^\"\']*[\"\']',
+				attributePattern: "aria-label\\s*=\\s*['\"][^'\"]*(?:theme|dark mode|light mode)[^'\"]*['\"]",
 				reason: 'ad-hoc application theme control: reuse the SVForge ThemeToggle component'
 			}
 		]
