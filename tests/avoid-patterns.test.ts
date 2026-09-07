@@ -81,6 +81,11 @@ describe('avoid pattern matchers (#342)', () => {
 		expect(findings).toEqual([]);
 	});
 
+	it('does not match PascalCase Svelte components (<Table …>)', () => {
+		const findings = checkAvoidPatterns('<Table columns={cols} data={rows} />');
+		expect(findings).toEqual([]);
+	});
+
 	it('serializes to stable JSON (checker injection contract)', () => {
 		expect(JSON.parse(JSON.stringify(AVOID_PATTERNS))).toEqual(AVOID_PATTERNS);
 	});

@@ -640,7 +640,9 @@ function extractClassAttr(attrs: string): string {
 export function checkAvoidPatterns(source: string): { component: string; reason: string }[] {
 	const findings: { component: string; reason: string }[] = [];
 	for (const pattern of AVOID_PATTERNS) {
-		const elementRegex = new RegExp(`<${pattern.element}(\\s[^>]*)?>`, 'gi');
+		const elementRegex = // Case-sensitive: native HTML elements are lowercase — a PascalCase Svelte
+			// component (<Table …>) must not match the raw-element heuristic.
+			new RegExp(`<${pattern.element}(\\s[^>]*)?>`, 'g');
 		for (const match of source.matchAll(elementRegex)) {
 			const tokens = extractClassAttr(match[1] ?? '').split(/\s+/).filter(Boolean);
 			if (pattern.legitTokens.some((prefix) => tokens.some((token) => token.startsWith(prefix)))) continue;

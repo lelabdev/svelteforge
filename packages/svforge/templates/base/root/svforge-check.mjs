@@ -293,7 +293,9 @@ for (const file of walk(join(ROOT, 'src'), ['.svelte'])) {
 	const detectAvoid = (source) => {
 		const findings = [];
 		for (const pattern of AVOID_PATTERNS) {
-			const elementRegex = new RegExp(`<${pattern.element}(\\s[^>]*)?>`, 'gi');
+			const elementRegex = // Case-sensitive: native HTML elements are lowercase — a PascalCase Svelte
+			// component (<Table …>) must not match the raw-element heuristic.
+			new RegExp(`<${pattern.element}(\\s[^>]*)?>`, 'g');
 			for (const match of source.matchAll(elementRegex)) {
 				const classMatch = (match[1] ?? '').match(/class=(?:"([^"]*)"|'([^']*)'|\{([^}]*)\})/);
 				const tokens = (classMatch?.[1] ?? classMatch?.[2] ?? classMatch?.[3] ?? '').trim().split(/\s+/).filter(Boolean);
