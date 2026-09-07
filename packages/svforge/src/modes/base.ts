@@ -64,7 +64,7 @@ export function applyBaseMode(
 		return `${JSON.stringify(pkg, null, 2)}\n`;
 	});
 
-	// Strict checks stay opt-in (#344): Lefthook only runs for commits with
+// Strict checks stay opt-in (#344): Lefthook only runs for commits with
 	// staged relevant files, then checks the project because the checker has no
 	// safe partial-file mode. Its prepare script installs the Git hook on install.
 	if (hooks === 'lefthook') {
@@ -75,27 +75,32 @@ export function applyBaseMode(
 			const prepare = pkg.scripts?.prepare;
 			pkg.scripts = {
 				...pkg.scripts,
-				prepare: prepare?.includes('lefthook install')
-					? prepare
-					: prepare
-						? `${prepare} && ${LEFTHOOK_PREPARE}`
-						: LEFTHOOK_PREPARE
+				prepare: prepare?.includes('lefthook install') ? prepare : prepare ? `${prepare} && ${LEFTHOOK_PREPARE}` : LEFTHOOK_PREPARE
 			};
 			return `${JSON.stringify(pkg, null, 2)}\n`;
 		});
 	}
 
-	// Paraglide (#239): wire the vite plugin into the project's vite.config.ts.
+	// Paraglide (#239) and the production-only design-system gate (#350)
+	// share vite.config.ts. The gate imports the scaffolded checker, so Vite
+	// builds and `bun run check` produce the same diagnostics.
 	sv.file('vite.config.ts', (content) => {
-		if (content.includes('paraglideVitePlugin')) return content;
 		let updated = content;
 		if (!updated.includes("from '@inlang/paraglide-js'")) {
 			updated = `import { paraglideVitePlugin } from '@inlang/paraglide-js';\n${updated}`;
 		}
-		updated = updated.replace(
-			/plugins:\s*\[/,
-			'plugins: [paraglideVitePlugin({ project: \'./project.inlang\', outdir: \'./src/lib/paraglide\' }), '
-		);
+		if (!updated.includes("from './svforge-design-system-vite-plugin.mjs'")) {
+			updated = `import { svforgeDesignSystemPlugin } from './svforge-design-system-vite-plugin.mjs';\n${updated}`;
+		}
+		if (!updated.includes('paraglideVitePlugin({')) {
+			updated = updated.replace(
+				/plugins:\s*\[/,
+				'plugins: [paraglideVitePlugin({ project: \'./project.inlang\', outdir: \'./src/lib/paraglide\' }), '
+			);
+		}
+		if (!updated.includes('svforgeDesignSystemPlugin()')) {
+			updated = updated.replace(/plugins:\s*\[/, 'plugins: [svforgeDesignSystemPlugin(), ');
+		}
 		return updated;
 	});
 
