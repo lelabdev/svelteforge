@@ -115,6 +115,18 @@ MUST NOT:
 Run \`npx svforge check\` before finishing a feature — it flags ERROR
 violations (second UI kit, duplicated primitives) and WARN (arbitrary values).
 
+### Optional strict pre-commit hook
+
+No Git hook is installed by default. To opt in while scaffolding or re-adding
+SvelteForge, select Lefthook (CLI: \`sv add svforge=hooks:lefthook\`). It
+installs a \`pre-commit\` hook after \`bun install\` that runs
+\`node svforge-check.mjs --strict\`: both WARN and ERROR block the commit.
+Lefthook only invokes it when relevant staged \`.svelte\`, \`.html\`, \`.css\`,
+or \`.json\` files changed; when invoked, the checker examines the whole project
+because it has no partial-file mode. Remove it with
+\`bun remove -d lefthook && rm .lefthook.yml\`, then remove the Lefthook
+\`prepare\` script entry from \`package.json\`.
+
 Components wrap Skeleton classes + Tailwind only — never raw CSS
 - \`cn()\` + \`class\` prop on every component (merge/override)
 - \`HTMLAttributes<T>\` from \`svelte/elements\` for native attribute extension

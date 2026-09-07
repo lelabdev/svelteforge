@@ -52,6 +52,15 @@ export default defineAddon({
 				{ value: 'dashboard', label: 'Dashboard — base + admin dashboard + auth + DB' }
 			]
 		})
+		.add('hooks', {
+			question: 'Install the optional strict pre-commit hook?',
+			type: 'select',
+			default: 'none',
+			options: [
+				{ value: 'none', label: 'None — do not install a Git hook' },
+				{ value: 'lefthook', label: 'Lefthook — block staged UI changes with svforge check --strict' }
+			]
+		})
 		.add('testing', {
 			question: 'Which dashboard testing profile?',
 			type: 'select',
@@ -70,6 +79,7 @@ export default defineAddon({
 	run: ({ sv, options }) => {
 		const template = options.template as 'base' | 'dashboard';
 		const testing = options.testing as 'vitest' | 'playwright';
+		const hooks = options.hooks as 'none' | 'lefthook';
 
 		// ── Shared dependencies ──
 		// Pinned major ranges (#197): `latest` would silently resolve the next
@@ -105,10 +115,10 @@ export default defineAddon({
 			// Dashboard inherits base: root files (Paraglide messages/),
 			// vite.config plugin wiring, deps and test script come from the
 			// base mode first, then dashboard-specific files overlay (#239).
-			applyBaseMode(sv, {}, baseRootFiles);
+			applyBaseMode(sv, {}, baseRootFiles, hooks);
 			applyDashboardMode(sv, baseFiles, dashboardFiles, testing, dashboardRootFiles);
 		} else {
-			applyBaseMode(sv, baseFiles, baseRootFiles);
+			applyBaseMode(sv, baseFiles, baseRootFiles, hooks);
 		}
 	},
 

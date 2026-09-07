@@ -6,6 +6,15 @@ import { buildManifest, renderLlmstxt } from '../ai-context';
 // Vitest discovers its config only at the project root.
 const ROOT_FILES = new Set(['/vitest.config.ts']);
 
+const LEFTHOOK_CONFIG = `pre-commit:
+  commands:
+    svforge-check:
+      glob: '*.{svelte,html,css,json}'
+      run: node svforge-check.mjs --strict
+`;
+
+type HookMode = 'none' | 'lefthook';
+
 /**
  * Apply Base mode files via sv.file()
  * Base = all UI components, layouts, styles, utils, schemas
@@ -13,7 +22,8 @@ const ROOT_FILES = new Set(['/vitest.config.ts']);
 export function applyBaseMode(
 	sv: SvApi,
 	files: Record<string, string>,
-	rootFiles: Record<string, string> = {}
+	rootFiles: Record<string, string> = {},
+	hooks: HookMode = 'none'
 ): void {
 	// Baseline Vitest (#235): deliver the runnable test baseline. The
 	// devDependency + script mirror the template package.json (vitest ^3.1.1).
@@ -48,6 +58,27 @@ export function applyBaseMode(
 		};
 		return `${JSON.stringify(pkg, null, 2)}\n`;
 	});
+
+	// Strict checks stay opt-in (#344): Lefthook only runs for commits with
+	// staged relevant files, then checks the project because the checker has no
+	// safe partial-file mode. Its prepare script installs the Git hook on install.
+	if (hooks === 'lefthook') {
+		sv.devDependency('lefthook', '^2.0.13');
+		sv.file('.lefthook.yml', () => LEFTHOOK_CONFIG);
+		sv.file('package.json', (content: string) => {
+			const pkg = JSON.parse(content);
+			const prepare = pkg.scripts?.prepare;
+			pkg.scripts = {
+				...pkg.scripts,
+				prepare: prepare?.includes('lefthook install')
+					? prepare
+					: prepare
+						? `${prepare} && lefthook install`
+						: 'lefthook install'
+			};
+			return `${JSON.stringify(pkg, null, 2)}\n`;
+		});
+	}
 
 	// Paraglide (#239): wire the vite plugin into the project's vite.config.ts.
 	sv.file('vite.config.ts', (content) => {
