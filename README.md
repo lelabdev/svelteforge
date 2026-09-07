@@ -192,16 +192,24 @@ A scaffold includes:
 
 ## Agent instruction support (#347)
 
-**Decision: agent-agnostic.** SvelteForge does not target a closed set of agents. The canonical agent instructions are scaffolded as `AGENTS.md`; any other instruction file a specific agent requires is a **generated bridge derived from that same source at scaffold time**, so the variants cannot drift. Edit the canonical file (or the generator), never the bridges.
+**Decision: agent-agnostic.** SvelteForge does not target a closed set of agents. The canonical agent instructions are scaffolded as `AGENTS.md`; any other instruction file a specific agent requires is a **generated bridge derived from that same source at scaffold time**. Edit the canonical file (or the generator), never the bridges.
 
 Each generated project ships:
 
 | File | Agent that actually loads it | Derivation |
 |------|------------------------------|------------|
-| `AGENTS.md` | Codex CLI, Gemini CLI, Zed, opencode, and every reader of the [agents.md](https://agents.md) convention | canonical source |
-| `CLAUDE.md` | Claude Code (it reads `CLAUDE.md`, **not** `AGENTS.md`) | one-line `@AGENTS.md` [import](https://code.claude.com/docs/en/memory) — no duplicated content |
+| `AGENTS.md` | Zed, opencode, and every reader of the [agents.md](https://agents.md) convention | canonical source |
+| `CLAUDE.md` | Claude Code (it reads `CLAUDE.md`, **not** `AGENTS.md`) | one-line `@AGENTS.md` [import](https://code.claude.com/docs/en/memory) — never drifts |
+| `GEMINI.md` | Gemini CLI (it reads `GEMINI.md` by default, **not** `AGENTS.md` — [ref](https://github.com/google-gemini/gemini-cli/blob/main/docs/cli/gemini-md.md); `AGENTS.md` only via a manual `context.fileName` change) | one-line `@AGENTS.md` import (Gemini supports `@file` imports) — never drifts |
 | `.github/copilot-instructions.md` | GitHub Copilot (no `AGENTS.md` import mechanism) | full canonical content, generated |
 | `.cursor/rules/svforge.mdc` | Cursor (project rules with `alwaysApply: true`) | full canonical content, generated |
+
+**Copy drift control.** The Copilot and Cursor files are materialized copies: they are identical at scaffold time, and they can go stale if `AGENTS.md` is edited later. Two enforceable paths keep them honest:
+
+- `npx svforge context` re-materializes both copies from the current `AGENTS.md` (same command that regenerates `llms.txt`);
+- `svforge check` reports a `WARN` when a copy no longer embeds the current canonical content.
+
+The `@`-import bridges (`CLAUDE.md`, `GEMINI.md`) never drift — they contain no canonical content to stale out.
 
 These instruction files are **advisory**: they tell agents what to prefer. Mechanical enforcement stays in `svforge check` (no second UI kit, no duplicated primitives, no invented utilities) and in `svelte-check`/tests. Instruction files are never the only guardrail, and `svforge check` does not depend on them.
 

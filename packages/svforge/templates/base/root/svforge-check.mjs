@@ -384,6 +384,23 @@ for (const file of walk(componentsDir, ['.svelte'])) {
 	}
 }
 
+// ── Stale instruction bridges (WARN) (#347) ──────────────────────
+// The Copilot/Cursor instruction files are materialized copies of AGENTS.md.
+// When AGENTS.md is edited later they go stale; svforge context re-syncs them.
+{
+	const canonicalPath = join(ROOT, 'AGENTS.md');
+	if (existsSync(canonicalPath)) {
+		const canonical = readFileSync(canonicalPath, 'utf-8');
+		for (const bridge of ['.github/copilot-instructions.md', '.cursor/rules/svforge.mdc']) {
+			const bridgePath = join(ROOT, bridge);
+			if (!existsSync(bridgePath)) continue;
+			if (!readFileSync(bridgePath, 'utf-8').includes(canonical)) {
+				results.push({ status: 'warn', msg: `${bridge} is stale: it no longer embeds the current AGENTS.md. Run \`npx svforge context\` to re-sync.` });
+			}
+		}
+	}
+}
+
 // ── Report ───────────────────────────────────────────────────────
 if (results.length === 0) {
 	console.log('✓ [ds] no design-system violations found.');

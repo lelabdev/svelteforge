@@ -29,6 +29,12 @@ export {
 	MODULE_CAPABILITIES
 } from './ai-context';
 export type { SvforgeManifest } from './ai-context';
+export {
+	agentInstructionFiles,
+	scaffoldedAgents,
+	syncInstructionBridges,
+	MATERIALIZED_BRIDGES
+} from './scaffolded-agents';
 
 // Export upgrade command for programmatic use
 export { upgrade, printUpgradeResult, MODULE_RECIPES } from './upgrade';

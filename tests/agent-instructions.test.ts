@@ -17,6 +17,7 @@ import { applyDashboardMode } from '../packages/svforge/src/modes/dashboard';
 const EXPECTED_FILES = [
 	'AGENTS.md',
 	'CLAUDE.md',
+	'GEMINI.md',
 	'.github/copilot-instructions.md',
 	'.cursor/rules/svforge.mdc'
 ];
@@ -43,6 +44,15 @@ describe('agent instruction files (#347)', () => {
 		expect(claude).not.toContain('Positioning');
 	});
 
+	it('bridges Gemini CLI through an @AGENTS.md import (#361 review)', () => {
+		// Gemini CLI reads GEMINI.md by default, NOT AGENTS.md (gemini-md.md),
+		// and supports @file imports. The bridge must be a one-line import.
+		const gemini = agentInstructionFiles('base')['GEMINI.md'];
+		expect(gemini).toMatch(/@AGENTS\.md/);
+		expect(gemini.length).toBeLessThan(300);
+		expect(gemini).not.toContain('Positioning');
+	});
+
 	it('derives the Copilot instructions from the canonical AGENTS.md content', () => {
 		// GitHub Copilot reads .github/copilot-instructions.md and has no
 		// AGENTS.md import mechanism — the content itself must be derived.
@@ -58,11 +68,53 @@ describe('agent instruction files (#347)', () => {
 		expect(rule).toContain(agentInstructionFiles('base')['AGENTS.md']);
 	});
 
+	it('syncInstructionBridges re-materializes stale copies and skips imports', async () => {
+		const { syncInstructionBridges } = await import('../packages/svforge/src/scaffolded-agents');
+		const fs = await import('node:fs');
+		const path = await import('node:path');
+		const { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync, existsSync } = fs;
+		const { tmpdir } = await import('node:os');
+		const { join } = await import('node:path');
+		const root = mkdtempSync(join(tmpdir(), 'svforge-bridge-sync-'));
+		try {
+			const files = agentInstructionFiles('base');
+			mkdirSync(join(root, '.github'), { recursive: true });
+			mkdirSync(join(root, '.cursor/rules'), { recursive: true });
+			writeFileSync(join(root, 'AGENTS.md'), files['AGENTS.md']);
+			writeFileSync(join(root, '.github/copilot-instructions.md'), files['.github/copilot-instructions.md']);
+			writeFileSync(join(root, '.cursor/rules/svforge.mdc'), files['.cursor/rules/svforge.mdc']);
+			writeFileSync(join(root, 'CLAUDE.md'), files['CLAUDE.md']);
+			writeFileSync(join(root, 'GEMINI.md'), files['GEMINI.md']);
+			// Edit the canonical file afterwards — the copies go stale.
+			const edited = files['AGENTS.md'].replace('# AGENTS.md', '# AGENTS.md (v2)');
+			writeFileSync(join(root, 'AGENTS.md'), edited);
+			const written = syncInstructionBridges(fs, path, root);
+			expect(written.sort()).toEqual(['.cursor/rules/svforge.mdc', '.github/copilot-instructions.md']);
+			expect(readFileSync(join(root, '.github/copilot-instructions.md'), 'utf-8')).toContain(edited);
+			expect(readFileSync(join(root, '.cursor/rules/svforge.mdc'), 'utf-8')).toContain(edited);
+			// @-import bridges are left untouched (they embed no canonical content).
+			expect(readFileSync(join(root, 'CLAUDE.md'), 'utf-8')).toBe(files['CLAUDE.md']);
+			expect(readFileSync(join(root, 'GEMINI.md'), 'utf-8')).toBe(files['GEMINI.md']);
+			// A second run is a no-op (already in sync).
+			expect(syncInstructionBridges(fs, path, root)).toEqual([]);
+			// Missing canonical file → nothing to do, no crash.
+			const emptyRoot = mkdtempSync(join(tmpdir(), 'svforge-bridge-empty-'));
+			try {
+				expect(syncInstructionBridges(fs, path, emptyRoot)).toEqual([]);
+				expect(existsSync(join(emptyRoot, '.github/copilot-instructions.md'))).toBe(false);
+			} finally {
+				rmSync(emptyRoot, { recursive: true, force: true });
+			}
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
+	});
+
 	it('propagates the dashboard golden references to every variant', () => {
 		const files = agentInstructionFiles('dashboard');
 		for (const key of EXPECTED_FILES) {
 			const content = files[key];
-			if (key === 'CLAUDE.md') {
+			if (key === 'CLAUDE.md' || key === 'GEMINI.md') {
 				expect(content).toMatch(/@AGENTS\.md/);
 			} else {
 				expect(content).toContain('Golden references');
@@ -74,6 +126,39 @@ describe('agent instruction files (#347)', () => {
 		const canonical = agentInstructionFiles('base')['AGENTS.md'];
 		expect(canonical).toMatch(/advisory/i);
 		expect(canonical).toMatch(/svforge check/);
+	});
+
+	it('scaffolded checker warns when a copied bridge goes stale', async () => {
+		const { execFileSync } = await import('node:child_process');
+		const { mkdtempSync, mkdirSync, writeFileSync, copyFileSync, rmSync } = await import('node:fs');
+		const { tmpdir } = await import('node:os');
+		const { join } = await import('node:path');
+		const { fileURLToPath } = await import('node:url');
+		const checkerSrc = join(
+			fileURLToPath(new URL('.', import.meta.url)),
+			'../packages/svforge/templates/base/root/svforge-check.mjs'
+		);
+		const root = mkdtempSync(join(tmpdir(), 'svforge-drift-'));
+		try {
+			writeFileSync(join(root, 'package.json'), JSON.stringify({ dependencies: {} }));
+			const files = agentInstructionFiles('base');
+			writeFileSync(join(root, 'AGENTS.md'), files['AGENTS.md']);
+			mkdirSync(join(root, '.github'), { recursive: true });
+			writeFileSync(join(root, '.github/copilot-instructions.md'), files['.github/copilot-instructions.md']);
+			// AGENTS.md edited after scaffold → copy is stale.
+			writeFileSync(join(root, 'AGENTS.md'), files['AGENTS.md'] + '\n<!-- edited -->\n');
+			copyFileSync(checkerSrc, join(root, 'svforge-check.mjs'));
+			let output = '';
+			try {
+				output = execFileSync('node', ['svforge-check.mjs'], { cwd: root, encoding: 'utf-8' });
+			} catch (error) {
+				output = String((error as { stdout?: string }).stdout ?? '');
+			}
+			expect(output).toContain('copilot-instructions.md is stale');
+			expect(output).toContain('svforge context');
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
 	});
 });
 
