@@ -173,6 +173,7 @@ const catalogPath = join(ROOT, 'svforge-catalog.json');
 // component entries recursively, not just the first level.
 const catalogPaths = new Set();
 const catalogWrappers = [];
+const catalogEntries = [];
 const collectCatalogEntries = (node) => {
 	if (!node || typeof node !== 'object' || Array.isArray(node)) return;
 	for (const [key, value] of Object.entries(node)) {
@@ -180,6 +181,7 @@ const collectCatalogEntries = (node) => {
 		if (typeof value.path === 'string') {
 			catalogPaths.add(value.path);
 			catalogWrappers.push(key); // the entry name IS the component name
+			catalogEntries.push({ component: key, path: value.path });
 		}
 		collectCatalogEntries(value);
 	}
@@ -333,7 +335,61 @@ for (const file of walk(join(ROOT, 'src'), ['.svelte'])) {
 	}
 }
 
-// ── 4c. Arbitrary radius/spacing (WARN) (#345) ───────────────────
+// ── 4c. Experimental AST structural duplication (WARN, #353) ────
+// Opt-in while the threshold is calibrated. This intentionally uses the
+// Svelte compiler AST instead of text matching; catalog files are the sole
+// reference inventory, while INVENTORY.primitives remains the Skeleton
+// name-based authority above.
+if (process.env.SVFORGE_EXPERIMENTAL_STRUCTURAL_DUPLICATION === '1' && catalogEntries.length) {
+	try {
+		const { parse } = await import('svelte/compiler');
+		const fingerprint = (source) => {
+			const out = { elements: [], utilities: [], props: [], composition: [], sequence: [] };
+			const add = (key, value) => out[key].push(value);
+			const visit = (node) => {
+				if (!node || typeof node !== 'object') return;
+				if (['Element', 'Component', 'SvelteComponent'].includes(node.type)) {
+					const token = `${node.type === 'Element' ? 'element' : 'component'}:${typeof node.name === 'string' ? node.name : 'dynamic'}`;
+					add('elements', token); add('sequence', token);
+					for (const attribute of node.attributes ?? []) {
+						if (attribute.type !== 'Attribute') continue;
+						add('props', `${token}:${attribute.name}`);
+						if (attribute.name === 'class' && Array.isArray(attribute.value)) {
+							for (const value of attribute.value.filter((value) => value.type === 'Text')) {
+								for (const utility of value.data.split(/\s+/).filter(Boolean)) if (/^(?:btn|card|input|select|textarea|badge|preset-|border-|ring-|shadow-)/.test(utility)) add('utilities', utility.replace(/^\w+:/, ''));
+							}
+						}
+					}
+				}
+				if (/^(?:IfBlock|EachBlock|AwaitBlock|KeyBlock|SnippetBlock)$/.test(node.type)) { add('composition', node.type); add('sequence', `block:${node.type}`); }
+				if (node.type === 'RenderTag') { add('composition', 'RenderTag'); add('sequence', 'composition:RenderTag'); }
+				for (const [key, value] of Object.entries(node)) if (!['metadata', 'parent', 'loc'].includes(key)) {
+					if (Array.isArray(value)) value.forEach(visit); else if (value && typeof value === 'object' && value.type) visit(value);
+				}
+			};
+			visit(parse(source).html);
+			for (const key of ['elements', 'utilities', 'props', 'composition']) out[key] = [...new Set(out[key])].sort();
+			return out;
+		};
+		const overlap = (a, b) => { if (!a.length && !b.length) return 1; const left = new Set(a), right = new Set(b); let common = 0; for (const token of left) if (right.has(token)) common++; return (2 * common) / (left.size + right.size); };
+		const sequence = (a, b) => { if (!a.length || !b.length) return 0; const row = Array(b.length + 1).fill(0); for (const token of a) { let previous = 0; for (let i = 1; i <= b.length; i++) { const saved = row[i]; row[i] = token === b[i - 1] ? previous + 1 : Math.max(row[i], row[i - 1]); previous = saved; } } return (2 * row[b.length]) / (a.length + b.length); };
+		const references = catalogEntries.map(({ component, path: catalogFile }) => ({ component, fingerprint: fingerprint(readFileSync(join(componentsDir, catalogFile), 'utf-8')) })).filter(Boolean);
+		for (const file of walk(join(ROOT, 'src', 'lib', 'components'), ['.svelte'])) {
+			const rel = relative(componentsDir, file).split(sep).join('/');
+			if (catalogPaths.has(rel) || INVENTORY.primitives.includes(basename(file, '.svelte'))) continue;
+			const candidate = fingerprint(readFileSync(file, 'utf-8'));
+			for (const reference of references) {
+				const score = overlap(candidate.elements, reference.fingerprint.elements) * .35 + overlap(candidate.utilities, reference.fingerprint.utilities) * .2 + overlap(candidate.props, reference.fingerprint.props) * .2 + overlap(candidate.composition, reference.fingerprint.composition) * .1 + sequence(candidate.sequence, reference.fingerprint.sequence) * .15;
+				if (score >= .86) results.push({ status: 'warn', msg: `${relative(ROOT, file)}: structurally duplicates ${reference.component} (${Math.round(score * 100)}%). ${Math.round(overlap(candidate.elements, reference.fingerprint.elements) * 100)}% matching elements; ${Math.round(overlap(candidate.utilities, reference.fingerprint.utilities) * 100)}% matching Skeleton utilities; ${Math.round(sequence(candidate.sequence, reference.fingerprint.sequence) * 100)}% matching composition sequence — reuse ${reference.component}` });
+			}
+		}
+	} catch (error) {
+		// A partial editor/project install must not make the opt-in checker fail.
+		results.push({ status: 'warn', msg: `Structural duplication detector unavailable: ${error instanceof Error ? error.message : 'could not parse Svelte files'}` });
+	}
+}
+
+// ── 4d. Arbitrary radius/spacing (WARN) (#345) ───────────────────
 // Conservative: only radius and spacing namespaces. Structural or
 // product-specific arbitrary values (w-[…], h-[…], text-[…], offsets) and
 // colors (hex scan above) stay allowed. Scanned syntax: static double-quoted

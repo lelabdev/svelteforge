@@ -22,6 +22,7 @@ import {
 	SKELETON_UTILITY_PREFIXES
 } from './skeleton-inventory';
 import { ADDON_COMPONENTS } from './addon-components';
+import { checkStructuralDuplicates } from './structural-duplication';
 
 export type Severity = 'ok' | 'warn' | 'error';
 
@@ -465,7 +466,15 @@ export function checkArbitraryTokens(classString: string): string[] {
 	return offenders;
 }
 
-export async function checkDesignSystem(projectRoot: string): Promise<DiagnosticResult[]> {
+export interface DesignSystemCheckOptions {
+	/** Experimental AST structural matching (#353). WARN-only until calibrated. */
+	experimentalStructuralDuplication?: boolean;
+}
+
+export async function checkDesignSystem(
+	projectRoot: string,
+	options: DesignSystemCheckOptions = {}
+): Promise<DiagnosticResult[]> {
 	const results: DiagnosticResult[] = [];
 
 	const srcDir = path.join(projectRoot, 'src');
@@ -657,6 +666,18 @@ export async function checkDesignSystem(projectRoot: string): Promise<Diagnostic
 					});
 				}
 			}
+		}
+	}
+
+	// ── 6. Experimental structural duplication (#353, WARN) ───────
+	// Explicit opt-in keeps calibrated similarity matching non-blocking.
+	if (options.experimentalStructuralDuplication || process.env.SVFORGE_EXPERIMENTAL_STRUCTURAL_DUPLICATION === '1') {
+		for (const finding of checkStructuralDuplicates(projectRoot)) {
+			results.push({
+				module: 'ds',
+				status: 'warn',
+				message: `${finding.file}: structurally duplicates ${finding.component} (${Math.round(finding.score * 100)}%). ${finding.evidence.join('; ')} — reuse ${finding.component}`
+			});
 		}
 	}
 
