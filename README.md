@@ -184,11 +184,26 @@ SVForge projects carry their own implementation context so an agent can inspect 
 
 A scaffold includes:
 
-- **`AGENTS.md`** — project conventions and implementation rules;
+- **`AGENTS.md`** — project conventions and implementation rules (canonical agent instructions);
 - **`.svforge.json`** — machine-readable template/modules/capabilities state;
 - **`llms.txt`** — concise context generated from the project state;
 - **`svforge-catalog.json`** — reusable component catalog;
 - **`svforge-modules.json`** — module metadata and composition information.
+
+## Agent instruction support (#347)
+
+**Decision: agent-agnostic.** SvelteForge does not target a closed set of agents. The canonical agent instructions are scaffolded as `AGENTS.md`; any other instruction file a specific agent requires is a **generated bridge derived from that same source at scaffold time**, so the variants cannot drift. Edit the canonical file (or the generator), never the bridges.
+
+Each generated project ships:
+
+| File | Agent that actually loads it | Derivation |
+|------|------------------------------|------------|
+| `AGENTS.md` | Codex CLI, Gemini CLI, Zed, opencode, and every reader of the [agents.md](https://agents.md) convention | canonical source |
+| `CLAUDE.md` | Claude Code (it reads `CLAUDE.md`, **not** `AGENTS.md`) | one-line `@AGENTS.md` [import](https://code.claude.com/docs/en/memory) — no duplicated content |
+| `.github/copilot-instructions.md` | GitHub Copilot (no `AGENTS.md` import mechanism) | full canonical content, generated |
+| `.cursor/rules/svforge.mdc` | Cursor (project rules with `alwaysApply: true`) | full canonical content, generated |
+
+These instruction files are **advisory**: they tell agents what to prefer. Mechanical enforcement stays in `svforge check` (no second UI kit, no duplicated primitives, no invented utilities) and in `svelte-check`/tests. Instruction files are never the only guardrail, and `svforge check` does not depend on them.
 
 Typical workflow:
 
