@@ -308,8 +308,15 @@ for (const file of walk(join(ROOT, 'src'), ['.svelte'])) {
 		return findings;
 	};
 	for (const file of walk(join(ROOT, 'src'), ['.svelte'])) {
-		const rel = relative(ROOT, file);
-		if (rel.includes('components/svforge/')) continue;
+		// Exact-path exemption only (#342 review, mirroring #361): the canonical
+		// implementation at its exact catalog path (plus precise installed-addon
+		// component paths) is exempt — an unapproved new component in the same
+		// directory still warns.
+		const relFromComponents = relative(componentsDir, file).split(sep).join('/');
+		const isCanonicalImplementation =
+			catalogPaths.has(relFromComponents) ||
+			installedModules.some((moduleId) => (ADDON_COMPONENTS[moduleId] ?? []).includes(relFromComponents));
+		if (isCanonicalImplementation) continue;
 		const findings = detectAvoid(readFileSync(file, 'utf-8'));
 		for (const { component, reason } of findings) {
 			results.push({ status: 'warn', msg: `${relative(ROOT, file)}: ${reason} — consider ${component}` });

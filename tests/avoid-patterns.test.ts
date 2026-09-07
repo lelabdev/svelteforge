@@ -2,7 +2,8 @@ import { describe, it, expect } from 'vitest';
 import {
 	AVOID_PATTERNS,
 	checkAvoidPatterns,
-	checkDesignSystem
+	checkDesignSystem,
+	SVFORGE_CATALOG
 } from '../packages/svforge/src/design-system';
 
 /**
@@ -91,32 +92,78 @@ describe('avoid pattern matchers (#342)', () => {
 	});
 });
 
-describe('avoid patterns skip canonical implementations (#342)', () => {
-	it('does not warn inside src/lib/components/svforge/ but warns in routes', async () => {
+describe('avoid patterns: exact-path canonical exemption (#342 review)', () => {
+	it('exempts the exact catalog path but warns for unapproved components in the same directory', async () => {
 		const { mkdtempSync, mkdirSync, writeFileSync, rmSync } = await import('node:fs');
 		const { tmpdir } = await import('node:os');
 		const { join } = await import('node:path');
 		const root = mkdtempSync(join(tmpdir(), 'svforge-avoid-'));
 		try {
 			writeFileSync(join(root, 'package.json'), JSON.stringify({ dependencies: {} }));
-			const tableDir = join(root, 'src/lib/components/svforge/ui');
-			mkdirSync(tableDir, { recursive: true });
-			writeFileSync(
-				join(tableDir, 'Table.svelte'),
-				'<table class="w-full"><thead></thead></table>'
-			);
+			const uiDir = join(root, 'src/lib/components/svforge/ui');
+			mkdirSync(uiDir, { recursive: true });
+			// Exact catalog path of the canonical Table implementation.
+			writeFileSync(join(uiDir, 'Table.svelte'), '<table class="w-full"><thead></thead></table>');
+			// Unapproved new component in the SAME directory — must still warn.
+			writeFileSync(join(uiDir, 'CustomTable.svelte'), '<table class="w-full"></table>');
+			// Routes markup keeps warning too.
 			const routesDir = join(root, 'src/routes');
 			mkdirSync(routesDir, { recursive: true });
 			writeFileSync(join(routesDir, '+page.svelte'), '<table class="w-full"></table>');
 			const results = await checkDesignSystem(root);
+			// Only avoid-pattern warns end with '— consider Table'; the minimal
+			// tmp project also triggers the duplication ERROR for Table.svelte
+			// (no svforge-catalog.json), which is unrelated to this check.
 			const warns = results.filter(
-				(result) => result.status === 'warn' && result.message.includes('Table')
+				(result) => result.status === 'warn' && result.message.includes('consider Table')
 			);
-			expect(warns).toHaveLength(1);
-			expect(warns[0].message).toContain('+page.svelte');
-			expect(warns[0].message).not.toContain('Table.svelte');
+			expect(warns).toHaveLength(2);
+			expect(warns.map((warn) => warn.message)).toEqual(
+				expect.arrayContaining([
+					expect.stringContaining('CustomTable.svelte'),
+					expect.stringContaining('+page.svelte')
+				])
+			);
+			expect(warns.some((warn) => warn.message.includes('ui/Table.svelte'))).toBe(false);
 		} finally {
 			rmSync(root, { recursive: true, force: true });
 		}
+	});
+
+	it('matches matchers to the catalog: no drift possible without failing', () => {
+		// AVOID_PATTERNS must be DERIVED from SVFORGE_CATALOG.avoidPatterns:
+		// every matcher targets an existing catalog entry whose avoid contract
+		// is documented and non-empty, and every documented detectable entry
+		// ships at least one matcher.
+		for (const pattern of AVOID_PATTERNS) {
+			const entry = SVFORGE_CATALOG[pattern.component];
+			expect(entry, `${pattern.component} must be a catalog entry`).toBeDefined();
+			expect(entry.avoid?.length, `${pattern.component}.avoid must be non-empty`).toBeGreaterThan(0);
+			expect(entry.avoidPatterns?.length, `${pattern.component} must co-locate its matcher`).toBeGreaterThan(0);
+		}
+		for (const [name, entry] of Object.entries(SVFORGE_CATALOG)) {
+			if (entry.avoidPatterns?.length) {
+				expect(entry.avoid?.length, `${name}: avoid contract required with avoidPatterns`).toBeGreaterThan(0);
+			}
+		}
+		// The detectable set is exactly these six components.
+		expect(AVOID_PATTERNS.map((pattern) => pattern.component).sort()).toEqual(
+			['Button', 'Card', 'Input', 'Select', 'Table', 'Textarea'].sort()
+		);
+	});
+
+	it('deriveAvoidPatterns rejects an empty avoid contract (drift guard)', async () => {
+		const { deriveAvoidPatterns } = await import('../packages/svforge/src/design-system');
+		expect(() =>
+			deriveAvoidPatterns({
+				Foo: {
+					path: 'ui/Foo.svelte',
+					category: 'ui',
+					useFor: ['x'],
+					avoid: [],
+					avoidPatterns: [{ element: 'div', styleTokens: [], legitTokens: [], match: 'any', reason: 'r' }]
+				}
+			})
+		).toThrow(/empty avoid contract/);
 	});
 });
