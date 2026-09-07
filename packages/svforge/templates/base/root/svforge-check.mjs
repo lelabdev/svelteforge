@@ -303,6 +303,7 @@ for (const file of walk(join(ROOT, 'src'), ['.svelte'])) {
 			for (const match of source.matchAll(elementRegex)) {
 				const classMatch = (match[1] ?? '').match(/class=(?:"([^"]*)"|'([^']*)'|\{([^}]*)\})/);
 				const tokens = (classMatch?.[1] ?? classMatch?.[2] ?? classMatch?.[3] ?? '').trim().split(/\s+/).filter(Boolean);
+				if (pattern.attributePattern && !new RegExp(pattern.attributePattern, 'i').test(match[1] ?? '')) continue;
 				if (pattern.legitTokens.some((prefix) => tokens.some((token) => token.startsWith(prefix)))) continue;
 				const has = (prefix) => tokens.some((token) => token.startsWith(prefix));
 				const styled = pattern.styleTokens.length === 0 || (pattern.match === 'all' ? pattern.styleTokens.every(has) : pattern.styleTokens.some(has));
