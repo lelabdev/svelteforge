@@ -13,9 +13,9 @@ const date = new Date(data.post.date).toLocaleDateString('en', { year: 'numeric'
 <meta name="description" content={data.post.excerpt} />
 </svelte:head>
 
-<article class="max-w-prose mx-auto px-element py-section">
+<article class="max-w-prose mx-auto px-4 py-8">
 <a href="/blog" class="text-primary-500 mb-4 inline-block">← Back to blog</a>
-<h1 class="text-4xl font-heading font-bold mb-4">{data.post.title}</h1>
-<p class="text-surface-400 mb-section">{date}</p>
+<h1 class="text-4xl font-bold mb-4">{data.post.title}</h1>
+<p class="text-surface-400 mb-8">{date}</p>
 <Post />
 </article>
