@@ -104,8 +104,13 @@ describe('admin users +page.server — user management', () => {
 		vi.mocked(isAdmin).mockResolvedValue(true);
 
 		const { db } = await import('$lib/server/db');
+		const { user } = await import('$lib/server/db/schema');
+		const { eq } = await import('drizzle-orm');
+		vi.mocked(eq).mockImplementation((column: unknown, value: unknown) => ({ column, value }) as never);
+		const updateWhere = vi.fn();
+		const setUser = vi.fn(() => ({ where: updateWhere }));
+		const updateUser = vi.fn(() => ({ set: setUser }));
 		const deleteSession = vi.fn(() => ({ where: vi.fn() }));
-		const updateUser = vi.fn(() => ({ set: vi.fn(() => ({ where: vi.fn() })) }));
 		(db.select as any).mockReturnValueOnce({
 			from: vi.fn(() => ({ where: vi.fn(() => ({ limit: vi.fn(() => [{ id: 'user-1', disabled: false }]) })) }))
 		});
@@ -123,8 +128,37 @@ describe('admin users +page.server — user management', () => {
 		} as any);
 
 		expect(result).toMatchObject({ success: true, code: 'deactivated' });
-		expect(updateUser).toHaveBeenCalledWith(expect.objectContaining({ disabled: true }));
+		expect(updateUser).toHaveBeenCalledWith(user);
+		expect(setUser).toHaveBeenCalledWith(expect.objectContaining({ disabled: true }));
+		expect(updateWhere).toHaveBeenCalledWith({ column: user.id, value: 'user-1' });
 		expect(deleteSession).toHaveBeenCalledTimes(1);
+	});
+
+	it('reactivates a user without revoking sessions', async () => {
+		const { isAdmin } = await import('$lib/server/admin');
+		vi.mocked(isAdmin).mockResolvedValue(true);
+
+		const { db } = await import('$lib/server/db');
+		const deleteSession = vi.fn(() => ({ where: vi.fn() }));
+		const updateUser = vi.fn(() => ({ set: vi.fn(() => ({ where: vi.fn() })) }));
+		(db.select as any).mockReturnValueOnce({
+			from: vi.fn(() => ({ where: vi.fn(() => ({ limit: vi.fn(() => [{ id: 'user-1', disabled: true }]) })) }))
+		});
+		(db.transaction as any).mockImplementationOnce(async (callback: Function) =>
+			callback({ delete: deleteSession, update: updateUser })
+		);
+
+		const mod = await import('./+page.server');
+		const formData = new FormData();
+		formData.set('id', 'user-1');
+		formData.set('disabled', 'false');
+		const result = await mod.actions.toggleStatus({
+			locals: { user: { id: 'admin1' } },
+			request: { formData: async () => formData }
+		} as any);
+
+		expect(result).toMatchObject({ success: true, code: 'reactivated' });
+		expect(deleteSession).not.toHaveBeenCalled();
 	});
 
 	it('allows admin to toggle verification (success)', async () => {
