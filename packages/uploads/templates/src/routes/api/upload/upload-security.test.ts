@@ -14,9 +14,8 @@ vi.mock('@aws-sdk/s3-request-presigner', () => ({
 	getSignedUrl: vi.fn().mockResolvedValue('https://signed.example/url')
 }));
 
-vi.mock('$env/dynamic/private', () => ({
-	env: { S3_BUCKET: 'test-bucket' }
-}));
+const env: Record<string, string | undefined> = { S3_BUCKET: 'test-bucket' };
+vi.mock('$env/dynamic/private', () => ({ env }));
 
 // Import the endpoint AFTER mocks are registered.
 const { POST } = await import('./+server');
@@ -89,5 +88,13 @@ describe('upload endpoint security (test pack)', () => {
 				Conditions: expect.arrayContaining([['content-length-range', 1, 10 * 1024 * 1024]])
 			})
 		);
+	});
+
+	it('labels the PUT-only provider fallback as best-effort', async () => {
+		env.S3_UPLOAD_SIZE_POLICY = 'presigned-put';
+		const res = await POST(makeRequest({ filename: 'avatar.png', contentType: 'image/png', size: 500 }));
+		expect(res.status).toBe(200);
+		expect(await res.json()).toMatchObject({ method: 'PUT', sizePolicy: 'best-effort' });
+		delete env.S3_UPLOAD_SIZE_POLICY;
 	});
 });

@@ -18,7 +18,9 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024;
  * POST-policy support: it validates the declared size before signing, but is
  * explicitly best-effort because a holder of the PUT URL can upload more.
  */
-const sizePolicy = env.S3_UPLOAD_SIZE_POLICY === 'presigned-put' ? 'best-effort' : 'storage-enforced';
+function getSizePolicy(): 'best-effort' | 'storage-enforced' {
+	return env.S3_UPLOAD_SIZE_POLICY === 'presigned-put' ? 'best-effort' : 'storage-enforced';
+}
 
 /**
  * Allowed MIME types for uploads. SVG is deliberately EXCLUDED: serving an
@@ -60,10 +62,13 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	if (!ALLOWED_MIME_TYPES.includes(contentType as (typeof ALLOWED_MIME_TYPES)[number])) {
 		return json({ error: `File type ${contentType} is not allowed` }, { status: 400 });
 	}
-	if (typeof size !== 'number' || size <= 0) return json({ error: 'Valid file size required' }, { status: 400 });
+	if (typeof size !== 'number' || !Number.isFinite(size) || size <= 0) {
+		return json({ error: 'Valid file size required' }, { status: 400 });
+	}
 	if (size > MAX_FILE_SIZE) return json({ error: `File exceeds maximum size of ${MAX_FILE_SIZE} bytes` }, { status: 413 });
 
 	const key = `uploads/${crypto.randomUUID()}-${sanitizeFilename(filename)}`;
+	const sizePolicy = getSizePolicy();
 	if (sizePolicy === 'storage-enforced') {
 		const post = await createPresignedPost(getS3(), {
 			Bucket: env.S3_BUCKET!,
