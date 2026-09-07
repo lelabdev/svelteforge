@@ -5,7 +5,7 @@
  *
  * Exposed via the `svforge` bin (#189, #240):
  *   npx svforge doctor
- *   npx svforge check
+ *   npx svforge check [--strict]
  *   npx svforge upgrade <module> [--to <version>] [--force]
  */
 
@@ -28,7 +28,8 @@ async function main() {
 	}
 
 	if (command === 'check') {
-		// Design-system harness (#240): ERROR blocks, WARN is informational.
+		// Strict mode (#344): WARN is blocking too, for opt-in Git hooks.
+		const strict = args.includes('--strict');
 		const results = await api.checkDesignSystem(projectRoot);
 		const errors = results.filter((r) => r.status === 'error');
 		const warnings = results.filter((r) => r.status === 'warn');
@@ -37,14 +38,14 @@ async function main() {
 			const icon = r.status === 'ok' ? '✓' : r.status === 'warn' ? '⚠' : '✗';
 			console.log(`  ${icon} [${r.module}] ${r.status.toUpperCase()}: ${r.message}`);
 		}
-		if (errors.length) {
-			console.log(`\n✗ ${errors.length} design-system violation(s). Fix them before proceeding.`);
+		if (errors.length || (strict && warnings.length)) {
+			console.log(`\n✗ ${errors.length + (strict ? warnings.length : 0)} design-system violation(s). Fix them before proceeding.`);
 		} else if (warnings.length) {
 			console.log(`\n⚠ ${warnings.length} warning(s) — review, not blocking.`);
 		} else {
 			console.log('\n✓ Design system is clean.');
 		}
-		process.exitCode = errors.length ? 1 : 0;
+		process.exitCode = errors.length || (strict && warnings.length) ? 1 : 0;
 		return;
 	}
 
@@ -113,7 +114,7 @@ async function main() {
 		return;
 	}
 
-	console.error('Usage: svforge <doctor|check|preset|upgrade>');
+	console.error('Usage: svforge <doctor|check [--strict]|preset|upgrade>');
 	process.exitCode = 1;
 }
 

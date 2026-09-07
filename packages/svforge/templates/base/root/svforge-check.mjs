@@ -3,7 +3,7 @@
  * SVForge design-system check (#240, #335).
  *
  * Self-contained (no runtime deps): scans the project for design-system
- * violations and exits non-zero on ERROR. Delivered by the SvelteForge base
+ * violations and exits non-zero on ERROR (or WARN with --strict). Delivered by the SvelteForge base
  * template — run `node svforge-check.mjs` (or `bun svforge-check.mjs`) after
  * composing a page.
  *
@@ -18,6 +18,7 @@ import { readFileSync, readdirSync, existsSync, statSync } from 'node:fs';
 import { join, relative, basename, sep } from 'node:path';
 
 const ROOT = process.cwd();
+const STRICT = process.argv.includes('--strict');
 const results = [];
 
 // Skeleton inventory injected at scaffold time from the actually shipped
@@ -393,4 +394,4 @@ if (results.length === 0) {
 for (const result of results) {
 	console.log(`${result.status === 'error' ? '✗' : '⚠'} [ds] ${result.status.toUpperCase()}: ${result.msg}`);
 }
-process.exit(results.some((result) => result.status === 'error') ? 1 : 0);
+process.exit(results.some((result) => result.status === 'error' || (STRICT && result.status === 'warn')) ? 1 : 0);
