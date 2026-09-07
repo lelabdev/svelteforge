@@ -92,7 +92,7 @@
 				<button class="btn p-2 preset-tonal-surface lg:hidden" onclick={() => (mobileOpen = !mobileOpen)} aria-label={m.layout_menu()} aria-expanded={mobileOpen}>
 					{#if mobileOpen}<X size={20} />{:else}<Menu size={20} />{/if}
 				</button>
-				<h1 class="text-lg font-bold">{m.layout_dashboard()}</h1>
+				<h1 class="text-lg font-bold">{m.layout_admin()}</h1>
 			</div>
 			<div class="flex items-center gap-3">
 				<ThemeToggle class="lg:hidden" />

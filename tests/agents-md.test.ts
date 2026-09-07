@@ -27,6 +27,15 @@ describe('AGENTS.md as the sole agent convention (#347)', () => {
 		expect(canonical).toMatch(/svforge check/);
 	});
 
+	it('gives every scaffold a reusable composition grammar', () => {
+		const canonical = scaffoldedAgents('base');
+		expect(canonical).toContain('## Composition grammar');
+		expect(canonical).toContain('shell owns navigation and global context');
+		expect(canonical).toContain('one dominant action');
+		expect(canonical).toContain('A Card is a functional unit, not a default wrapper');
+		expect(canonical).toContain('width follow the content');
+	});
+
 	it('propagates the dashboard golden references into AGENTS.md', () => {
 		expect(scaffoldedAgents('dashboard')).toContain('Golden references');
 	});
