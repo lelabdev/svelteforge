@@ -101,9 +101,8 @@
   "settings_new_password": "New Password",
   "settings_confirm_password": "Confirm New Password",
   "settings_password_mismatch": "Passwords do not match",
-  "settings_update_password": "Update Password"
-,
-"demo_buttons": "Button",
+  "settings_update_password": "Update Password",
+  "demo_buttons": "Button",
   "demo_card": "Card",
   "demo_badge": "Badge",
   "demo_alert": "Alert",
@@ -156,5 +155,18 @@
   "demo_richer_desc": "Accordion, Tabs, Avatar, Breadcrumb… are provided by",
   "demo_theme_desc": "Click to toggle light/dark mode:",
   "demo_nav": "Demo",
-  "demo_submit": "Submit"
+  "demo_submit": "Submit",
+  "users_deactivate": "Deactivate user",
+  "users_reactivate": "Reactivate user",
+  "users_deactivated": "User deactivated and sessions revoked",
+  "users_reactivated": "User reactivated",
+  "users_self_deactivate": "You cannot deactivate your own administrator account",
+  "users_status_failed": "Failed to update user status",
+  "users_modal_deactivate": "Deactivate User",
+  "users_modal_reactivate": "Reactivate User",
+  "users_deactivate_confirm": "Deactivate {name}? Their active sessions will be revoked, but their identity and history will remain.",
+  "users_reactivate_confirm": "Reactivate {name}? They will be able to sign in again.",
+  "users_deactivate_btn": "Deactivate",
+  "users_reactivate_btn": "Reactivate",
+  "users_disabled": "Deactivated"
 }

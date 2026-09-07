@@ -12,14 +12,15 @@ vi.mock('$lib/server/db', () => {
 		update: vi.fn(() => ({ set: vi.fn(() => ({ where: vi.fn() })) })),
 		delete: vi.fn(() => ({ where: vi.fn() })),
 		transaction: vi.fn(async (cb: Function) => cb({
-			delete: vi.fn(() => ({ where: vi.fn() }))
+			delete: vi.fn(() => ({ where: vi.fn() })),
+			update: vi.fn(() => ({ set: vi.fn(() => ({ where: vi.fn() })) }))
 		}))
 	};
 	return { db: mockQuery };
 });
 
 vi.mock('$lib/server/db/schema', () => ({
-	user: { id: 'id', email: 'email', name: 'name' },
+	user: { id: 'id', email: 'email', name: 'name', disabled: 'disabled' },
 	account: { userId: 'userId' },
 	session: { userId: 'userId' }
 }));
@@ -96,6 +97,34 @@ describe('admin users +page.server — validation', () => {
 describe('admin users +page.server — user management', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
+	});
+
+	it('deactivates a user without deleting their identity and revokes every session', async () => {
+		const { isAdmin } = await import('$lib/server/admin');
+		vi.mocked(isAdmin).mockResolvedValue(true);
+
+		const { db } = await import('$lib/server/db');
+		const deleteSession = vi.fn(() => ({ where: vi.fn() }));
+		const updateUser = vi.fn(() => ({ set: vi.fn(() => ({ where: vi.fn() })) }));
+		(db.select as any).mockReturnValueOnce({
+			from: vi.fn(() => ({ where: vi.fn(() => ({ limit: vi.fn(() => [{ id: 'user-1', disabled: false }]) })) }))
+		});
+		(db.transaction as any).mockImplementationOnce(async (callback: Function) =>
+			callback({ delete: deleteSession, update: updateUser })
+		);
+
+		const mod = await import('./+page.server');
+		const formData = new FormData();
+		formData.set('id', 'user-1');
+		formData.set('disabled', 'true');
+		const result = await mod.actions.toggleStatus({
+			locals: { user: { id: 'admin1' } },
+			request: { formData: async () => formData }
+		} as any);
+
+		expect(result).toMatchObject({ success: true, code: 'deactivated' });
+		expect(updateUser).toHaveBeenCalledWith(expect.objectContaining({ disabled: true }));
+		expect(deleteSession).toHaveBeenCalledTimes(1);
 	});
 
 	it('allows admin to toggle verification (success)', async () => {

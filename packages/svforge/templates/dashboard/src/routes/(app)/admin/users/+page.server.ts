@@ -1,10 +1,10 @@
 import { db } from '$lib/server/db';
-import { user, account, session } from '$lib/server/db/schema';
+import { user, session } from '$lib/server/db/schema';
 import { desc, eq } from 'drizzle-orm';
 import { fail, redirect, error, type Actions } from '@sveltejs/kit';
 import { isAdmin } from '$lib/server/admin';
 import { createCredentialUser, DuplicateEmailError } from '$lib/server/admin-users';
-import { createUserSchema, updateUserSchema, deleteUserSchema, toggleVerifySchema } from '$lib/server/schemas';
+import { createUserSchema, updateUserSchema, toggleUserStatusSchema, toggleVerifySchema } from '$lib/server/schemas';
 import type { PageServerLoad } from './$types';
 import type { RequestEvent } from '@sveltejs/kit';
 
@@ -35,6 +35,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 		email: user.email,
 		emailVerified: user.emailVerified,
 		image: user.image,
+		disabled: user.disabled,
 		createdAt: user.createdAt
 	}).from(user).orderBy(desc(user.createdAt));
 
@@ -125,45 +126,35 @@ export const actions: Actions = {
 		return { success: true, code: 'updated' };
 	},
 
-	delete: async (event) => {
+	toggleStatus: async (event) => {
 		const adminId = await requireAdmin(event);
-		const { request } = event;
-		const formData = await request.formData();
-		const parsed = deleteUserSchema.safeParse({
-			id: formData.get('id')
+		const formData = await event.request.formData();
+		const parsed = toggleUserStatusSchema.safeParse({
+			id: formData.get('id'),
+			disabled: formData.get('disabled') === 'true'
 		});
 
-		if (!parsed.success) {
-			return fail(400, { code: 'invalid_input' });
-		}
+		if (!parsed.success) return fail(400, { code: 'invalid_input' });
 
-		const { id } = parsed.data;
+		const { id, disabled } = parsed.data;
+		// The only administrator must remain able to administer the project.
+		if (disabled && id === adminId) return fail(400, { code: 'self_deactivate' });
 
-		// Prevent self-delete
-		if (id === adminId) {
-			return fail(400, { code: 'self_delete' });
-		}
+		const [target] = await db.select({ id: user.id, disabled: user.disabled }).from(user).where(eq(user.id, id)).limit(1);
+		if (!target) return fail(404, { code: 'not_found' });
 
-		// Verify the target user exists before attempting deletion
-		const [target] = await db.select({ id: user.id }).from(user).where(eq(user.id, id)).limit(1);
-		if (!target) {
-			return fail(404, { code: 'not_found' });
-		}
-
-		// Atomic deletion: session → account → user (FK-safe order)
-		// All deletions succeed or none do.
 		try {
 			await db.transaction(async (tx) => {
-				await tx.delete(session).where(eq(session.userId, id));
-				await tx.delete(account).where(eq(account.userId, id));
-				await tx.delete(user).where(eq(user.id, id));
+				await tx.update(user).set({ disabled, updatedAt: new Date() }).where(eq(user.id, id));
+				// Revoking sessions immediately prevents a newly disabled user from
+				// continuing to access protected routes. Accounts and the identity row stay.
+				if (disabled) await tx.delete(session).where(eq(session.userId, id));
 			});
 		} catch {
-			// Generic code — never leak e.message internals to the UI (#188).
-			return fail(500, { code: 'delete_failed' });
+			return fail(500, { code: 'status_failed' });
 		}
 
-		return { success: true, code: 'deleted' };
+		return { success: true, code: disabled ? 'deactivated' : 'reactivated' };
 	},
 
 	toggleVerify: async (event) => {

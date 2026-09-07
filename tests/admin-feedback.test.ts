@@ -45,7 +45,7 @@ describe('admin action feedback (#188)', () => {
 		expect(page).toMatch(/function feedbackFor\(code: string \| undefined, isError: boolean\)/);
 		expect(page).toMatch(/m\.users_email_exists\(\)/);
 		expect(page).toMatch(/m\.users_email_taken\(\)/);
-		expect(page).toMatch(/m\.users_self_delete\(\)/);
+		expect(page).toMatch(/m\.users_self_deactivate\(\)/);
 		expect(page).toMatch(/m\.users_not_found\(\)/);
 		expect(page).toMatch(/m\.users_invalid_input\(\)/);
 		expect(page).toMatch(/m\.users_verify_failed\(\)/);
@@ -62,7 +62,7 @@ describe('admin action feedback (#188)', () => {
 		expect(server).not.toMatch(/'Email already exists'/);
 		expect(server).toMatch(/code: 'email_exists'/);
 		expect(server).toMatch(/code: 'created'/);
-		expect(server).toMatch(/code: 'self_delete'/);
+		expect(server).toMatch(/code: 'self_deactivate'/);
 	});
 
 	it('never exposes raw e.message to the UI (server actions)', () => {

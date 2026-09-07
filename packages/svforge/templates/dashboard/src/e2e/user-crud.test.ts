@@ -27,20 +27,17 @@ test.describe('user management CRUD', () => {
 		await expect(page.locator('[role="alert"], .error, .text-error')).toBeVisible({ timeout: 5000 });
 	});
 
-	test('can delete a user', async ({ page }) => {
-		// Find a delete button (not the self-delete which is disabled)
-		const deleteButtons = page.locator('button[aria-label="Delete user"]:not([disabled])');
-		const count = await deleteButtons.count();
+	test('can deactivate a user without removing their identity', async ({ page }) => {
+		const deactivateButtons = page.locator('button[aria-label="Deactivate user"]:not([disabled])');
+		const count = await deactivateButtons.count();
 		if (count > 0) {
-			await deleteButtons.first().click();
-			// Confirm deletion
-			await page.click('button:has-text("Delete"):not([aria-label])');
+			await deactivateButtons.first().click();
+			await page.click('button:has-text("Deactivate"):not([aria-label])');
 			await expect(page.locator('[role="alert"], .feedback, .text-success')).toBeVisible({ timeout: 5000 });
 		}
 	});
 
-	test('prevents self-deletion', async ({ page }) => {
-		// The current admin's delete button should be disabled
-		await expect(page.locator('button[disabled][aria-label="Delete user"]')).toBeVisible();
+	test('prevents self-deactivation', async ({ page }) => {
+		await expect(page.locator('button[disabled][aria-label="Deactivate user"]')).toBeVisible();
 	});
 });
