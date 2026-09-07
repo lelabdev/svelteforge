@@ -5,7 +5,7 @@
 # Key points:
 # - Uses `file:` so sv resolves the addon from ./packages/svforge (local build),
 #   NOT the published npm package (which lacks local changes).
-# - All addon options are passed explicitly (template + testing) so sv never prompts.
+# - All addon options are passed explicitly (template + testing + hooks) so sv never prompts.
 # - `bunx sv` resolves the workspace's pinned `sv` (^0.15.x from the lockfile);
 #   the canary workflow (#205) is what tests against ecosystem `latest`.
 # - The dashboard needs a .env at build time (auth/db modules are evaluated);
@@ -43,7 +43,7 @@ cd app
 #    (audit/notifications/jobs/chat/realtime) against a real PostgreSQL.
 if [ "$TEMPLATE" = "dashboard-foundations" ]; then
 	$SV_CMD add \
-		"file:$REPO_ROOT/packages/svforge=template:dashboard+testing:vitest" \
+		"file:$REPO_ROOT/packages/svforge=template:dashboard+testing:vitest+hooks:none" \
 		"file:$REPO_ROOT/packages/audit" \
 		"file:$REPO_ROOT/packages/notifications" \
 		"file:$REPO_ROOT/packages/jobs" \
@@ -51,16 +51,16 @@ if [ "$TEMPLATE" = "dashboard-foundations" ]; then
 		"file:$REPO_ROOT/packages/realtime" \
 		--install bun --no-download-check
 elif [ "$TEMPLATE" = "dashboard-playwright" ]; then
-	ADD_SPEC="file:$REPO_ROOT/packages/svforge=template:dashboard+testing:playwright"
+	ADD_SPEC="file:$REPO_ROOT/packages/svforge=template:dashboard+testing:playwright+hooks:none"
 elif [ "$TEMPLATE" = "dashboard" ]; then
-	ADD_SPEC="file:$REPO_ROOT/packages/svforge=template:dashboard+testing:vitest"
+	ADD_SPEC="file:$REPO_ROOT/packages/svforge=template:dashboard+testing:vitest+hooks:none"
 elif [ "$TEMPLATE" = "base-ui-modules" ]; then
-	ADD_SPEC="file:$REPO_ROOT/packages/svforge=template:base+testing:vitest"
+	ADD_SPEC="file:$REPO_ROOT/packages/svforge=template:base+testing:vitest+hooks:none"
 elif [ "$TEMPLATE" = "dashboard-integrations" ]; then
-	ADD_SPEC="file:$REPO_ROOT/packages/svforge=template:dashboard+testing:vitest"
+	ADD_SPEC="file:$REPO_ROOT/packages/svforge=template:dashboard+testing:vitest+hooks:none"
 fi
 if [ "$TEMPLATE" != "base-modules" ] && [ "$TEMPLATE" != "dashboard-foundations" ]; then
-	ADD_SPEC="${ADD_SPEC:-file:$REPO_ROOT/packages/svforge=template:base+testing:vitest}"
+	ADD_SPEC="${ADD_SPEC:-file:$REPO_ROOT/packages/svforge=template:base+testing:vitest+hooks:none}"
 	$SV_CMD add "$ADD_SPEC" --install bun --no-download-check
 fi
 
@@ -123,7 +123,7 @@ if [ "$TEMPLATE" = "base-modules" ]; then
 	$SV_CMD add "file:$REPO_ROOT/packages/ui_toast" --install bun --no-download-check
 	grep -q "skeleton-svelte" package.json || { echo "❌ skeleton-svelte not declared (#190)"; exit 1; }
 	# 3. graph on svforge base → works
-	$SV_CMD add "file:$REPO_ROOT/packages/svforge=template:base+testing:vitest" --install bun --no-download-check
+	$SV_CMD add "file:$REPO_ROOT/packages/svforge=template:base+testing:vitest+hooks:none" --install bun --no-download-check
 	$SV_CMD add "file:$REPO_ROOT/packages/graph" --install bun --no-download-check
 	test -f src/lib/components/svforge/graph/KnowledgeGraph.svelte || { echo "❌ graph files missing on base (#190)"; exit 1; }
 fi
