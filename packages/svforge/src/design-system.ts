@@ -389,8 +389,7 @@ export async function checkDesignSystem(projectRoot: string): Promise<Diagnostic
 			// Approved by exact path only: catalog components + the precise
 			// component paths of an INSTALLED addon — never a whole dir.
 			if (catalogPaths.has(relFromComponents)) continue;
-			const addonRoot = relFromComponents.slice(0, relFromComponents.indexOf('/'));
-			if (installedModules.includes(addonRoot) && (ADDON_COMPONENTS[addonRoot] ?? []).includes(relFromComponents)) continue;
+			if (isApprovedAddonComponent(relFromComponents, installedModules)) continue;
 			results.push({
 				module: 'ds',
 				status: 'error',
@@ -536,6 +535,19 @@ export function checkSvelteMarkup(source: string, ctx: MarkupContext): { classNa
 		if (violations.length) out.push({ className, violations });
 	}
 	return out;
+}
+
+/**
+ * Whether a POSIX component path is an approved component of an INSTALLED
+ * addon (#361). The addon id is the mapping KEY — it may differ from the
+ * path's first segment (notifications → ui/NotificationsBell.svelte,
+ * ui_toast → ui/Toaster.svelte).
+ */
+export function isApprovedAddonComponent(
+	relPosixPath: string,
+	installedModules: readonly string[]
+): boolean {
+	return installedModules.some((moduleId) => (ADDON_COMPONENTS[moduleId] ?? []).includes(relPosixPath));
 }
 
 /** Read the installed addon module ids from the project manifest (.svforge.json). */

@@ -1,9 +1,9 @@
 import { readDirRecursively } from '../../../scripts/prebuild-utils';
-import { existsSync, readdirSync, readFileSync, writeFileSync } from 'fs';
+import { readFileSync, writeFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { parseChangelog, readChangelog } from '../../../scripts/changelog.mjs';
-import { buildSkeletonInventory } from './generate-skeleton-inventory';
+import { buildAddonComponents, buildSkeletonInventory } from './generate-skeleton-inventory';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -24,24 +24,9 @@ const skeletonInventory = buildSkeletonInventory(join(__dirname, '../../..'));
 // Approved addon component paths (#335): the EXACT .svelte paths the addons
 // deliver under src/lib/components/svforge/. Exemption is per precise path —
 // never per addon directory — so a new local component matching a Skeleton
-// primitive is still rejected.
-const addonComponents: Record<string, string[]> = {};
-const packagesDir = join(__dirname, '../../..', 'packages');
-for (const entry of readdirSync(packagesDir, { withFileTypes: true })) {
-	if (!entry.isDirectory() || entry.name === 'svforge') continue;
-	const templatesDir = join(packagesDir, entry.name, 'templates');
-	if (!existsSync(templatesDir)) continue;
-	const paths: string[] = [];
-	for (const [filePath] of Object.entries(readDirRecursively(templatesDir))) {
-		const marker = 'components/svforge/';
-		const index = filePath.indexOf(marker);
-		if (filePath.endsWith('.svelte') && index !== -1) {
-			const rel = filePath.slice(index + marker.length).split('\\').join('/');
-			if (!paths.includes(rel)) paths.push(rel);
-		}
-	}
-	if (paths.length) addonComponents[entry.name] = paths.sort();
-}
+// primitive is still rejected. Generated with SORTED enumeration (#361):
+// unsorted readdir made both artifacts drift on CI clean checkouts.
+const addonComponents = buildAddonComponents(join(__dirname, '../../..'));
 const baseRootFilesRaw = readDirRecursively(join(__dirname, '../templates/base/root'));
 const skeletonCheckerPath = '/svforge-check.mjs';
 if (!baseRootFilesRaw[skeletonCheckerPath]) {

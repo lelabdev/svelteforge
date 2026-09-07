@@ -11,6 +11,7 @@
  * whenever the inventory no longer matches the installed Skeleton version.
  */
 import { readdirSync, readFileSync, existsSync } from 'node:fs';
+import { readDirRecursively } from '../../../scripts/prebuild-utils';
 import { join } from 'node:path';
 
 export interface SkeletonInventory {
@@ -77,3 +78,38 @@ export function buildSkeletonInventory(monorepoRoot: string): SkeletonInventory 
 		utilityPrefixes: [...utilityPrefixes].sort()
 	};
 }
+
+
+/**
+ * Exact component paths each SVForge addon delivers under
+ * src/lib/components/svforge/, keyed by addon id (#335).
+ *
+ * Enumeration is SORTED: property insertion order flows into the generated
+ * artifact and the embedded checker, so unsorted readdir made both files
+ * drift on CI clean checkouts (#361 review).
+ */
+export function buildAddonComponents(monorepoRoot: string): Record<string, string[]> {
+	const packagesDir = join(monorepoRoot, 'packages');
+	const addonComponents: Record<string, string[]> = {};
+	const packageEntries = readdirSync(packagesDir, { withFileTypes: true })
+		.filter((entry) => entry.isDirectory() && entry.name !== 'svforge')
+		.sort((left, right) => left.name.localeCompare(right.name));
+	for (const entry of packageEntries) {
+		const templatesDir = join(packagesDir, entry.name, 'templates');
+		if (!existsSync(templatesDir)) continue;
+		const paths = new Set<string>();
+		for (const [filePath] of Object.entries(
+			readDirRecursively(templatesDir)
+		)) {
+			const marker = 'components/svforge/';
+			const index = filePath.indexOf(marker);
+			if (filePath.endsWith('.svelte') && index !== -1) {
+				paths.add(filePath.slice(index + marker.length).split('\\').join('/'));
+			}
+		}
+		if (paths.size) addonComponents[entry.name] = [...paths].sort();
+	}
+	return addonComponents;
+}
+
+

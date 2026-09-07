@@ -190,10 +190,12 @@ for (const file of walk(join(ROOT, 'src'), ['.svelte'])) {
 	// POSIX-normalized: catalog/generated paths always use forward slashes.
 	const relFromComponents = relative(componentsDir, file).split(sep).join('/');
 	if (catalogPaths.has(relFromComponents)) continue; // approved catalog component
-	const addonRoot = relFromComponents.slice(0, relFromComponents.indexOf('/'));
-	const approvedForInstalledAddon = installedModules.includes(addonRoot)
-		&& (ADDON_COMPONENTS[addonRoot] ?? []).includes(relFromComponents);
-	if (approvedForInstalledAddon) continue; // exact component of an installed addon
+	// The addon id is the mapping KEY — it may differ from the path's first
+	// segment (notifications → ui/NotificationsBell.svelte, ui_toast → ui/Toaster.svelte).
+	const owningAddon = installedModules.find(
+		(moduleId) => (ADDON_COMPONENTS[moduleId] ?? []).includes(relFromComponents)
+	);
+	if (owningAddon !== undefined) continue; // exact component of an installed addon
 	results.push({ status: 'error', msg: `Duplicated Skeleton primitive "${base}" at ${relative(ROOT, file)}. Use it from @skeletonlabs/skeleton-svelte or the svforge catalog instead.` });
 }
 

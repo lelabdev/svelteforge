@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
+	buildAddonComponents,
 	buildSkeletonInventory
 } from '../packages/svforge/scripts/generate-skeleton-inventory';
 
@@ -10,6 +11,7 @@ const {
 	checkClassString,
 	checkDesignSystem,
 	checkSvelteMarkup,
+	isApprovedAddonComponent,
 	REMOVED_SCAFFOLD_ALIASES
 } = await import('../packages/svforge/src/design-system');
 const { SKELETON_UTILITIES, SKELETON_UTILITY_PREFIXES, SKELETON_VERSIONS } = await import(
@@ -21,6 +23,18 @@ const tokens = (result: ReturnType<typeof checkClassString>) => result.map((viol
 const severities = (result: ReturnType<typeof checkClassString>) => result.map((violation) => violation.severity);
 
 describe('skeleton inventory (#335)', () => {
+	it('generates the addon mapping deterministically, with sorted keys and paths', () => {
+		const first = buildAddonComponents(ROOT);
+		const second = buildAddonComponents(ROOT);
+		expect(first).toEqual(second);
+		const keys = Object.keys(first);
+		expect(keys).toEqual([...keys].sort());
+		for (const key of keys) {
+			expect(first[key]).toEqual([...first[key]].sort());
+		}
+		expect(first.notifications).toContain('ui/NotificationsBell.svelte');
+		expect(first.ui_toast).toContain('ui/Toaster.svelte');
+	});
 	it('is generated from the installed @skeletonlabs packages', () => {
 		const inventory = buildSkeletonInventory(ROOT);
 		expect(SKELETON_VERSIONS).toEqual(inventory.versions);
@@ -250,5 +264,19 @@ describe('addon component exemptions are module-gated (#361 review)', () => {
 		} finally {
 			rmSync(root, { recursive: true, force: true });
 		}
+	});
+
+	it('approves by addon ID, not by path first segment (#361 review)', () => {
+		// notifications delivers ui/NotificationsBell.svelte: the first segment
+		// is 'ui', the mapping key is 'notifications'.
+		expect(isApprovedAddonComponent('ui/NotificationsBell.svelte', ['notifications'])).toBe(true);
+		// Same first segment, different addon id: NOT covered.
+		expect(isApprovedAddonComponent('ui/NotificationsBell.svelte', ['ui_toast'])).toBe(false);
+		expect(isApprovedAddonComponent('ui/NotificationsBell.svelte', [])).toBe(false);
+		// uploads/FileUpload.svelte keeps working with its matching addon id.
+		expect(isApprovedAddonComponent('uploads/FileUpload.svelte', ['uploads'])).toBe(true);
+		expect(isApprovedAddonComponent('uploads/FileUpload.svelte', [])).toBe(false);
+		// A non-addon path (new local component) is never approved.
+		expect(isApprovedAddonComponent('ui/Marquee.svelte', ['notifications'])).toBe(false);
 	});
 });
