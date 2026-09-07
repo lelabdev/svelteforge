@@ -307,6 +307,42 @@ if [ "$TEMPLATE" = "base" ] || [ "$TEMPLATE" = "dashboard" ] || [ "$TEMPLATE" = 
 		echo "$check_output"
 		exit 1
 	fi
+	# bun run check chains the design-system check (#343): the generated
+	# script must invoke the self-contained local checker.
+	grep -q 'svforge-check.mjs' package.json || { echo "❌ bun run check does not chain svforge-check.mjs (#343)"; exit 1; }
+fi
+
+# 5e (#343) severity contract through the REAL `bun run check` (base only —
+# it compiles Paraglide and runs svelte-check, ~1 min). ERROR fails the
+# command; WARN-only still succeeds.
+if [ "$TEMPLATE" = "base" ]; then
+	mkdir -p src/routes/__ds343
+	# ERROR: invented Skeleton-looking utility.
+	echo '<div class="btn-md"></div>' > src/routes/__ds343/+page.svelte
+	set +e
+	err_output=$(bun run check 2>&1)
+	err_status=$?
+	set -e
+	if [ "$err_status" -eq 0 ]; then
+		echo "❌ bun run check passed despite a design-system ERROR (#343):"
+		echo "$err_output"
+		rm -rf src/routes/__ds343
+		exit 1
+	fi
+	printf '%s' "$err_output" | grep -q 'btn-md does not exist' || { echo "❌ design-system ERROR not reported by bun run check (#343):"; echo "$err_output"; rm -rf src/routes/__ds343; exit 1; }
+	# WARN-only: arbitrary hex stays informational — the command still succeeds.
+	echo '<!-- #a1b2c3 -->' > src/routes/__ds343/+page.svelte
+	set +e
+	warn_output=$(bun run check 2>&1)
+	warn_status=$?
+	set -e
+	rm -rf src/routes/__ds343
+	if [ "$warn_status" -ne 0 ]; then
+		echo "❌ bun run check failed on a WARN-only project (#343):"
+		echo "$warn_output"
+		exit 1
+	fi
+	echo "✓ bun run check severity contract: ERROR fails, WARN-only passes (#343)"
 fi
 
 # 6. AI-ready: AGENTS.md scaffolded at the project root (#203)

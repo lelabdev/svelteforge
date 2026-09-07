@@ -6,13 +6,13 @@ let { data } = $props();
 
 <svelte:head><title>Blog</title></svelte:head>
 
-<main class="max-w-container mx-auto px-element py-section">
-<h1 class="text-4xl font-heading font-bold mb-section">Blog</h1>
-<div class="grid grid-cols-1 md:grid-cols-2 gap-group">
+<main class="max-w-7xl mx-auto px-4 py-8">
+<h1 class="text-4xl font-bold mb-8">Blog</h1>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 {#each data.posts as post (post.slug)}
 <a href="/blog/{post.slug}">
 <Card variant="elevated" class="h-full">
-<h2 class="text-xl font-heading font-bold mb-2">{post.title}</h2>
+<h2 class="text-xl font-bold mb-2">{post.title}</h2>
 <p class="text-surface-500 mb-4">{post.excerpt}</p>
 <div class="flex gap-2">
 {#each post.tags as tag}
