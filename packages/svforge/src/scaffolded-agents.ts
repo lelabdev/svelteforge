@@ -82,6 +82,17 @@ Canonical structure (#242) — the filesystem IS the registry:
 A domain-specific component does NOT belong in the generic design system —
 keep it in its feature area (e.g. \`src/lib/features/...\` or the route folder).
 
+## Composition grammar
+
+- The **shell owns navigation and global context**; page content states its purpose without unnecessarily repeating the shell title.
+- A **section** groups related content. A Card is a functional unit, not a default wrapper: use it for a stat, focused form, or bounded detail. Keep lists and tables direct when that better serves scanning.
+- Let width follow the content: compact forms, readable prose, wide data views, and field workflows have different needs. No \`max-w-*\` value is a universal rule.
+- Give an area **one dominant action**. Use secondary/tonal or outlined actions for supporting work; \`primary\`, \`secondary\`, \`surface\`, and semantic colors describe roles, not a mandatory brand.
+- On small screens preserve hierarchy, reading order, readable targets, and no overflow — do not preserve arbitrary desktop dimensions.
+- Do not add \`Page*\`/\`Section*\` components just to freeze dimensions; abstract only a genuinely repeated product convention.
+
+Use the existing screens as concrete references, not a gallery to copy: \`/demo-ui\` shows the available building blocks, \`/admin\` is a dashboard with one primary route action, \`/admin/users\` keeps a CRUD list/table direct, and \`/admin/settings\` uses focused form units.
+
 ## Design-system contract (#240, #313)
 
 **Reuse first**: prefer reuse over invention. A visually less custom interface
