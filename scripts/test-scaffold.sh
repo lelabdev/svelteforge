@@ -61,7 +61,16 @@ elif [ "$TEMPLATE" = "dashboard-integrations" ]; then
 fi
 if [ "$TEMPLATE" != "base-modules" ] && [ "$TEMPLATE" != "dashboard-foundations" ]; then
 	ADD_SPEC="${ADD_SPEC:-file:$REPO_ROOT/packages/svforge=template:base+testing:vitest+hooks:none}"
-	$SV_CMD add "$ADD_SPEC" --install bun --no-download-check
+	if [ "$TEMPLATE" = "base" ] || [ "$TEMPLATE" = "dashboard" ]; then
+		# The package is unpublished while this local scaffold test runs. Install
+		# its workspace sources after `sv add` writes the consumer manifest; normal
+		# release installs resolve the declared npm versions.
+		$SV_CMD add "$ADD_SPEC" --no-install --no-download-check
+		node -e 'const fs = require("node:fs"); const root = process.argv[1]; const p = JSON.parse(fs.readFileSync("package.json", "utf8")); p.devDependencies["eslint-plugin-svforge"] = `file:${root}/packages/eslint-plugin-svforge`; p.devDependencies.svforge = `file:${root}/packages/svforge`; p.overrides = { ...(p.overrides || {}), svforge: `file:${root}/packages/svforge` }; fs.writeFileSync("package.json", JSON.stringify(p, null, 2) + "\n");' "$REPO_ROOT"
+		bun install
+	else
+		$SV_CMD add "$ADD_SPEC" --install bun --no-download-check
+	fi
 fi
 
 # Blog module on top of base (#185): mdsvex must integrate via vite.config.ts
@@ -188,6 +197,26 @@ fi
 # fixed the UUID number/string drift in the DB modules.
 if [ "$TEMPLATE" = "base" ] || [ "$TEMPLATE" = "dashboard" ] || [ "$TEMPLATE" = "dashboard-playwright" ] || [ "$TEMPLATE" = "dashboard-foundations" ] || [ "$TEMPLATE" = "base-ui-modules" ] || [ "$TEMPLATE" = "dashboard-integrations" ] || [ "$TEMPLATE" = "base-blog" ]; then
 	bun run check || { echo "❌ svelte-check failed on $TEMPLATE scaffold (#266)"; exit 1; }
+fi
+
+# ESLint design diagnostics (#346): the config and plugin must be delivered
+# to BOTH base and dashboard projects. Real lint verifies JS, TS, and Svelte
+# violations with their source files and positions — never a silently omitted rule.
+if [ "$TEMPLATE" = "base" ] || [ "$TEMPLATE" = "dashboard" ]; then
+	test -f eslint.config.js || { echo "❌ eslint.config.js missing at project root (#346)"; exit 1; }
+	test -d node_modules/eslint-plugin-svforge || { echo "❌ eslint-plugin-svforge missing (#346)"; exit 1; }
+	mkdir -p src/lib/lint-probe
+	printf "import { Dialog } from 'bits-ui';\n" > src/lib/lint-probe/Violation.js
+	printf "import { Dialog } from 'bits-ui';\n" > src/lib/lint-probe/Violation.ts
+	printf "<script>\n\timport { Dialog } from 'bits-ui';\n</script>\n" > src/lib/lint-probe/Violation.svelte
+	if bun run lint >/tmp/sf-eslint.log 2>&1; then
+		cat /tmp/sf-eslint.log; echo "❌ ESLint did not report design violations (#346)"; exit 1
+	fi
+	for file in Violation.js Violation.ts Violation.svelte; do
+		grep -q "src/lib/lint-probe/$file" /tmp/sf-eslint.log || { cat /tmp/sf-eslint.log; echo "❌ ESLint missing $file location (#346)"; exit 1; }
+	done
+	grep -q "svforge/no-design-violations" /tmp/sf-eslint.log || { cat /tmp/sf-eslint.log; echo "❌ ESLint missing svforge rule identifier (#346)"; exit 1; }
+	rm -rf src/lib/lint-probe
 fi
 
 # Baseline Vitest (#235): vitest.config.ts must land at the PROJECT ROOT on

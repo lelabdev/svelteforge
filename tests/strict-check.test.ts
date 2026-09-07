@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { existsSync, mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
@@ -73,7 +73,18 @@ describe('strict design-system checks (#344)', () => {
 
 			// A freshly created project is not a Git repository. `--install bun`
 			// must still succeed; prepare intentionally does nothing in this case.
-			expectSuccess(project, sv, ['add', addon, '--install', 'bun', '--no-download-check']);
+			// The plugin is unpublished while this integration test exercises the
+			// local addon. Install the local workspace package after sv writes the
+			// generated manifest; releases resolve the declared npm version instead.
+			expectSuccess(project, sv, ['add', addon, '--no-install', '--no-download-check']);
+			const packagePath = join(project, 'package.json');
+			const pkg = JSON.parse(readFileSync(packagePath, 'utf8'));
+			pkg.devDependencies['eslint-plugin-svforge'] = `file:${join(ROOT, 'packages/eslint-plugin-svforge')}`;
+			// The local plugin imports the shared rule contract from the local addon.
+			pkg.devDependencies.svforge = `file:${join(ROOT, 'packages/svforge')}`;
+			pkg.overrides = { ...(pkg.overrides ?? {}), svforge: `file:${join(ROOT, 'packages/svforge')}` };
+			writeFileSync(packagePath, `${JSON.stringify(pkg, null, 2)}\n`);
+			expectSuccess(project, 'bun', ['install']);
 			expect(existsSync(join(project, '.git'))).toBe(false);
 
 			expectSuccess(project, 'git', ['init']);

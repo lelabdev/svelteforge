@@ -52,6 +52,7 @@ export function applyBaseMode(
 		const pkg = JSON.parse(content);
 		pkg.scripts = {
 			...pkg.scripts,
+			lint: 'eslint .',
 			test: 'vitest run',
 			'test:watch': 'vitest',
 			// #343: the design-system check rides on `bun run check` —

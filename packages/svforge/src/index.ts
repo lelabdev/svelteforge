@@ -101,8 +101,19 @@ export default defineAddon({
 		sv.dependency('phosphor-svelte', '^3.1.0');
 		sv.dependency('tailwind-merge', '^3.6.0');
 
+		sv.devDependency('@eslint/compat', '^2.0.4');
+		sv.devDependency('@eslint/js', '^10.0.1');
 		sv.devDependency('@skeletonlabs/skeleton', '^5.0.0');
 		sv.devDependency('@skeletonlabs/skeleton-svelte', '^5.0.0');
+		sv.devDependency('eslint', '^10.0.0');
+		sv.devDependency('eslint-config-prettier', '^10.0.0');
+		sv.devDependency('eslint-plugin-svelte', '^3.0.0');
+		sv.devDependency('eslint-plugin-svforge', '^1.2.0');
+		sv.devDependency('globals', '^17.0.0');
+		sv.devDependency('prettier', '^3.0.0');
+		sv.devDependency('prettier-plugin-svelte', '^3.0.0');
+		sv.devDependency('prettier-plugin-tailwindcss', '^0.7.0');
+		sv.devDependency('typescript-eslint', '^8.0.0');
 		sv.devDependency('@tailwindcss/forms', '^0.5.0');
 		sv.devDependency('@tailwindcss/typography', '^0.5.0');
 		sv.devDependency('@tailwindcss/vite', '^4.0.0');

@@ -15,7 +15,10 @@
 		"forceConsistentCasingInFileNames": true,
 		"skipLibCheck": true,
 		"allowImportingTsExtensions": false,
-		"resolveJsonModule": true
+		"resolveJsonModule": true,
+		"paths": {
+			"svforge": ["./packages/svforge/src/index.ts"]
+		}
 	},
 	"include": [
 		"packages/*/src/**/*.ts",

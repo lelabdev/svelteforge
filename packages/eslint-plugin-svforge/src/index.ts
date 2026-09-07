@@ -1,4 +1,5 @@
 import path from 'node:path';
+import type { ESLint, Rule } from 'eslint';
 import {
 	DESIGN_MESSAGES,
 	DESIGN_RULE_IDS,
@@ -6,13 +7,7 @@ import {
 	isForbiddenUiKit
 } from 'svforge';
 
-type RuleContext = {
-	filename: string;
-	cwd: string;
-	report(problem: { node: unknown; messageId: string; data: Record<string, string> }): void;
-};
-
-const rule = {
+const rule: Rule.RuleModule = {
 	meta: {
 		type: 'problem',
 		docs: {
@@ -24,9 +19,9 @@ const rule = {
 		},
 		schema: []
 	},
-	create(context: RuleContext) {
+	create(context) {
 		return {
-			ImportDeclaration(node: { source: { value: unknown } }) {
+			ImportDeclaration(node) {
 				if (typeof node.source.value !== 'string' || !isForbiddenUiKit(node.source.value)) return;
 				context.report({
 					node,
@@ -34,7 +29,7 @@ const rule = {
 					data: { kit: node.source.value }
 				});
 			},
-			Program(node: unknown) {
+			Program(node) {
 				const filename = context.filename;
 				if (!filename.endsWith('.svelte')) return;
 				const primitive = duplicatedSkeletonPrimitiveName(filename, context.cwd);
@@ -49,7 +44,9 @@ const rule = {
 	}
 };
 
-export default {
+const plugin: ESLint.Plugin = {
 	meta: { name: 'eslint-plugin-svforge' },
 	rules: { 'no-design-violations': rule }
 };
+
+export default plugin;

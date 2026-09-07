@@ -7,17 +7,9 @@ import { defineConfig } from 'eslint/config';
 import globals from 'globals';
 import ts from 'typescript-eslint';
 import svelteConfig from './svelte.config.js';
+import svforge from 'eslint-plugin-svforge';
 
 const gitignorePath = path.resolve(import.meta.dirname, '.gitignore');
-// The plugin is installed with the published SvelteForge release. Keeping the
-// config loadable while developing a local file: addon lets the rest of the
-// generated toolchain run before that release is available.
-let svforge;
-try {
-	({ default: svforge } = await import('eslint-plugin-svforge'));
-} catch {
-	svforge = undefined;
-}
 
 export default defineConfig(
 	includeIgnoreFile(gitignorePath),
@@ -45,13 +37,11 @@ export default defineConfig(
 			}
 		}
 	},
-	...(svforge
-		? [{
-				plugins: { svforge },
-				rules: {
-					// Deterministic design-system violations are editor diagnostics too.
-					'svforge/no-design-violations': 'error'
-				}
-			}]
-		: [])
+	{
+		plugins: { svforge },
+		rules: {
+			// Deterministic design-system violations are editor diagnostics too.
+			'svforge/no-design-violations': 'error'
+		}
+	}
 );
