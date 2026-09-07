@@ -1,5 +1,6 @@
 // AUTO-GENERATED - DO NOT EDIT
-// Exact component paths the SVForge addons deliver under src/lib/components/svforge/.
-// Run bun run prebuild to regenerate.
+// Exact component paths each SVForge addon delivers under src/lib/components/svforge/,
+// keyed by addon id. An addon's paths are only exemptions while that addon is
+// installed (.svforge.json modules). Run bun run prebuild to regenerate.
 
-export const ADDON_COMPONENT_PATHS: string[] = ["dnd/SortableList.svelte","graph/KnowledgeGraph.svelte","tiptap/TiptapEditor.svelte","tiptap/TiptapPreview.svelte","tiptap/TiptapToolbar.svelte","ui/NotificationsBell.svelte","ui/OAuthButtons.svelte","ui/Toaster.svelte","uploads/FileUpload.svelte"];
+export const ADDON_COMPONENTS: Record<string, string[]> = {"notifications":["ui/NotificationsBell.svelte"],"oauth":["ui/OAuthButtons.svelte"],"uploads":["uploads/FileUpload.svelte"],"tiptap":["tiptap/TiptapEditor.svelte","tiptap/TiptapPreview.svelte","tiptap/TiptapToolbar.svelte"],"ui_toast":["ui/Toaster.svelte"],"graph":["graph/KnowledgeGraph.svelte"],"dnd":["dnd/SortableList.svelte"]};

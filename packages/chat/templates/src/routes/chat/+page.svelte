@@ -8,8 +8,8 @@
 
 <svelte:head><title>{m.chat_title()}</title></svelte:head>
 
-<div class="max-w-container mx-auto px-element py-section space-y-section">
-	<h1 class="text-3xl font-heading font-bold">{m.chat_title()}</h1>
+<div class="max-w-7xl mx-auto px-4 py-8 space-y-8">
+	<h1 class="text-3xl font-bold">{m.chat_title()}</h1>
 
 	{#if conversations.length === 0}
 		<p class="text-surface-500">{m.chat_empty()}</p>
@@ -17,7 +17,7 @@
 		<ul class="divide-y divide-surface-200-800 rounded-card border border-surface-200-800 overflow-hidden">
 			{#each conversations as conv (conv.id)}
 				<li>
-					<a href={`/chat/${conv.id}`} class="flex items-center justify-between px-element py-3 hover:bg-surface-100-800 transition-colors">
+					<a href={`/chat/${conv.id}`} class="flex items-center justify-between px-4 py-3 hover:bg-surface-100-800 transition-colors">
 						<div>
 							<span class="font-semibold text-sm">{m.chat_conversation()} #{conv.id}</span>
 							{#if conv.lastMessage}
@@ -33,7 +33,7 @@
 								<span class="text-xs text-surface-500">{new Date(conv.lastMessage.createdAt).toLocaleString()}</span>
 							{/if}
 							{#if conv.unreadCount > 0}
-								<span class="min-w-5 h-5 px-1 rounded-full bg-primary-500 text-white text-xs flex items-center justify-center">
+								<span class="min-w-5 h-5 px-1 bg-primary-500 text-white text-xs flex items-center justify-center">
 									{conv.unreadCount}
 								</span>
 							{/if}

@@ -298,8 +298,10 @@ if [ "$TEMPLATE" = "base" ] || [ "$TEMPLATE" = "dashboard" ] || [ "$TEMPLATE" = 
 	# not just one display string (#361 review). The capture is set -e safe:
 	# the assignment failure is neutralized so the real scaffold error is
 	# always printed before the gate resolves it.
-	check_status=0
-	check_output=$(node svforge-check.mjs 2>&1) || check_status=$?
+	set +e
+	check_output=$(node svforge-check.mjs 2>&1)
+	check_status=$?
+	set -e
 	if [ "$check_status" -ne 0 ] || printf '%s' "$check_output" | grep -Eq '✗|⚠'; then
 		echo "❌ svforge check produced diagnostics or failed (exit $check_status) (#240, #335):"
 		echo "$check_output"

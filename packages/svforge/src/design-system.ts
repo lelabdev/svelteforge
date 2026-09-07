@@ -21,7 +21,7 @@ import {
 	SKELETON_UTILITIES,
 	SKELETON_UTILITY_PREFIXES
 } from './skeleton-inventory';
-import { ADDON_COMPONENT_PATHS } from './addon-components';
+import { ADDON_COMPONENTS } from './addon-components';
 
 export type Severity = 'ok' | 'warn' | 'error';
 
@@ -380,13 +380,17 @@ export async function checkDesignSystem(projectRoot: string): Promise<Diagnostic
 		// still an error. Components delivered by an installed addon (uploads,
 		// dnd, …) are approved while that addon is installed.
 		const catalogPaths = new Set(Object.values(SVFORGE_CATALOG).map((entry) => entry.path));
+		const installedModules = readManifestModules(fs, path, projectRoot);
 		for (const file of svelteFiles) {
 			const base = path.basename(file, '.svelte');
 			if (!(SKELETON_PRIMITIVES as readonly string[]).includes(base)) continue;
-			const relFromComponents = path.relative(componentsDir, file);
+			// POSIX-normalized: catalog/generated paths always use forward slashes.
+			const relFromComponents = path.relative(componentsDir, file).split(path.sep).join('/');
 			// Approved by exact path only: catalog components + the precise
-			// component paths the SVForge addons deliver — never a whole dir.
-			if (catalogPaths.has(relFromComponents) || ADDON_COMPONENT_PATHS.includes(relFromComponents)) continue;
+			// component paths of an INSTALLED addon — never a whole dir.
+			if (catalogPaths.has(relFromComponents)) continue;
+			const addonRoot = relFromComponents.slice(0, relFromComponents.indexOf('/'));
+			if (installedModules.includes(addonRoot) && (ADDON_COMPONENTS[addonRoot] ?? []).includes(relFromComponents)) continue;
 			results.push({
 				module: 'ds',
 				status: 'error',
@@ -532,6 +536,18 @@ export function checkSvelteMarkup(source: string, ctx: MarkupContext): { classNa
 		if (violations.length) out.push({ className, violations });
 	}
 	return out;
+}
+
+/** Read the installed addon module ids from the project manifest (.svforge.json). */
+function readManifestModules(fs: typeof import('node:fs'), path: typeof import('node:path'), projectRoot: string): string[] {
+	const manifestPath = path.join(projectRoot, '.svforge.json');
+	if (!fs.existsSync(manifestPath)) return [];
+	try {
+		const modules = JSON.parse(fs.readFileSync(manifestPath, 'utf-8')).modules;
+		return Array.isArray(modules) ? modules.filter((module): module is string => typeof module === 'string') : [];
+	} catch {
+		return [];
+	}
 }
 
 /** Collect @utility names redefined by the project's own CSS files. */

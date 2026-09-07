@@ -45,7 +45,7 @@ describe('manifest freshness — templates.ts matches templates/ (#206)', () => 
 	it('svforge: baseRootFiles matches templates/base/root + injected inventory (#239, #335)', async () => {
 		const { baseRootFiles } = await import('../packages/svforge/src/templates');
 		const { buildSkeletonInventory } = await import('../packages/svforge/scripts/generate-skeleton-inventory');
-		const { ADDON_COMPONENT_PATHS } = await import('../packages/svforge/src/addon-components');
+		const { ADDON_COMPONENTS } = await import('../packages/svforge/src/addon-components');
 		const onDisk = readDirRecursively(join(ROOT, 'packages/svforge/templates/base/root'));
 		// The prebuild injects the generated Skeleton inventory AND the approved
 		// addon component paths into the scaffolded checker — reproduce both (#361).
@@ -57,7 +57,7 @@ describe('manifest freshness — templates.ts matches templates/ (#206)', () => 
 			)
 			.replace(
 				/\/\*__ADDON_COMPONENTS__\*\/.*/,
-				`/*__ADDON_COMPONENTS__*/ ${JSON.stringify(ADDON_COMPONENT_PATHS)}`
+				`/*__ADDON_COMPONENTS__*/ ${JSON.stringify(ADDON_COMPONENTS)}`
 			);
 		expect(onDisk, STALE_MESSAGE).toEqual(baseRootFiles);
 	});

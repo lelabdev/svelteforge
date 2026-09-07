@@ -210,3 +210,45 @@ describe('svforge directory exemption (#361 review)', () => {
 		}
 	});
 });
+
+describe('addon component exemptions are module-gated (#361 review)', () => {
+	it('rejects uploads/FileUpload.svelte without the uploads module installed', async () => {
+		const { mkdtempSync, mkdirSync, writeFileSync, rmSync } = await import('node:fs');
+		const { tmpdir } = await import('node:os');
+		const { join } = await import('node:path');
+		const root = mkdtempSync(join(tmpdir(), 'svforge-addon-gate-'));
+		try {
+			writeFileSync(join(root, 'package.json'), JSON.stringify({ dependencies: {} }));
+			writeFileSync(join(root, '.svforge.json'), JSON.stringify({ template: 'base', modules: [] }));
+			const uploadsDir = join(root, 'src/lib/components/svforge/uploads');
+			mkdirSync(uploadsDir, { recursive: true });
+			writeFileSync(join(uploadsDir, 'FileUpload.svelte'), '<div>upload</div>');
+			const results = await checkDesignSystem(root);
+			expect(
+				results.some((result) => result.status === 'error' && result.message.includes('FileUpload'))
+			).toBe(true);
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
+	});
+
+	it('accepts uploads/FileUpload.svelte when the uploads module IS installed', async () => {
+		const { mkdtempSync, mkdirSync, writeFileSync, rmSync } = await import('node:fs');
+		const { tmpdir } = await import('node:os');
+		const { join } = await import('node:path');
+		const root = mkdtempSync(join(tmpdir(), 'svforge-addon-gate-'));
+		try {
+			writeFileSync(join(root, 'package.json'), JSON.stringify({ dependencies: {} }));
+			writeFileSync(join(root, '.svforge.json'), JSON.stringify({ template: 'base', modules: ['uploads'] }));
+			const uploadsDir = join(root, 'src/lib/components/svforge/uploads');
+			mkdirSync(uploadsDir, { recursive: true });
+			writeFileSync(join(uploadsDir, 'FileUpload.svelte'), '<div>upload</div>');
+			const results = await checkDesignSystem(root);
+			expect(
+				results.filter((result) => result.status === 'error' && result.message.includes('FileUpload'))
+			).toEqual([]);
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
+	});
+});

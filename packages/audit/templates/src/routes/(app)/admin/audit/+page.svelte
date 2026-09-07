@@ -27,8 +27,8 @@
 
 <svelte:head><title>{m.audit_title()}</title></svelte:head>
 
-<div class="max-w-container mx-auto px-element py-section space-y-section">
-	<h1 class="text-3xl font-heading font-bold">{m.audit_title()}</h1>
+<div class="max-w-7xl mx-auto px-4 py-8 space-y-8">
+	<h1 class="text-3xl font-bold">{m.audit_title()}</h1>
 	<p class="text-surface-500">{m.audit_subtitle()}</p>
 
 	<form method="get" class="flex flex-wrap items-end gap-4">
