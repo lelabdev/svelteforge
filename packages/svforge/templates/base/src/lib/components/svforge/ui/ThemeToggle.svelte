@@ -11,6 +11,7 @@
 
 	let { class: className = '' }: Props = $props();
 	let isDark = $state(true);
+	let stopFollowingSystemTheme: (() => void) | undefined;
 
 	function applyMode(dark: boolean) {
 		const mode = dark ? 'dark' : 'light';
@@ -25,13 +26,17 @@
 		isDark = stored === 'dark' || (followsSystem && media.matches);
 		applyMode(isDark);
 
-		return followSystemTheme(stored, media, (dark) => {
+		stopFollowingSystemTheme = followSystemTheme(stored, media, (dark) => {
 			isDark = dark;
 			applyMode(isDark);
 		});
+
+		return () => stopFollowingSystemTheme?.();
 	});
 
 	function toggle() {
+		stopFollowingSystemTheme?.();
+		stopFollowingSystemTheme = undefined;
 		isDark = !isDark;
 		applyMode(isDark);
 		localStorage.setItem('theme-mode', isDark ? 'dark' : 'light');

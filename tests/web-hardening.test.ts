@@ -1,5 +1,7 @@
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+// @vitest-environment jsdom
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { compile } from 'svelte/compiler';
+import { mount, tick, unmount } from 'svelte';
 import { render } from 'svelte/server';
 import type { Component } from 'svelte';
 import { JSDOM } from 'jsdom';
@@ -11,10 +13,12 @@ import { baseFiles, baseRootFiles } from '../packages/svforge/src/templates';
 
 const generatedDir = join(process.cwd(), 'tests/__gen__');
 const compiledSeo = join(generatedDir, 'Seo.web-hardening.compiled.js');
+const compiledThemeToggle = join(generatedDir, 'ThemeToggle.web-hardening.compiled.js');
 const scaffoldFile = (path: string) => baseFiles[path as keyof typeof baseFiles];
 const scaffoldRootFile = (path: string) => baseRootFiles[path as keyof typeof baseRootFiles];
 
 let Seo: Component<{ title: string; description: string; image?: string; url?: string; type?: string }>;
+let ThemeToggle: Component;
 let harnessDir: string | undefined;
 
 /** Run the copied scaffold helpers outside the raw template directory. */
@@ -42,6 +46,16 @@ beforeAll(async () => {
 		.replace("from '$lib/utils/web'", "from './web-hardening-utils.ts'");
 	writeFileSync(compiledSeo, compile(seoSource, { generate: 'server', filename: 'Seo.svelte' }).js.code);
 	Seo = (await import(/* @vite-ignore */ compiledSeo)).default;
+
+	const themeToggleSource = scaffoldFile('/lib/components/svforge/ui/ThemeToggle.svelte')
+		.replace("import * as m from '$lib/paraglide/messages.js';", "const m = { common_toggle_theme: () => 'Toggle theme' };")
+		.replace("import Sun from 'phosphor-svelte/lib/Sun';\n", '')
+		.replace("import Moon from 'phosphor-svelte/lib/Moon';\n", '')
+		.replace("from '$lib/utils/theme'", "from './theme.web-hardening.ts'")
+		.replace(/\{#if isDark\}[\s\S]*?\{\/if\}/, '<span>{isDark ? \'dark\' : \'light\'}</span>');
+	writeFileSync(join(generatedDir, 'theme.web-hardening.ts'), scaffoldFile('/lib/utils/theme.ts'));
+	writeFileSync(compiledThemeToggle, compile(themeToggleSource, { generate: 'client', filename: 'ThemeToggle.svelte' }).js.code);
+	ThemeToggle = (await import(/* @vite-ignore */ compiledThemeToggle)).default;
 
 	harnessDir = mkdtempSync(join(tmpdir(), 'svforge-web-hardening-'));
 	writeFileSync(join(harnessDir, 'Sitemap.ts'), scaffoldFile('/lib/components/svforge/ui/Sitemap.ts'));
@@ -124,6 +138,41 @@ describe('web helper hardening (#333)', () => {
 		expect(theme.changes).toEqual([true]);
 		expect(theme.listeners).toBe(0);
 		expect(theme.storedCleanup).toBe(false);
+	});
+
+	it('keeps a manual ThemeToggle choice after initially following the system theme', async () => {
+		const listeners = new Set<(event: { matches: boolean }) => void>();
+		const emitSystemChange = (matches: boolean) => {
+			for (const listener of listeners) listener({ matches });
+		};
+		const media = {
+			matches: true,
+			addEventListener: vi.fn((_: 'change', listener: (event: { matches: boolean }) => void) => listeners.add(listener)),
+			removeEventListener: vi.fn((_: 'change', listener: (event: { matches: boolean }) => void) => listeners.delete(listener))
+		};
+		vi.stubGlobal('matchMedia', vi.fn(() => media));
+		localStorage.removeItem('theme-mode');
+
+		const target = document.createElement('div');
+		document.body.append(target);
+		const component = mount(ThemeToggle, { target });
+		await tick();
+		expect(listeners.size).toBe(1);
+
+		(target.querySelector('button') as HTMLButtonElement).click();
+		await tick();
+		expect(document.documentElement.dataset.mode).toBe('light');
+		expect(localStorage.getItem('theme-mode')).toBe('light');
+		expect(listeners.size).toBe(0);
+
+		emitSystemChange(true);
+		await tick();
+		expect(document.documentElement.dataset.mode).toBe('light');
+		expect(media.removeEventListener).toHaveBeenCalledTimes(1);
+
+		unmount(component);
+		target.remove();
+		vi.unstubAllGlobals();
 	});
 
 	it('delivers and runs the external theme script before hydration', () => {
