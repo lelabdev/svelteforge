@@ -41,7 +41,7 @@
 
 		<!-- Mobile toggle -->
 		<button
-			class="btn rounded-full p-2 hover:preset-tonal-surface md:hidden"
+			class="btn p-2 hover:preset-tonal-surface md:hidden"
 			onclick={() => (mobileOpen = !mobileOpen)}
 			aria-label={m.nav_toggle_menu()}
 		>

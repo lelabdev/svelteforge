@@ -39,7 +39,7 @@
 
 <button
 	onclick={toggle}
-	class="btn hover:preset-tonal-surface p-2 rounded-full {className}"
+	class="btn hover:preset-tonal-surface p-2 {className}"
 	aria-label={m.common_toggle_theme()}
 >
 	{#if isDark}

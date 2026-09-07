@@ -56,7 +56,7 @@
 				<a href="/admin" class="text-lg font-bold text-primary-600-400">{m.layout_admin()}</a>
 			{/if}
 			<button
-				class="btn rounded p-1 preset-tonal-surface"
+				class="btn p-1 preset-tonal-surface"
 				onclick={() => (collapsed = !collapsed)}
 				aria-label={m.layout_toggle_sidebar()}
 				aria-expanded={!collapsed}
@@ -89,7 +89,7 @@
 		<!-- Top bar -->
 		<header class="sticky top-0 z-50 flex items-center justify-between border-b border-surface-200-800 bg-surface-50-950/80 px-4 py-3 backdrop-blur-md">
 			<div class="flex items-center gap-3">
-				<button class="btn rounded p-2 preset-tonal-surface lg:hidden" onclick={() => (mobileOpen = !mobileOpen)} aria-label={m.layout_menu()} aria-expanded={mobileOpen}>
+				<button class="btn p-2 preset-tonal-surface lg:hidden" onclick={() => (mobileOpen = !mobileOpen)} aria-label={m.layout_menu()} aria-expanded={mobileOpen}>
 					{#if mobileOpen}<X size={20} />{:else}<Menu size={20} />{/if}
 				</button>
 				<h1 class="text-lg font-bold">{m.layout_dashboard()}</h1>
@@ -99,7 +99,7 @@
 				{#if user}
 					<span class="hidden text-sm text-surface-500 sm:block">{user.name}</span>
 					{#if onSignOut}
-						<button class="btn rounded p-2 preset-tonal-surface" onclick={onSignOut} aria-label={m.layout_sign_out()}>
+						<button class="btn p-2 preset-tonal-surface" onclick={onSignOut} aria-label={m.layout_sign_out()}>
 							<SignOut size={18} />
 						</button>
 					{/if}
