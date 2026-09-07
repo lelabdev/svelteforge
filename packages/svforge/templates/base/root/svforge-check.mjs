@@ -164,14 +164,26 @@ const componentsDir = join(ROOT, 'src', 'lib', 'components', 'svforge');
 // components/svforge/ (e.g. ui/Marquee.svelte) is still rejected when its name
 // matches a primitive of the installed Skeleton inventory (#361).
 const catalogPath = join(ROOT, 'svforge-catalog.json');
+// The project catalog is NESTED (designSystem.primitives/ui/layout) — collect
+// component entries recursively, not just the first level.
 const catalogPaths = new Set();
+const catalogWrappers = [];
+const collectCatalogEntries = (node) => {
+	if (!node || typeof node !== 'object' || Array.isArray(node)) return;
+	for (const [key, value] of Object.entries(node)) {
+		if (!value || typeof value !== 'object' || Array.isArray(value)) continue;
+		if (typeof value.path === 'string') {
+			catalogPaths.add(value.path);
+			catalogWrappers.push(key); // the entry name IS the component name
+		}
+		collectCatalogEntries(value);
+	}
+};
 if (existsSync(catalogPath)) {
 	try {
-		for (const entry of Object.values(JSON.parse(readFileSync(catalogPath, 'utf-8')))) {
-			if (typeof entry?.path === 'string') catalogPaths.add(entry.path);
-		}
+		collectCatalogEntries(JSON.parse(readFileSync(catalogPath, 'utf-8')));
 	} catch {
-		// unreadable catalog: nothing is exempt except installed addon dirs below
+		// unreadable catalog: nothing is exempt except installed addon paths
 	}
 }
 // .svforge.json modules gate the addon-path exemptions (#361): the exact
@@ -206,15 +218,6 @@ const projectUtilities = [];
 for (const file of walk(join(ROOT, 'src'), ['.css'])) {
 	const source = readFileSync(file, 'utf-8');
 	for (const match of source.matchAll(/@utility\s+([a-zA-Z0-9-]+)/g)) projectUtilities.push(match[1]);
-}
-
-let catalogWrappers = [];
-if (existsSync(catalogPath)) {
-	try {
-		catalogWrappers = Object.keys(JSON.parse(readFileSync(catalogPath, 'utf-8')));
-	} catch {
-		// unreadable catalog: wrapper rule skipped, deterministic rules stay on
-	}
 }
 
 function classViolations(classString) {
