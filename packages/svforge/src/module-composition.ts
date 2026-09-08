@@ -74,7 +74,7 @@ export const MODULES: Record<string, ModuleMeta> = {
 	},
 	uploads: {
 		id: 'uploads',
-		description: 'File uploads (S3/R2, presigned, security test pack opt-in)',
+		description: 'File uploads (S3-compatible POST hard limit, PUT best-effort fallback)',
 		requires: ['base'],
 		optional: ['testpack'],
 		files: ['src/lib/components/svforge/uploads/', 'src/lib/server/s3.ts', 'src/routes/api/upload/']

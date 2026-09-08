@@ -2,6 +2,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { readFileSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { compile } from 'svelte/compiler';
 import { mount } from 'svelte';
 
@@ -31,7 +32,12 @@ beforeEach(async () => {
 	const source = readFileSync(FILE_UPLOAD, 'utf8');
 	const { js } = compile(source, { generate: 'client', filename: 'FileUpload.svelte' });
 	mkdirSync(dirname(COMPILED), { recursive: true });
-	writeFileSync(COMPILED, js.code);
+	// The compiled fixture lives under tests/__gen__, so point its additional
+	// upload-form helper at the template source rather than that fixture dir.
+	writeFileSync(
+		COMPILED,
+		js.code.replace('$lib/uploads/post-form', pathToFileURL(join(ROOT, 'packages/uploads/templates/src/lib/uploads/post-form.ts')).href)
+	);
 	Component = (await import(join(ROOT, 'tests/__gen__/FileUpload.compiled.js'))).default;
 });
 
@@ -100,19 +106,23 @@ describe('FileUpload ↔ /api/upload contract (#279)', () => {
 		expect(onUpload).not.toHaveBeenCalled();
 	});
 
-	it('calls onUpload with the persistent object key on success', async () => {
-		vi.stubGlobal(
-			'fetch',
-			vi
-				.fn()
-				.mockResolvedValueOnce(
-					new Response(JSON.stringify({ url: 'https://signed.example/x', key: 'uploads/uuid-avatar.png' }), {
-						status: 200,
-						headers: { 'Content-Type': 'application/json' }
-					})
+	it('submits hard-limit uploads as a presigned POST and calls onUpload with the key', async () => {
+		const fetchMock = vi
+			.fn()
+			.mockResolvedValueOnce(
+				new Response(
+					JSON.stringify({
+						method: 'POST',
+						url: 'https://signed.example/x',
+						fields: { key: 'uploads/uuid-avatar.png', 'Content-Type': 'image/png' },
+						key: 'uploads/uuid-avatar.png',
+						sizePolicy: 'storage-enforced'
+					}),
+					{ status: 200, headers: { 'Content-Type': 'application/json' } }
 				)
-				.mockResolvedValueOnce(new Response(null, { status: 200 }))
-		);
+			)
+			.mockResolvedValueOnce(new Response(null, { status: 204 }));
+		vi.stubGlobal('fetch', fetchMock);
 
 		const target = document.createElement('div');
 		const onUpload = vi.fn();
@@ -121,6 +131,8 @@ describe('FileUpload ↔ /api/upload contract (#279)', () => {
 		attachFile(target, makeFile()).dispatchEvent(new Event('change', { bubbles: true }));
 
 		await vi.waitFor(() => expect(onUpload).toHaveBeenCalledTimes(1));
+		expect(fetchMock.mock.calls[1][1]).toMatchObject({ method: 'POST' });
+		expect(fetchMock.mock.calls[1][1].body).toBeInstanceOf(FormData);
 		expect(onUpload).toHaveBeenCalledWith('uploads/uuid-avatar.png');
 	});
 

@@ -50,7 +50,7 @@ describe('AI context generation (#234)', () => {
 		const m1 = mergeManifest(buildManifest('base', []), 'base', ['uploads']);
 		const m2 = mergeManifest(m1, 'base', ['uploads']);
 		expect(m2.modules).toEqual(['uploads']);
-		expect(m2.capabilities.filter((c) => c === 'uploads (S3/R2 presigned)').length).toBe(1);
+		expect(m2.capabilities.filter((c) => c === 'uploads (S3-compatible: POST hard limit, PUT best-effort fallback)').length).toBe(1);
 	});
 
 	it('every module has a capability contribution', () => {
