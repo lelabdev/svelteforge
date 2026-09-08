@@ -5,14 +5,38 @@ interface SitemapEntry {
 	priority?: number;
 }
 
+const CHANGE_FREQUENCIES = new Set(['always', 'hourly', 'daily', 'weekly', 'monthly', 'yearly', 'never']);
+const MAX_TEXT_LENGTH = 2_048;
+
+function escapeXml(value: string): string {
+	return value.replace(/[&<>"']/g, (character) => ({
+		'&': '&amp;',
+		'<': '&lt;',
+		'>': '&gt;',
+		'"': '&quot;',
+		"'": '&apos;'
+	})[character]!);
+}
+
+function boundedText(value: string | undefined): string | undefined {
+	return value && value.length <= MAX_TEXT_LENGTH ? value : undefined;
+}
+
 export function generateSitemap(baseUrl: string, routes: SitemapEntry[]): string {
+	const safeBaseUrl = boundedText(baseUrl) ?? '';
 	const entries = routes
 		.map((route) => {
-			const loc = `${baseUrl}${route.path}`;
+			const path = boundedText(route.path) ?? '/';
+			const loc = escapeXml(`${safeBaseUrl}${path}`);
 			let xml = `  <url>\n    <loc>${loc}</loc>`;
-			if (route.lastmod) xml += `\n    <lastmod>${route.lastmod}</lastmod>`;
-			if (route.changefreq) xml += `\n    <changefreq>${route.changefreq}</changefreq>`;
-			if (route.priority !== undefined) xml += `\n    <priority>${route.priority}</priority>`;
+			const lastmod = boundedText(route.lastmod);
+			if (lastmod) xml += `\n    <lastmod>${escapeXml(lastmod)}</lastmod>`;
+			if (route.changefreq && CHANGE_FREQUENCIES.has(route.changefreq)) {
+				xml += `\n    <changefreq>${escapeXml(route.changefreq)}</changefreq>`;
+			}
+			if (typeof route.priority === 'number' && route.priority >= 0 && route.priority <= 1) {
+				xml += `\n    <priority>${route.priority}</priority>`;
+			}
 			xml += '\n  </url>';
 			return xml;
 		})

@@ -5,6 +5,7 @@
 	import { Card, Feedback } from '$lib/components/svforge/ui';
 	import { Button, Input } from '$lib/components/svforge/primitives';
 	import ThemeToggle from '$lib/components/svforge/ui/ThemeToggle.svelte';
+	import { normalizeInternalCallback } from '$lib/utils/web';
 	import type { ActionData } from './$types';
 
 	let { form }: { form: ActionData } = $props();
@@ -40,7 +41,9 @@
 					loading = false;
 					// eslint-disable-next-line @typescript-eslint/no-explicit-any
 					if ((result as any)?.type === 'success') {
-						const callbackURL = new URLSearchParams(window.location.search).get('callbackURL');
+						const callbackURL = normalizeInternalCallback(
+							new URLSearchParams(window.location.search).get('callbackURL')
+						);
 						goto(callbackURL || '/admin');
 					}
 				};
