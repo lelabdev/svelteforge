@@ -2,14 +2,13 @@
 	"name": "@svforge/ui_toast",
 	"version": "0.0.2",
 	"type": "module",
-	"description": "SVForge Toast \u2014 notification toasts via Skeleton UI",
+	"description": "SVForge Toast — notification toasts via Skeleton UI",
 	"author": "Ludo (https://lelab.dev)",
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/lelabdev/svelteforge.git",
 		"directory": "packages/ui_toast"
 	},
-	"types": "./dist/index.d.ts",
 	"exports": {
 		".": {
 			"types": "./dist/index.d.ts",
@@ -25,6 +24,7 @@
 		"@skeletonlabs/skeleton-svelte": "^5.0.0"
 	},
 	"devDependencies": {
+		"@svforge/addon-kit": "workspace:*",
 		"sv": "^0.15.3",
 		"tsdown": "^0.22.14",
 		"typescript": "^6.0.3"
@@ -41,5 +41,6 @@
 		"notifications",
 		"svelte",
 		"sveltekit"
-	]
+	],
+	"types": "./dist/index.d.ts"
 }

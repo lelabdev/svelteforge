@@ -1,5 +1,8 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterAll } from 'vitest';
 import { join } from 'node:path';
+
+import { tempProject } from './helpers';
+import { createBaseProject } from './helpers/fixtures';
 
 const ROOT = process.cwd();
 const ADDON_INDEX = join(ROOT, 'packages/blog/src/index.ts');
@@ -15,6 +18,11 @@ const ADDON_INDEX = join(ROOT, 'packages/blog/src/index.ts');
  * logic (not just its source text) is exercised.
  */
 const blogAddon = (await import(ADDON_INDEX)).default as any;
+
+// Base-equivalent fixture dir shared by every runAddon call in this file.
+const { dir: fixtureDir, cleanup: cleanupFixture } = tempProject('sf-blog-transport-');
+createBaseProject(fixtureDir);
+afterAll(() => cleanupFixture());
 
 function runAddon(hooksTs?: string): {
 	result: string | undefined;
@@ -34,7 +42,9 @@ function runAddon(hooksTs?: string): {
 		}
 	};
 	if (hooksTs !== undefined) files.set('src/hooks.ts', hooksTs);
-	blogAddon.run({ sv });
+	// #323/#324: run() checks capabilities and plans JSON merges against the
+	// REAL project (cwd) — a base-equivalent temp project provides them.
+	blogAddon.run({ sv, cancel: () => {}, cwd: fixtureDir, options: {} });
 	const result = files.get('src/hooks.ts');
 	const reapply = () => (hooksTransform ? hooksTransform(result) : undefined);
 	return { result, reapply };

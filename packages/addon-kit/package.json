@@ -1,0 +1,36 @@
+{
+	"name": "@svforge/addon-kit",
+	"version": "0.0.1",
+	"type": "module",
+	"description": "SVForge Addon Kit — shared capability contract + safe JSON merge helpers for @svforge/* addons (#323, #324)",
+	"author": "Ludo (https://lelab.dev)",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/lelabdev/svelteforge.git",
+		"directory": "packages/addon-kit"
+	},
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"default": "./dist/index.js"
+		}
+	},
+	"files": [
+		"dist/"
+	],
+	"license": "MIT",
+	"keywords": [
+		"sv-add",
+		"svforge",
+		"addon",
+		"svelte",
+		"sveltekit"
+	],
+	"devDependencies": {
+		"tsdown": "^0.22.14",
+		"typescript": "^6.0.3"
+	},
+	"scripts": {
+		"build": "bunx tsdown"
+	}
+}

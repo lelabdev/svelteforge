@@ -1,36 +1,44 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { MODULES, PRESETS, expandPreset, validateComposition } from '../packages/svforge/src/module-composition';
+import { CAPABILITIES, MODULES, PRESETS, expandPreset, validateComposition } from '../packages/svforge/src/module-composition';
 import { ROOT } from './helpers';
 
 /**
  * Tests for #236 — module composition contract and presets (meta-packages).
  * Presets must compose existing modules, never duplicate their code.
+ * Updated by #323: prerequisites are capability-based (requires/provides/
+ * optional), not template names; the shared contract lives in
+ * @svforge/addon-kit (MODULE_CONTRACTS) and MODULES mirrors it.
  */
 describe('module composition & presets (#236)', () => {
-	it('every module declares id, requires, optional, files', () => {
+	it('every module declares id, template, capability contract and files', () => {
 		for (const [id, meta] of Object.entries(MODULES)) {
 			expect(meta.id).toBe(id);
-			expect(meta.requires.length).toBeGreaterThan(0);
-			expect(Array.isArray(meta.optional)).toBe(true);
+			expect(['base', 'dashboard']).toContain(meta.template);
+			for (const token of meta.requires) expect(CAPABILITIES[token], `${id}: unknown capability ${token}`).toBeDefined();
+			for (const token of meta.provides) expect(CAPABILITIES[token], `${id}: unknown capability ${token}`).toBeDefined();
+			for (const token of meta.optional) expect(CAPABILITIES[token], `${id}: unknown capability ${token}`).toBeDefined();
+			for (const mod of meta.optionalModules) expect(MODULES[mod], `${id}: unknown module ${mod}`).toBeDefined();
 			expect(meta.files.length).toBeGreaterThan(0);
 		}
 	});
 
-	it('oauth requires dashboard, the rest require base', () => {
-		expect(MODULES.oauth.requires).toContain('dashboard');
-		for (const id of ['email', 'uploads', 'blog', 'tiptap', 'dnd', 'graph', 'ui_toast']) {
-			expect(MODULES[id].requires).toContain('base');
+	it('oauth/dashboard modules anchor on the dashboard template, the rest on base', () => {
+		for (const id of ['oauth', 'audit', 'notifications', 'jobs', 'chat']) {
+			expect(MODULES[id].template).toBe('dashboard');
+		}
+		for (const id of ['email', 'uploads', 'blog', 'tiptap', 'dnd', 'graph', 'ui_toast', 'realtime']) {
+			expect(MODULES[id].template).toBe('base');
 		}
 	});
 
-	it('validateComposition accepts dashboard + oauth', () => {
+	it('validateComposition accepts dashboard + oauth (auth.currentUser granted)', () => {
 		expect(() => validateComposition('dashboard', ['oauth', 'email'])).not.toThrow();
 	});
 
-	it('validateComposition rejects oauth on base', () => {
-		expect(() => validateComposition('base', ['oauth'])).toThrow(/requires the dashboard/);
+	it('validateComposition rejects oauth on base (missing auth.currentUser)', () => {
+		expect(() => validateComposition('base', ['oauth'])).toThrow(/auth\.currentUser/);
 	});
 
 	it('validateComposition rejects unknown modules', () => {

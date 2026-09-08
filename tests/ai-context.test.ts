@@ -1,40 +1,74 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { MODULE_CONTRACTS } from '../packages/addon-kit/src/index';
 import {
 	buildManifest,
+	enrichManifest,
 	renderLlmstxt,
 	mergeManifest,
 	regenerateLlmstxt,
 	MODULE_CAPABILITIES
 } from '../packages/svforge/src/ai-context';
-import { ROOT } from './helpers';
+import { ROOT, tempProject } from './helpers';
+import { createBaseProject, createDashboardProject, diskSv } from './helpers/fixtures';
 
 /**
  * Tests for #234 — generated AI context (llms.txt + .svforge.json manifest).
  * Content must derive from the real scaffold state, never generic docs.
  */
 describe('AI context generation (#234)', () => {
-	it('base manifest has base capabilities, no auth/orm', () => {
+	it('base manifest exposes canonical capability tokens, no auth/orm', () => {
 		const m = buildManifest('base', []);
 		expect(m.template).toBe('base');
-		expect(m.stack.auth).toBeUndefined();
-		expect(m.capabilities).toContain('skeleton-ui');
-		expect(m.capabilities).toContain('paraglide-fr-en');
+		expect(m.stack?.auth).toBeUndefined();
+		// #323 canonical tokens replace the legacy labels (skeleton-ui,
+		// paraglide-fr-en, vitest, seo…): the template grants come from
+		// TEMPLATE_PROVIDES, the same source as the install gates.
+		expect(m.capabilities).toContain('ui.skeleton');
+		expect(m.capabilities).toContain('ui.svforge');
+		expect(m.capabilities).toContain('i18n.messages');
+		expect(m.capabilities).toEqual([...new Set(m.capabilities)]);
 		expect(m.capabilities).not.toContain('auth');
+		expect(m.capabilities).not.toContain('skeleton-ui');
+		expect(m.capabilities).not.toContain('paraglide-fr-en');
+		expect(m.capabilities).not.toContain('auth.currentUser');
 		expect(m.patterns['Skeleton theme']).toBe('src/lib/styles/svelteforge-theme.css');
 		expect(m.patterns['Global CSS entrypoint']).toBe('src/routes/layout.css');
 	});
 
-	it('dashboard manifest adds auth/db/admin', () => {
+	it('dashboard manifest adds the auth/db canonical tokens', () => {
 		const m = buildManifest('dashboard', []);
-		expect(m.stack.auth).toBe('better-auth');
-		expect(m.stack.orm).toBe('drizzle');
-		expect(m.stack.database).toBe('postgresql');
-		expect(m.capabilities).toContain('auth');
-		expect(m.capabilities).toContain('db');
-		expect(m.capabilities).toContain('admin');
+		expect(m.stack?.auth).toBe('better-auth');
+		expect(m.stack?.orm).toBe('drizzle');
+		expect(m.stack?.database).toBe('postgresql');
+		expect(m.capabilities).toContain('auth.currentUser');
+		expect(m.capabilities).toContain('database.drizzle.postgres');
+		expect(m.capabilities).toContain('auth.admin');
+		expect(m.capabilities).not.toContain('auth');
+		expect(m.capabilities).not.toContain('db');
+		expect(m.capabilities).not.toContain('admin');
 		expect(m.patterns['Auth guard']).toMatch(/admin/);
+	});
+
+	it('the manifest exposes the FULL canonical capability list of the project (#323)', () => {
+		const m = buildManifest('dashboard', ['uploads']);
+		for (const token of [
+			'ui.skeleton',
+			'ui.svforge',
+			'i18n.messages',
+			'auth.currentUser',
+			'auth.admin',
+			'database.drizzle.postgres',
+			// provided by the uploads module itself
+			'storage.object'
+		]) {
+			expect(m.capabilities, token).toContain(token);
+		}
+		// runtime.* are deployment constraints, not project state: they surface
+		// through the module contracts, never as granted capabilities.
+		expect(m.capabilities).not.toContain('runtime.websocket');
+		expect(m.capabilities).not.toContain('runtime.longLivedWorker');
 	});
 
 	it('module installation adds its capability (no ghost when absent)', () => {
@@ -44,6 +78,12 @@ describe('AI context generation (#234)', () => {
 		expect(withEmail.modules).toEqual(['email']);
 		expect(withEmail.capabilities).toContain('email (Resend)');
 		expect(withEmail.patterns['email (Resend)']).toMatch(/src\/lib\/server\/email/);
+	});
+
+	it('module-provided capability tokens land in the canonical list (#323)', () => {
+		const withUploads = mergeManifest(buildManifest('base', []), 'base', ['uploads']);
+		expect(withUploads.capabilities).toContain('storage.object');
+		expect(withUploads.capabilities).toContain('uploads (S3-compatible: POST hard limit, PUT best-effort fallback)');
 	});
 
 	it('mergeManifest is idempotent', () => {
@@ -65,6 +105,10 @@ describe('AI context generation (#234)', () => {
 		const txt = renderLlmstxt(m);
 		expect(txt).toContain('Template: dashboard');
 		expect(txt).toContain('email (Resend)');
+		// #323: the canonical capability list is exposed in llms.txt too.
+		expect(txt).toContain('- ui.skeleton');
+		expect(txt).toContain('- auth.currentUser');
+		expect(txt).toContain('- database.drizzle.postgres');
 		expect(txt).toContain('MUST NOT');
 		expect(txt).toContain('- install a second ORM, auth provider or UI kit');
 		expect(txt).toContain('src/routes/layout.css is the single global CSS entrypoint');
@@ -89,11 +133,14 @@ describe('AI context generation (#234)', () => {
 		expect(dashMode).toMatch(/buildManifest\('dashboard'/);
 	});
 
-	it('modules enrich .svforge.json (inline helper)', () => {
+	it('modules enrich .svforge.json through the shared kit (#324)', () => {
 		for (const mod of ['email', 'uploads', 'oauth', 'ui_toast', 'dnd', 'tiptap', 'graph', 'blog']) {
 			const src = readFileSync(join(ROOT, 'packages', mod, 'src/index.ts'), 'utf-8');
-			expect(src, `${mod} missing enrichManifest`).toMatch(/enrichManifest/);
-			expect(src, `${mod} missing sv.file('.svforge.json')`).toMatch(/sv\.file\('\.svforge\.json'/);
+			// #324: the manifest + llms.txt merges are planned by
+			// @svforge/addon-kit before any write (the old inline try/catch
+			// helpers were removed).
+			expect(src, `${mod} missing planAddonContext`).toMatch(/planAddonContext/);
+			expect(src, `${mod} must not keep an inline enrichManifest`).not.toMatch(/function enrichManifest/);
 		}
 	});
 
@@ -103,39 +150,133 @@ describe('AI context generation (#234)', () => {
 		expect(bin).toMatch(/regenerateLlmstxt/);
 	});
 
-	describe('AI manifest completeness & non-destructive merges (#296)', () => {
-		const MODULES = Object.keys(MODULE_CAPABILITIES);
-
-		it('every MODULE_CAPABILITIES module enriches .svforge.json with the SAME capability/pattern as llms.txt', () => {
-			for (const mod of MODULES) {
-				const src = readFileSync(join(ROOT, 'packages', mod, 'src/index.ts'), 'utf-8');
-				const meta = MODULE_CAPABILITIES[mod];
-				// The manifest enrichment call must carry the same data as the
-				// llms.txt merge — .svforge.json is complete right after sv add.
-				const re = new RegExp(
-					`enrichManifest\\(content, '${mod}', '${meta.capability.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}', '${meta.pattern?.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}'\\)`
-				);
-				expect(src, `${mod}: manifest enrich call must match MODULE_CAPABILITIES`).toMatch(re);
-				// llms.txt merge present for every module (#296 — blog was missing)
-				expect(src, `${mod}: llms.txt merge missing`).toMatch(/sv\.file\('llms\.txt'/);
+	describe('enrichManifest deprecated alias (#324 remediation round)', () => {
+		it('is kept as a deprecated alias wrapping planManifestEnrich and warns ONCE', () => {
+			const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+			try {
+				const content = `${JSON.stringify(buildManifest('dashboard', []), null, 2)}\n`;
+				const out = enrichManifest(content, 'audit');
+				const merged = JSON.parse(out);
+				expect(merged.modules).toContain('audit');
+				expect(merged.capabilities).toContain('audit trail');
+				expect(merged.moduleCapabilities.audit.requires).toEqual(MODULE_CONTRACTS.audit.requires);
+				// One-time deprecation warning pointing to the new API.
+				expect(warnSpy).toHaveBeenCalledTimes(1);
+				expect(String(warnSpy.mock.calls[0][0])).toMatch(/planManifestEnrich/);
+				// Second call: the warning is NOT repeated.
+				enrichManifest(out, 'blog');
+				expect(warnSpy).toHaveBeenCalledTimes(1);
+			} finally {
+				warnSpy.mockRestore();
 			}
 		});
 
-		it('mergeMessages never overwrites an existing key (non-destructive merge)', () => {
+		it('never resets an invalid manifest to an empty base — it throws the diagnosable error', () => {
+			vi.spyOn(console, 'warn').mockImplementation(() => {});
+			try {
+				let thrown: unknown;
+				try {
+					enrichManifest('{ "broken": ', 'audit');
+				} catch (e) {
+					thrown = e;
+				}
+				// Name-based check: the error crosses the package boundary (built
+				// dist), so cross-instance instanceof is not reliable in tests.
+				expect((thrown as Error)?.name).toBe('JsonGuardError');
+				expect((thrown as Error)?.message).toMatch(/invalid JSON syntax/);
+				expect((thrown as Error)?.message).toMatch(/planManifestEnrich/);
+			} finally {
+				vi.mocked(console.warn).mockRestore();
+			}
+		});
+
+		it('stays idempotent like the planning API', () => {
+			vi.spyOn(console, 'warn').mockImplementation(() => {});
+			try {
+				const content = `${JSON.stringify(buildManifest('base', []), null, 2)}\n`;
+				const once = enrichManifest(content, 'ui_toast');
+				const twice = enrichManifest(once, 'ui_toast');
+				expect(twice).toBe(once);
+			} finally {
+				vi.mocked(console.warn).mockRestore();
+			}
+		});
+	});
+
+	describe('AI manifest completeness & non-destructive merges (#296, #324)', () => {
+		const MODULE_IDS = Object.keys(MODULE_CAPABILITIES);
+		// Modules requiring capabilities the base template never grants (auth,
+		// database) run against a dashboard-equivalent project.
+		const DASH_CAPS = new Set(['auth.currentUser', 'auth.admin', 'database.drizzle.postgres']);
+		const needsDashboard = (id: string) => MODULE_CONTRACTS[id].requires.some((c) => DASH_CAPS.has(c));
+		let cleanup: (() => void) | undefined;
+		afterEach(() => cleanup?.());
+
+		/**
+		 * BEHAVIORAL: run every REAL addon against a project providing its
+		 * capabilities, then verify the manifest (.svforge.json) and llms.txt
+		 * carry the SAME capability/pattern data declared in MODULE_CAPABILITIES.
+		 */
+		it.for(MODULE_IDS)('%s enriches .svforge.json and llms.txt with its capability and pattern', async (mod) => {
+			const { dir, cleanup: done } = tempProject('sf-ai-context-');
+			cleanup = done;
+			if (needsDashboard(mod)) createDashboardProject(dir);
+			else createBaseProject(dir);
+
+			const { default: addon } = await import(`../packages/${mod}/src/index`);
+			const sv = diskSv(dir);
+			let canceled: string | undefined;
+			await addon.run({ sv, cancel: (r: string) => (canceled = r), cwd: dir, options: {} });
+			expect(canceled, `${mod} should install on a capable project`).toBeUndefined();
+
+			const meta = MODULE_CAPABILITIES[mod];
+			const manifest = JSON.parse(readFileSync(join(dir, '.svforge.json'), 'utf8'));
+			expect(manifest.modules).toContain(mod);
+			expect(manifest.capabilities).toContain(meta.capability);
+			expect(manifest.patterns[meta.capability]).toBe(meta.pattern);
+
+			const llms = readFileSync(join(dir, 'llms.txt'), 'utf8');
+			expect(llms).toContain(`- ${meta.capability}`);
+			expect(llms).toContain(`- ${meta.capability}: ${meta.pattern}`);
+			// #323: llms.txt exposes the module's capability-token contract
+			const contract = MODULE_CONTRACTS[mod];
+			const contractLine = `- ${mod}: requires ${
+				contract.requires.length > 0 ? contract.requires.join(', ') : '—'
+			}; provides ${contract.provides.length > 0 ? contract.provides.join(', ') : '—'}`;
+			expect(llms).toContain(contractLine);
+			// #323: capability tokens are exposed for AI agents
+			expect(manifest.moduleCapabilities[mod]).toBeDefined();
+		});
+
+		it('mergeMessages is shared and non-destructive by construction (#324)', async () => {
 			for (const mod of ['audit', 'chat', 'notifications', 'tiptap', 'uploads']) {
 				const src = readFileSync(join(ROOT, 'packages', mod, 'src/index.ts'), 'utf-8');
-				const helper = src.match(/function mergeMessages[\s\S]*?\n}/)?.[0] ?? '';
-				expect(helper, `${mod}: mergeMessages must guard existing keys`).toMatch(/!\(key in catalog\)/);
-				expect(helper, `${mod}: mergeMessages must not blindly assign`).not.toMatch(/^\s*catalog\[key\] = value;$/m);
+				// The destructive inline helper is gone; merges are planned through
+				// the shared kit whose non-destructive merge is proven behaviorally
+				// in tests/addon-json-guard.test.ts.
+				expect(src, `${mod} must use the shared catalog planner`).toMatch(/planCatalogMerges/);
+				expect(src, `${mod} must not keep an inline mergeMessages`).not.toMatch(/function mergeMessages/);
 			}
 		});
 
-		it('the inline enrich helpers merge capabilities without duplicates (idempotent)', () => {
-			for (const mod of MODULES) {
-				const src = readFileSync(join(ROOT, 'packages', mod, 'src/index.ts'), 'utf-8');
-				expect(src, `${mod}: manifest modules guard`).toMatch(/if \(!manifest\.modules\.includes\(moduleId\)\)/);
-				expect(src, `${mod}: manifest capabilities guard`).toMatch(/if \(!manifest\.capabilities\.includes\(capability\)\)/);
-			}
+		it('the manifest merges stay idempotent for every module (no duplicate capabilities)', async () => {
+			const { dir, cleanup: done } = tempProject('sf-ai-context-idem-');
+			cleanup = done;
+			createDashboardProject(dir);
+
+			const { default: auditAddon } = await import('../packages/audit/src/index');
+			const sv = diskSv(dir);
+			const run = () =>
+				(auditAddon as unknown as { run: (ctx: Record<string, unknown>) => unknown }).run({
+					sv,
+					cancel: () => {},
+					cwd: dir,
+					options: {}
+				});
+			await run();
+			const first = readFileSync(join(dir, '.svforge.json'), 'utf8');
+			await run();
+			expect(readFileSync(join(dir, '.svforge.json'), 'utf8')).toBe(first);
 		});
 	});
 });

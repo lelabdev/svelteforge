@@ -72,12 +72,14 @@ describe('chat module (#233)', () => {
 		expect(readme).toMatch(/optional/);
 	});
 
-	it('module requires dashboard, registers schemas, enriches context', () => {
+	it('module requires dashboard capabilities, registers schemas, enriches context', () => {
 		const index = readFileSync(join(ROOT, 'packages/chat/src/index.ts'), 'utf-8');
-		expect(index).toMatch(/template:dashboard/);
+		// #323: the gate is capability-based (structural check), not template-name based
+		expect(index).toMatch(/checkModuleCapabilities\(cwd, 'chat'\)/);
 		expect(index).toMatch(/conversationParticipants/);
 		expect(index).toMatch(/schema\.ts/);
-		expect(index).toMatch(/enrichManifest/);
-		expect(index).toMatch(/mergeMessages/);
+		// #324: JSON merges go through the shared kit, planned before any write
+		expect(index).toMatch(/planAddonContext/);
+		expect(index).toMatch(/planCatalogMerges/);
 	});
 });

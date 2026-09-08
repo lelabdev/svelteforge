@@ -17,7 +17,8 @@
 		"allowImportingTsExtensions": false,
 		"resolveJsonModule": true,
 		"paths": {
-			"svforge": ["./packages/svforge/src/index.ts"]
+			"svforge": ["./packages/svforge/src/index.ts"],
+			"@svforge/addon-kit": ["./packages/addon-kit/src/index.ts"]
 		}
 	},
 	"include": [

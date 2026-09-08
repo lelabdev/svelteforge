@@ -1,78 +1,7 @@
-import { existsSync } from 'node:fs';
-import { join } from 'node:path';
 import { defineAddon, defineAddonOptions } from 'sv';
+import { checkModuleCapabilities, planAddonContext } from '@svforge/addon-kit';
 import { files } from './templates';
 
-/**
- * Enrich the project's .svforge.json AI manifest (#234) without overwriting
- * user edits. Small inline helper — modules are standalone packages.
- */
-interface SvforgeManifest {
-	template: string;
-	modules: string[];
-	capabilities: string[];
-	patterns: Record<string, string>;
-}
-
-function enrichManifest(
-	content: string | undefined,
-	moduleId: string,
-	capability: string,
-	pattern: string
-): string {
-	let manifest: SvforgeManifest = { template: 'base', modules: [], capabilities: [], patterns: {} };
-	try {
-		manifest = content && content.trim() ? JSON.parse(content) : manifest;
-	} catch {
-		manifest = { template: 'base', modules: [], capabilities: [], patterns: {} };
-	}
-	if (!Array.isArray(manifest.modules)) manifest.modules = [];
-	if (!Array.isArray(manifest.capabilities)) manifest.capabilities = [];
-	if (!manifest.patterns) manifest.patterns = {};
-	// Full manifest contract (#296): .svforge.json must carry the same
-	// module + capability + pattern data as llms.txt, immediately after sv add.
-	if (!manifest.modules.includes(moduleId)) manifest.modules.push(moduleId);
-	if (!manifest.capabilities.includes(capability)) manifest.capabilities.push(capability);
-	manifest.patterns[capability] = pattern;
-	return `${JSON.stringify(manifest, null, 2)}\n`;
-}
-
-/**
- * Merge this module's capability + canonical pattern into the scaffolded
- * llms.txt (#258/#284) so the AI context reflects every installed module
- * even though svforge itself is not installed in the generated project.
- */
-function mergeLlmstxt(content: string, capability: string, pattern: string): string {
-	const lines = (content || '').split('\n');
-	const capLine = `- ${capability}`;
-	if (!lines.some((l) => l === capLine)) {
-		// Append at the END of the Capabilities section (before the next
-		// "## " header): module order then matches installation order, so
-		// `svforge context` regenerates a byte-identical llms.txt (#296).
-		let insertAt = lines.length;
-		const header = lines.findIndex((l) => l === '## Capabilities installed');
-		if (header >= 0) {
-			const nextSection = lines.findIndex((l, i) => i > header && l.startsWith('## '));
-			insertAt = nextSection >= 0 ? nextSection : lines.length;
-			// insert BEFORE the blank line that closes the section, so the
-			// byte layout matches renderLlmstxt exactly (#296)
-			if (insertAt > header + 1 && lines[insertAt - 1] === '') insertAt -= 1;
-		}
-		lines.splice(insertAt, 0, capLine);
-	}
-	const patLine = `- ${capability}: ${pattern}`;
-	if (!lines.some((l) => l === patLine)) {
-		let insertAt = lines.length;
-		const header = lines.findIndex((l) => l === '## Canonical patterns');
-		if (header >= 0) {
-			const nextSection = lines.findIndex((l, i) => i > header && l.startsWith('## '));
-			insertAt = nextSection >= 0 ? nextSection : lines.length;
-			if (insertAt > header + 1 && lines[insertAt - 1] === '') insertAt -= 1;
-		}
-		lines.splice(insertAt, 0, patLine);
-	}
-	return lines.join('\n');
-}
 
 
 export default defineAddon({
@@ -84,34 +13,62 @@ export default defineAddon({
 	// options object (Object.entries(undefined) in promptAddonQuestions).
 	options: defineAddonOptions().build(),
 
-	setup: ({ unsupported, isKit, cwd }) => {
+	setup: ({ unsupported, isKit }) => {
 		if (!isKit) unsupported('SVForge OAuth requires SvelteKit');
-		// OAuthButtons imports $lib/client/auth — provided only by the svforge
-		// dashboard template. Install svforge (template:dashboard) first (#190).
-		if (!existsSync(join(cwd, 'src/lib/client/auth.ts'))) {
-			unsupported('SVForge OAuth requires the svforge dashboard template (src/lib/client/auth.ts missing — run `sv add svforge=template:dashboard` first)');
-		}
+		// #323: the auth.currentUser requirement is enforced by the capability
+		// gate in run() — structurally (Better Auth dependency), with a derived
+		// error message. setup() of ALL addons runs before ANY run(), so a file
+		// check here cannot see what a same-invocation template install writes.
 	},
 
-	run: ({ sv }) => {
+	run: ({ sv, cancel, cwd }) => {
+		// Capability gate (#323): the OAuth buttons call the authenticated
+		// session client ($lib/client/auth) — Better Auth must be present.
+		const gate = checkModuleCapabilities(cwd, 'oauth');
+		if (!gate.ok) {
+			cancel(gate.message);
+			return;
+		}
+		// Capability warnings (#323): unverifiable or unverified requirements are
+		// emitted as diagnostics — the install proceeds, support is never pretended.
+		for (const warning of gate.warnings) console.warn(`[svforge] ${warning}`);
+
+
 		// Better Auth social providers are built-in, no extra deps needed
+		const context = planAddonContext(cwd, { moduleId: 'oauth', capability: 'oauth (Google/GitHub)', pattern: 'src/lib/components/svforge/ui/OAuthButtons.svelte' });
+		if (!context.ok) {
+			cancel(context.error);
+			return;
+		}
 		for (const [path, content] of Object.entries(files)) {
 			sv.file(`src${path}`, () => content);
 		}
 
-		// AI context (#234): declare this module in .svforge.json.
-		sv.file('.svforge.json', (content) => enrichManifest(content, 'oauth', 'oauth (Google/GitHub)', 'src/lib/components/svforge/ui/OAuthButtons.svelte'));
-		sv.file('llms.txt', (content) => mergeLlmstxt(content, 'oauth (Google/GitHub)', 'src/lib/components/svforge/ui/OAuthButtons.svelte'));
+		// AI context (#234): planned in memory first (#324) — an invalid
+		// .svforge.json cancels the install instead of resetting the file.
+		for (const write of context.writes) {
+			sv.file(write.path, () => write.content);
+		}
 	},
 
-	nextSteps: () => [
-		'@svforge/oauth installed!',
-		'Add to your Better Auth config (src/lib/server/auth.ts):',
-		'  socialProviders: {',
-		'    google: { clientId: env.GOOGLE_CLIENT_ID, clientSecret: env.GOOGLE_CLIENT_SECRET },',
-		'    github: { clientId: env.GITHUB_CLIENT_ID, clientSecret: env.GITHUB_CLIENT_SECRET }',
-		'  }',
-		'Add OAuth buttons: import OAuthButtons from "$lib/components/svforge/ui/OAuthButtons.svelte"',
-		'Required env vars: GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET'
-	]
+	nextSteps: ({ cwd }) => {
+		const steps = [
+			'@svforge/oauth installed!',
+			'Add to your Better Auth config (src/lib/server/auth.ts):',
+			'  socialProviders: {',
+			'    google: { clientId: env.GOOGLE_CLIENT_ID, clientSecret: env.GOOGLE_CLIENT_SECRET },',
+			'    github: { clientId: env.GITHUB_CLIENT_ID, clientSecret: env.GITHUB_CLIENT_SECRET }',
+			'  }',
+			'Add OAuth buttons: import OAuthButtons from "$lib/components/svforge/ui/OAuthButtons.svelte"',
+			'Required env vars: GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET'
+		];
+		// Unverified capabilities (#323): on a non-SVForge project whose auth
+		// wiring could not be confirmed structurally, install proceeds WITH a
+		// clear warning instead of silently pretending support.
+		if (typeof cwd === 'string') {
+			const gate = checkModuleCapabilities(cwd, 'oauth');
+			if (gate.ok) steps.push(...gate.warnings);
+		}
+		return steps;
+	}
 });

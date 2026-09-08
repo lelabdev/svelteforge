@@ -1,98 +1,7 @@
 import { defineAddon, defineAddonOptions } from 'sv';
+import { checkModuleCapabilities, planCatalogMerges, planAddonContext } from '@svforge/addon-kit';
 import { files } from './templates';
 
-/**
- * Merge Paraglide catalog entries into an existing messages/{locale}.json
- * (#239). Never overwrites existing keys; preserves the $schema header.
- */
-function mergeMessages(content: string, additions: Record<string, string>): string {
-	let catalog: Record<string, unknown> = {};
-	if (content && content.trim()) {
-		try {
-			catalog = JSON.parse(content);
-		} catch {
-			catalog = {};
-		}
-	}
-	for (const [key, value] of Object.entries(additions)) {
-		// NEVER overwrite an existing key (#296): a consumer may have
-		// customized a translation, and recomposition/reinstall must not
-		// clobber it.
-		if (!(key in catalog)) catalog[key] = value;
-	}
-	return `${JSON.stringify(catalog, null, 2)}\n`;
-}
-
-/**
- * Enrich the project's .svforge.json AI manifest (#234) without overwriting
- * user edits. Small inline helper — modules are standalone packages.
- */
-interface SvforgeManifest {
-	template: string;
-	modules: string[];
-	capabilities: string[];
-	patterns: Record<string, string>;
-}
-
-function enrichManifest(
-	content: string | undefined,
-	moduleId: string,
-	capability: string,
-	pattern: string
-): string {
-	let manifest: SvforgeManifest = { template: 'base', modules: [], capabilities: [], patterns: {} };
-	try {
-		manifest = content && content.trim() ? JSON.parse(content) : manifest;
-	} catch {
-		manifest = { template: 'base', modules: [], capabilities: [], patterns: {} };
-	}
-	if (!Array.isArray(manifest.modules)) manifest.modules = [];
-	if (!Array.isArray(manifest.capabilities)) manifest.capabilities = [];
-	if (!manifest.patterns) manifest.patterns = {};
-	// Full manifest contract (#296): .svforge.json must carry the same
-	// module + capability + pattern data as llms.txt, immediately after sv add.
-	if (!manifest.modules.includes(moduleId)) manifest.modules.push(moduleId);
-	if (!manifest.capabilities.includes(capability)) manifest.capabilities.push(capability);
-	manifest.patterns[capability] = pattern;
-	return `${JSON.stringify(manifest, null, 2)}\n`;
-}
-
-/**
- * Merge this module's capability + canonical pattern into the scaffolded
- * llms.txt (#258/#284) so the AI context reflects every installed module
- * even though svforge itself is not installed in the generated project.
- */
-function mergeLlmstxt(content: string, capability: string, pattern: string): string {
-	const lines = (content || '').split('\n');
-	const capLine = `- ${capability}`;
-	if (!lines.some((l) => l === capLine)) {
-		// Append at the END of the Capabilities section (before the next
-		// "## " header): module order then matches installation order, so
-		// `svforge context` regenerates a byte-identical llms.txt (#296).
-		let insertAt = lines.length;
-		const header = lines.findIndex((l) => l === '## Capabilities installed');
-		if (header >= 0) {
-			const nextSection = lines.findIndex((l, i) => i > header && l.startsWith('## '));
-			insertAt = nextSection >= 0 ? nextSection : lines.length;
-			// insert BEFORE the blank line that closes the section, so the
-			// byte layout matches renderLlmstxt exactly (#296)
-			if (insertAt > header + 1 && lines[insertAt - 1] === '') insertAt -= 1;
-		}
-		lines.splice(insertAt, 0, capLine);
-	}
-	const patLine = `- ${capability}: ${pattern}`;
-	if (!lines.some((l) => l === patLine)) {
-		let insertAt = lines.length;
-		const header = lines.findIndex((l) => l === '## Canonical patterns');
-		if (header >= 0) {
-			const nextSection = lines.findIndex((l, i) => i > header && l.startsWith('## '));
-			insertAt = nextSection >= 0 ? nextSection : lines.length;
-			if (insertAt > header + 1 && lines[insertAt - 1] === '') insertAt -= 1;
-		}
-		lines.splice(insertAt, 0, patLine);
-	}
-	return lines.join('\n');
-}
 
 
 export default defineAddon({
@@ -112,10 +21,53 @@ export default defineAddon({
 		if (!isKit) unsupported('SVForge Uploads requires SvelteKit');
 	},
 
-	run: ({ sv, options }) => {
+	run: ({ sv, cancel, cwd, options }) => {
+		// Capability gate (#323): the upload endpoint enforces identity via
+		// locals.user, the components use Paraglide copy, and the module
+		// PROVIDES storage.object for other modules.
+		const gate = checkModuleCapabilities(cwd, 'uploads');
+		if (!gate.ok) {
+			cancel(gate.message);
+			return;
+		}
+		// Capability warnings (#323): unverifiable or unverified requirements are
+		// emitted as diagnostics — the install proceeds, support is never pretended.
+		for (const warning of gate.warnings) console.warn(`[svforge] ${warning}`);
+
+
 		sv.dependency('@aws-sdk/client-s3', '^3.1111.0');
 		sv.dependency('@aws-sdk/s3-presigned-post', '^3.1111.0');
 		sv.dependency('@aws-sdk/s3-request-presigner', '^3.1111.0');
+
+		// Paraglide messages (#239) + manifest (#234): PLANNED in memory before
+		// any write (#324) — one invalid catalog or manifest cancels the whole
+		// install and every file stays byte-for-byte identical.
+		const catalogs = planCatalogMerges(cwd, [
+			{
+				path: 'messages/fr.json',
+				additions: {
+					uploads_uploading: 'Téléversement…',
+					uploads_failed: 'Échec du téléversement'
+				}
+			},
+			{
+				path: 'messages/en.json',
+				additions: {
+					uploads_uploading: 'Uploading…',
+					uploads_failed: 'Upload failed'
+				}
+			}
+		]);
+		if (!catalogs.ok) {
+			cancel(catalogs.error);
+			return;
+		}
+		const context = planAddonContext(cwd, { moduleId: 'uploads', capability: 'uploads (S3-compatible: POST hard limit, PUT best-effort fallback)', pattern: 'src/routes/api/upload/+server.ts (S3_UPLOAD_SIZE_POLICY)' });
+		if (!context.ok) {
+			cancel(context.error);
+			return;
+		}
+
 		// Test pack needs vitest + a test script in the target project (#182)
 		if (options.testpack) {
 			sv.devDependency('vitest', '^4.1.5');
@@ -134,33 +86,28 @@ export default defineAddon({
 			sv.file(`src${path}`, () => content);
 		}
 
-		// Paraglide messages (#239): merge FR/EN uploads copy into the project
-		// catalogs without overwriting existing keys.
-		sv.file('messages/fr.json', (content) =>
-			mergeMessages(content, {
-				uploads_uploading: 'Téléversement…',
-				uploads_failed: 'Échec du téléversement'
-			})
-		);
-		sv.file('messages/en.json', (content) =>
-			mergeMessages(content, {
-				uploads_uploading: 'Uploading…',
-				uploads_failed: 'Upload failed'
-			})
-		);
-
-		// AI context (#234): declare this module in .svforge.json.
-		sv.file('.svforge.json', (content) => enrichManifest(content, 'uploads', 'uploads (S3-compatible: POST hard limit, PUT best-effort fallback)', 'src/routes/api/upload/+server.ts (S3_UPLOAD_SIZE_POLICY)'));
-		sv.file('llms.txt', (content) => mergeLlmstxt(content, 'uploads (S3-compatible: POST hard limit, PUT best-effort fallback)', 'src/routes/api/upload/+server.ts (S3_UPLOAD_SIZE_POLICY)'));
+		for (const write of [...catalogs.writes, ...context.writes]) {
+			sv.file(write.path, () => write.content);
+		}
 	},
 
-	nextSteps: ({ options }) => [
-		'@svforge/uploads installed!',
-		'Add S3/R2 credentials to .env: S3_ENDPOINT, S3_REGION, S3_BUCKET, S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY',
-		'Upload size policy: POST is storage-enforced by default (requires provider POST policies). Set S3_UPLOAD_SIZE_POLICY=presigned-put only as an explicitly best-effort fallback.',
-		'Usage: <FileUpload onUpload={(key) => console.log(key)} /> — key is the persistent object key, not the expiring presigned URL',
-		...(options.testpack
-			? ['Test pack installed: bun run test (upload endpoint security)']
-			: [])
-	]
+	nextSteps: ({ cwd, options }) => {
+		const steps = [
+			'@svforge/uploads installed!',
+			'Add S3/R2 credentials to .env: S3_ENDPOINT, S3_REGION, S3_BUCKET, S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY',
+			'Upload size policy: POST is storage-enforced by default (requires provider POST policies). Set S3_UPLOAD_SIZE_POLICY=presigned-put only as an explicitly best-effort fallback.',
+			'Usage: <FileUpload onUpload={(key) => console.log(key)} /> — key is the persistent object key, not the expiring presigned URL',
+			...(options.testpack
+				? ['Test pack installed: bun run test (upload endpoint security)']
+				: [])
+		];
+		// Unverified capabilities (#323): on a non-SVForge project whose auth
+		// wiring could not be confirmed structurally, install proceeds WITH a
+		// clear warning instead of silently pretending support.
+		if (typeof cwd === 'string') {
+			const gate = checkModuleCapabilities(cwd, 'uploads');
+			if (gate.ok) steps.push(...gate.warnings);
+		}
+		return steps;
+	}
 });

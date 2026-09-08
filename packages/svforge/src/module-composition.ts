@@ -5,122 +5,86 @@
  * composable modules, and light presets (meta-packages) that compose existing
  * modules WITHOUT duplicating their code. Presets are recipes, not
  * implementations.
+ *
+ * #323: prerequisites are no longer template names. Every module declares
+ * CAPABILITIES (requires/provides/optional) — the single source of truth
+ * lives in @svforge/addon-kit (MODULE_CONTRACTS) and is shared with the
+ * install gates of each addon package. A module installs on ANY project that
+ * provides its required capabilities, SVForge template or not.
  */
+import {
+	CAPABILITIES,
+	MODULE_CONTRACTS,
+	compositionGaps,
+	type Capability,
+	type ModuleCapabilityContract
+} from '@svforge/addon-kit';
 
-export interface ModuleMeta {
+export type { Capability, ModuleCapabilityContract };
+export { CAPABILITIES, MODULE_CONTRACTS };
+
+/** Full public metadata of a module (#236 contract). */
+export interface ModuleMeta extends ModuleCapabilityContract {
 	id: string;
 	description: string;
-	/** Template required to install this module. */
-	requires: string[];
-	/** Optional integrations that enhance the module (never forced). */
-	optional: string[];
+	/** Template that grants every required capability out of the box. */
+	template: 'base' | 'dashboard';
+	/** Capabilities that MUST be present before installation. */
+	requires: Capability[];
+	/** Capabilities the project gains once the module is installed. */
+	provides: Capability[];
+	/** Capabilities that enhance the module but are never forced. */
+	optional: Capability[];
+	/** Related module ids (composition recommendations, never auto-installed). */
+	optionalModules: string[];
 	/** Files/capabilities added (documentation + #234 manifest). */
 	files: string[];
 }
 
-export interface Preset {
-	description: string;
-	/** Template the preset is built on. */
-	requires: string;
-	/** Modules installed by the preset (composition, not copies). */
-	modules: string[];
-	/** Recommended extras, never installed automatically. */
-	optional: string[];
+/** Build one module's metadata from its shared contract + local identity. */
+function meta(id: string, description: string, files: string[]): ModuleMeta {
+	const contract = MODULE_CONTRACTS[id];
+	if (!contract) {
+		throw new Error(`Module "${id}" has no capability contract in @svforge/addon-kit.`);
+	}
+	return { ...contract, id, description, files };
 }
 
-/** Contract for every svforge module (#236). */
+/** Contract for every svforge module (#236, capabilities from #323). */
 export const MODULES: Record<string, ModuleMeta> = {
-	ui_toast: {
-		id: 'ui_toast',
-		description: 'Toast notifications (Skeleton Toast)',
-		requires: ['base'],
-		optional: [],
-		files: ['src/lib/components/svforge/ui/Toaster.svelte', 'src/lib/components/svforge/ui/toaster.ts']
-	},
-	dnd: {
-		id: 'dnd',
-		description: 'Drag & drop sortable lists',
-		requires: ['base'],
-		optional: [],
-		files: ['src/lib/components/svforge/dnd/SortableList.svelte']
-	},
-	tiptap: {
-		id: 'tiptap',
-		description: 'Rich text editor (Tiptap, toolbar + preview)',
-		requires: ['base'],
-		optional: [],
-		files: ['src/lib/components/svforge/tiptap/']
-	},
-	graph: {
-		id: 'graph',
-		description: 'Knowledge graph visualization (force-graph)',
-		requires: ['base'],
-		optional: [],
-		files: ['src/lib/components/svforge/graph/']
-	},
-	email: {
-		id: 'email',
-		description: 'Transactional emails (Resend)',
-		requires: ['base'],
-		optional: [],
-		files: ['src/lib/server/email.ts', 'src/lib/server/templates/']
-	},
-	oauth: {
-		id: 'oauth',
-		description: 'Social auth buttons (Google, GitHub)',
-		requires: ['dashboard'],
-		optional: [],
-		files: ['src/lib/components/svforge/ui/OAuthButtons.svelte']
-	},
-	uploads: {
-		id: 'uploads',
-		description: 'File uploads (S3-compatible POST hard limit, PUT best-effort fallback)',
-		requires: ['base'],
-		optional: ['testpack'],
-		files: ['src/lib/components/svforge/uploads/', 'src/lib/server/s3.ts', 'src/routes/api/upload/']
-	},
-	blog: {
-		id: 'blog',
-		description: 'MDsveX blog (posts + list + detail)',
-		requires: ['base'],
-		optional: [],
-		files: ['src/posts/', 'src/lib/utils/posts.ts', 'src/routes/blog/']
-	},
-	realtime: {
-		id: 'realtime',
-		description: 'WebSocket transport (publish/subscribe, channels isolés)',
-		requires: ['base'],
-		optional: [],
-		files: ['src/lib/server/realtime/', 'src/lib/realtime/client.ts']
-	},
-	audit: {
-		id: 'audit',
-		description: 'Business action audit trail (append-only)',
-		requires: ['dashboard'],
-		optional: [],
-		files: ['src/lib/server/audit/', 'src/routes/(app)/admin/audit/']
-	},
-	notifications: {
-		id: 'notifications',
-		description: 'Persistent business notifications (read/unread)',
-		requires: ['dashboard'],
-		optional: ['realtime', 'email'],
-		files: ['src/lib/server/notifications/', 'src/lib/components/svforge/ui/NotificationsBell.svelte', 'src/routes/api/notifications/']
-	},
-	jobs: {
-		id: 'jobs',
-		description: 'Background job foundation (retry, progress, backend encapsulé)',
-		requires: ['dashboard'],
-		optional: ['realtime', 'notifications', 'email'],
-		files: ['src/lib/server/jobs/']
-	},
-	chat: {
-		id: 'chat',
-		description: 'Composable app chat (conversations, messages, read-state)',
-		requires: ['dashboard'],
-		optional: ['realtime', 'uploads', 'notifications'],
-		files: ['src/lib/server/chat/', 'src/routes/chat/']
-	}
+	ui_toast: meta('ui_toast', 'Toast notifications (Skeleton Toast)', [
+		'src/lib/components/svforge/ui/Toaster.svelte',
+		'src/lib/components/svforge/ui/toaster.ts'
+	]),
+	dnd: meta('dnd', 'Drag & drop sortable lists', ['src/lib/components/svforge/dnd/SortableList.svelte']),
+	tiptap: meta('tiptap', 'Rich text editor (Tiptap, toolbar + preview)', ['src/lib/components/svforge/tiptap/']),
+	graph: meta('graph', 'Knowledge graph visualization (force-graph)', ['src/lib/components/svforge/graph/']),
+	email: meta('email', 'Transactional emails (Resend)', ['src/lib/server/email.ts', 'src/lib/server/templates/']),
+	oauth: meta('oauth', 'Social auth buttons (Google, GitHub)', ['src/lib/components/svforge/ui/OAuthButtons.svelte']),
+	uploads: meta('uploads', 'File uploads (S3-compatible POST hard limit, PUT best-effort fallback)', [
+		'src/lib/components/svforge/uploads/',
+		'src/lib/server/s3.ts',
+		'src/routes/api/upload/'
+	]),
+	blog: meta('blog', 'MDsveX blog (posts + list + detail)', ['src/posts/', 'src/lib/utils/posts.ts', 'src/routes/blog/']),
+	realtime: meta('realtime', 'WebSocket transport (publish/subscribe, channels isolés)', [
+		'src/lib/server/realtime/',
+		'src/lib/realtime/client.ts'
+	]),
+	audit: meta('audit', 'Business action audit trail (append-only)', [
+		'src/lib/server/audit/',
+		'src/routes/(app)/admin/audit/'
+	]),
+	notifications: meta('notifications', 'Persistent business notifications (read/unread)', [
+		'src/lib/server/notifications/',
+		'src/lib/components/svforge/ui/NotificationsBell.svelte',
+		'src/routes/api/notifications/'
+	]),
+	jobs: meta('jobs', 'Background job foundation (retry, progress, backend encapsulé)', ['src/lib/server/jobs/']),
+	chat: meta('chat', 'Composable app chat (conversations, messages, read-state)', [
+		'src/lib/server/chat/',
+		'src/routes/chat/'
+	])
 };
 
 /** Reference presets — recipes that compose existing modules (#236). */
@@ -138,6 +102,16 @@ export const PRESETS: Record<string, Preset> = {
 		optional: ['tiptap', 'graph']
 	}
 };
+
+export interface Preset {
+	description: string;
+	/** Template the preset is built on. */
+	requires: string;
+	/** Modules installed by the preset (composition, not copies). */
+	modules: string[];
+	/** Recommended extras, never installed automatically. */
+	optional: string[];
+}
 
 /**
  * Expand a preset into the concrete `sv add` spec (template + module names).
@@ -162,21 +136,31 @@ export function expandPreset(presetId: string): string[] {
 }
 
 /**
- * Validate a composition: every module's `requires` template must be satisfied
- * by the chosen template, and all module ids must exist.
+ * Validate a composition over the CAPABILITY contract (#323): every module
+ * must exist, and each module's requires must be covered by the template's
+ * grants plus the provides of the other selected modules — exactly what a
+ * single `sv add svforge=template:<t> m1 m2 …` will check again at install
+ * time, this time structurally on the real project.
  *
- * @throws with a clear message on invalid composition.
+ * @throws with a readable, derived message naming the missing capability and
+ *   how to install it.
  */
 export function validateComposition(template: 'base' | 'dashboard', moduleIds: string[]): void {
 	for (const id of moduleIds) {
 		if (!MODULES[id]) {
 			throw new Error(`Unknown module "${id}". Available: ${Object.keys(MODULES).join(', ')}`);
 		}
-		const meta = MODULES[id];
-		if (meta.requires.includes('dashboard') && template !== 'dashboard') {
-			throw new Error(
-				`Module "${id}" requires the dashboard template (${meta.requires.join(', ')}). Run sv add svforge=template:dashboard first.`
-			);
-		}
+	}
+	const gaps = compositionGaps(
+		template,
+		moduleIds.map((id) => ({ ...MODULES[id], id }))
+	);
+	for (const gap of gaps) {
+		const details = gap.missing
+			.map((token) => `- ${token} — ${CAPABILITIES[token].title}\n  Fix: ${CAPABILITIES[token].remedy}`)
+			.join('\n');
+		throw new Error(
+			`Composition invalid: module "${gap.moduleId}" is missing required capabilities on the ${template} template:\n${details}`
+		);
 	}
 }

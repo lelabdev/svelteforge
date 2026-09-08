@@ -1,70 +1,7 @@
 import { defineAddon, defineAddonOptions } from 'sv';
-import { existsSync } from 'node:fs';
-import { join } from 'node:path';
+import { checkModuleCapabilities, planAddonContext } from '@svforge/addon-kit';
 import { files } from './templates';
 
-/**
- * Enrich the project's .svforge.json AI manifest (#234) without overwriting
- * user edits — module id, capability and canonical pattern are merged
- * idempotently (#258). Small inline helper — modules are standalone packages.
- */
-function enrichManifest(content: string, moduleId: string, capability: string, pattern: string): string {
-	let manifest: {
-		template: string;
-		modules: string[];
-		capabilities: string[];
-		patterns: Record<string, string>;
-	} = { template: 'base', modules: [], capabilities: [], patterns: {} };
-	try {
-		manifest = content && content.trim() ? JSON.parse(content) : manifest;
-	} catch {
-		manifest = { template: 'base', modules: [], capabilities: [], patterns: {} };
-	}
-	if (!Array.isArray(manifest.modules)) manifest.modules = [];
-	if (!Array.isArray(manifest.capabilities)) manifest.capabilities = [];
-	if (!manifest.patterns) manifest.patterns = {};
-	if (!manifest.modules.includes(moduleId)) manifest.modules.push(moduleId);
-	if (!manifest.capabilities.includes(capability)) manifest.capabilities.push(capability);
-	if (!manifest.patterns[capability]) manifest.patterns[capability] = pattern;
-	return `${JSON.stringify(manifest, null, 2)}\n`;
-}
-
-/**
- * Merge this module's capability + canonical pattern into the scaffolded
- * llms.txt (#258) so the AI context reflects every installed module even
- * though svforge itself is not installed in the generated project.
- */
-function mergeLlmstxt(content: string, capability: string, pattern: string): string {
-	const lines = (content || '').split('\n');
-	const capLine = `- ${capability}`;
-	if (!lines.some((l) => l === capLine)) {
-		// Append at the END of the Capabilities section (before the next
-		// "## " header): module order then matches installation order, so
-		// `svforge context` regenerates a byte-identical llms.txt (#296).
-		let insertAt = lines.length;
-		const header = lines.findIndex((l) => l === '## Capabilities installed');
-		if (header >= 0) {
-			const nextSection = lines.findIndex((l, i) => i > header && l.startsWith('## '));
-			insertAt = nextSection >= 0 ? nextSection : lines.length;
-			// insert BEFORE the blank line that closes the section, so the
-			// byte layout matches renderLlmstxt exactly (#296)
-			if (insertAt > header + 1 && lines[insertAt - 1] === '') insertAt -= 1;
-		}
-		lines.splice(insertAt, 0, capLine);
-	}
-	const patLine = `- ${capability}: ${pattern}`;
-	if (!lines.some((l) => l === patLine)) {
-		let insertAt = lines.length;
-		const header = lines.findIndex((l) => l === '## Canonical patterns');
-		if (header >= 0) {
-			const nextSection = lines.findIndex((l, i) => i > header && l.startsWith('## '));
-			insertAt = nextSection >= 0 ? nextSection : lines.length;
-			if (insertAt > header + 1 && lines[insertAt - 1] === '') insertAt -= 1;
-		}
-		lines.splice(insertAt, 0, patLine);
-	}
-	return lines.join('\n');
-}
 
 export default defineAddon({
 	id: 'svforge-jobs',
@@ -78,12 +15,19 @@ export default defineAddon({
 	},
 
 	run: ({ sv, cancel, cwd }) => {
-		// jobs/index.ts imports $lib/server/db — requires dashboard.
-		if (!existsSync(join(cwd, 'src/lib/server/db/index.ts'))) {
-			cancel('SVForge Jobs requires the svforge dashboard template (src/lib/server/db missing — run `sv add svforge=template:dashboard` first)');
+		// Capability gate (#323): jobs needs the database contract, and a
+		// long-lived worker runtime (unverifiable from files → warning).
+		const gate = checkModuleCapabilities(cwd, 'jobs');
+		if (!gate.ok) {
+			cancel(gate.message);
 			return;
 		}
 
+		const context = planAddonContext(cwd, { moduleId: 'jobs', capability: 'background jobs', pattern: 'src/lib/server/jobs/' });
+		if (!context.ok) {
+			cancel(context.error);
+			return;
+		}
 		for (const [path, content] of Object.entries(files)) {
 			sv.file(`src${path}`, () => content);
 		}
@@ -104,17 +48,28 @@ export default defineAddon({
 			return `${content}\nstartJobRunner();\n`;
 		});
 
-		// AI context (#234).
-		sv.file('.svforge.json', (content) => enrichManifest(content, 'jobs', 'background jobs', 'src/lib/server/jobs/'));
-		sv.file('llms.txt', (content) => mergeLlmstxt(content, 'background jobs', 'src/lib/server/jobs/'));
+		// AI context (#234): planned in memory first (#324) — an invalid
+		// .svforge.json cancels the install instead of resetting the file.
+		for (const write of context.writes) {
+			sv.file(write.path, () => write.content);
+		}
 	},
 
-	nextSteps: () => [
-		'@svforge/jobs installed!',
-		'Define a handler: import { define } from "$lib/server/jobs";',
-		'  define("payroll.export", async (payload, ctx) => { await ctx.progress(10); ... return { fileId }; });',
-		'Enqueue: await jobs.enqueue("payroll.export", { organizationId });',
-		'Runner starts automatically in hooks.server.ts (5s polling, retries ×3).',
-		'Guarantees v1: at-least-once → handlers must be idempotent.'
-	]
+	nextSteps: ({ cwd }) => {
+		const steps = [
+			'@svforge/jobs installed!',
+			'Define a handler: import { define } from "$lib/server/jobs";',
+			'  define("payroll.export", async (payload, ctx) => { await ctx.progress(10); ... return { fileId }; });',
+			'Enqueue: await jobs.enqueue("payroll.export", { organizationId });',
+			'Runner starts automatically in hooks.server.ts (5s polling, retries ×3).',
+			'Guarantees v1: at-least-once → handlers must be idempotent.'
+		];
+		// runtime.longLivedWorker is unverifiable from files (#323): surface the
+		// deployment constraint as a warning, never as a hard failure.
+		if (typeof cwd === 'string') {
+			const gate = checkModuleCapabilities(cwd, 'jobs');
+			if (gate.ok) steps.push(...gate.warnings);
+		}
+		return steps;
+	}
 });

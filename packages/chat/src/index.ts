@@ -1,92 +1,7 @@
 import { defineAddon, defineAddonOptions } from 'sv';
-import { existsSync } from 'node:fs';
-import { join } from 'node:path';
+import { checkModuleCapabilities, planCatalogMerges, planAddonContext } from '@svforge/addon-kit';
 import { files } from './templates';
 
-/**
- * Enrich the project's .svforge.json AI manifest (#234) without overwriting
- * user edits — module id, capability and canonical pattern are merged
- * idempotently (#258). Small inline helper — modules are standalone packages.
- */
-function enrichManifest(content: string, moduleId: string, capability: string, pattern: string): string {
-	let manifest: {
-		template: string;
-		modules: string[];
-		capabilities: string[];
-		patterns: Record<string, string>;
-	} = { template: 'base', modules: [], capabilities: [], patterns: {} };
-	try {
-		manifest = content && content.trim() ? JSON.parse(content) : manifest;
-	} catch {
-		manifest = { template: 'base', modules: [], capabilities: [], patterns: {} };
-	}
-	if (!Array.isArray(manifest.modules)) manifest.modules = [];
-	if (!Array.isArray(manifest.capabilities)) manifest.capabilities = [];
-	if (!manifest.patterns) manifest.patterns = {};
-	if (!manifest.modules.includes(moduleId)) manifest.modules.push(moduleId);
-	if (!manifest.capabilities.includes(capability)) manifest.capabilities.push(capability);
-	if (!manifest.patterns[capability]) manifest.patterns[capability] = pattern;
-	return `${JSON.stringify(manifest, null, 2)}\n`;
-}
-
-/**
- * Merge this module's capability + canonical pattern into the scaffolded
- * llms.txt (#258) so the AI context reflects every installed module even
- * though svforge itself is not installed in the generated project.
- */
-function mergeLlmstxt(content: string, capability: string, pattern: string): string {
-	const lines = (content || '').split('\n');
-	const capLine = `- ${capability}`;
-	if (!lines.some((l) => l === capLine)) {
-		// Append at the END of the Capabilities section (before the next
-		// "## " header): module order then matches installation order, so
-		// `svforge context` regenerates a byte-identical llms.txt (#296).
-		let insertAt = lines.length;
-		const header = lines.findIndex((l) => l === '## Capabilities installed');
-		if (header >= 0) {
-			const nextSection = lines.findIndex((l, i) => i > header && l.startsWith('## '));
-			insertAt = nextSection >= 0 ? nextSection : lines.length;
-			// insert BEFORE the blank line that closes the section, so the
-			// byte layout matches renderLlmstxt exactly (#296)
-			if (insertAt > header + 1 && lines[insertAt - 1] === '') insertAt -= 1;
-		}
-		lines.splice(insertAt, 0, capLine);
-	}
-	const patLine = `- ${capability}: ${pattern}`;
-	if (!lines.some((l) => l === patLine)) {
-		let insertAt = lines.length;
-		const header = lines.findIndex((l) => l === '## Canonical patterns');
-		if (header >= 0) {
-			const nextSection = lines.findIndex((l, i) => i > header && l.startsWith('## '));
-			insertAt = nextSection >= 0 ? nextSection : lines.length;
-			if (insertAt > header + 1 && lines[insertAt - 1] === '') insertAt -= 1;
-		}
-		lines.splice(insertAt, 0, patLine);
-	}
-	return lines.join('\n');
-}
-
-/**
- * Merge Paraglide catalog entries into an existing messages/{locale}.json
- * (#239). Never overwrites existing keys.
- */
-function mergeMessages(content: string, additions: Record<string, string>): string {
-	let catalog: Record<string, unknown> = {};
-	if (content && content.trim()) {
-		try {
-			catalog = JSON.parse(content);
-		} catch {
-			catalog = {};
-		}
-	}
-	for (const [key, value] of Object.entries(additions)) {
-		// NEVER overwrite an existing key (#296): a consumer may have
-		// customized a translation, and recomposition/reinstall must not
-		// clobber it.
-		if (!(key in catalog)) catalog[key] = value;
-	}
-	return `${JSON.stringify(catalog, null, 2)}\n`;
-}
 
 export default defineAddon({
 	id: 'svforge-chat',
@@ -100,12 +15,53 @@ export default defineAddon({
 	},
 
 	run: ({ sv, cancel, cwd }) => {
-		// chat/index.ts imports $lib/server/db — requires dashboard.
-		if (!existsSync(join(cwd, 'src/lib/server/db/index.ts'))) {
-			cancel('SVForge Chat requires the svforge dashboard template (src/lib/server/db missing — run `sv add svforge=template:dashboard` first)');
+		// Capability gate (#323): chat needs the database, identity (locals.user),
+		// Paraglide catalogs and the SVForge UI kit (Button primitive).
+		const gate = checkModuleCapabilities(cwd, 'chat');
+		if (!gate.ok) {
+			cancel(gate.message);
 			return;
 		}
+		// Capability warnings (#323): unverifiable or unverified requirements are
+		// emitted as diagnostics — the install proceeds, support is never pretended.
+		for (const warning of gate.warnings) console.warn(`[svforge] ${warning}`);
 
+
+		const catalogs = planCatalogMerges(cwd, [
+			{
+				path: 'messages/fr.json',
+				additions: {
+					chat_title: 'Messages',
+					chat_conversation: 'Conversation',
+					chat_empty: 'Aucun message pour le moment.',
+					chat_no_messages: 'Aucun message',
+					chat_message: 'Message',
+					chat_placeholder: 'Écrivez votre message…',
+					chat_send: 'Envoyer'
+				}
+			},
+			{
+				path: 'messages/en.json',
+				additions: {
+					chat_title: 'Messages',
+					chat_conversation: 'Conversation',
+					chat_empty: 'No messages yet.',
+					chat_no_messages: 'No messages',
+					chat_message: 'Message',
+					chat_placeholder: 'Write your message…',
+					chat_send: 'Send'
+				}
+			}
+		]);
+		if (!catalogs.ok) {
+			cancel(catalogs.error);
+			return;
+		}
+		const context = planAddonContext(cwd, { moduleId: 'chat', capability: 'chat', pattern: 'src/lib/server/chat/' });
+		if (!context.ok) {
+			cancel(context.error);
+			return;
+		}
 		for (const [path, content] of Object.entries(files)) {
 			sv.file(`src${path}`, () => content);
 		}
@@ -116,42 +72,32 @@ export default defineAddon({
 			return `import { conversations, conversationParticipants, messages as chatMessages, messageReads } from '$lib/server/chat/schema';\n${content}\nexport { conversations, conversationParticipants, chatMessages, messageReads };\n`;
 		});
 
-		// Paraglide messages (#239).
-		sv.file('messages/fr.json', (content) =>
-			mergeMessages(content, {
-				chat_title: 'Messages',
-				chat_conversation: 'Conversation',
-				chat_empty: 'Aucun message pour le moment.',
-				chat_no_messages: 'Aucun message',
-				chat_message: 'Message',
-				chat_placeholder: 'Écrivez votre message…',
-				chat_send: 'Envoyer'
-			})
-		);
-		sv.file('messages/en.json', (content) =>
-			mergeMessages(content, {
-				chat_title: 'Messages',
-				chat_conversation: 'Conversation',
-				chat_empty: 'No messages yet.',
-				chat_no_messages: 'No messages',
-				chat_message: 'Message',
-				chat_placeholder: 'Write your message…',
-				chat_send: 'Send'
-			})
-		);
+		// Paraglide messages (#239) + manifest (#234): PLANNED in memory before
+		// any write (#324) — one invalid catalog or manifest cancels the whole
+		// install and every file stays byte-for-byte identical.
 
-		// AI context (#234).
-		sv.file('.svforge.json', (content) => enrichManifest(content, 'chat', 'chat', 'src/lib/server/chat/'));
-		sv.file('llms.txt', (content) => mergeLlmstxt(content, 'chat', 'src/lib/server/chat/'));
+		for (const write of [...catalogs.writes, ...context.writes]) {
+			sv.file(write.path, () => write.content);
+		}
 	},
 
-	nextSteps: () => [
-		'@svforge/chat installed!',
-		'Routes: /chat (list) and /chat/[id] (conversation)',
-		'API: import { chat } from "$lib/server/chat";',
-		'  await chat.createConversation({ participantIds: [userA, userB] });',
-		'  await chat.sendMessage({ conversationId, authorId: user.id, content: "Bonjour" });',
-		'Optional: realtime → publish message.created on conversation:{id}',
-		'  uploads → attachments, notifications → alert non-active participants'
-	]
+	nextSteps: ({ cwd }) => {
+		const steps = [
+			'@svforge/chat installed!',
+			'Routes: /chat (list) and /chat/[id] (conversation)',
+			'API: import { chat } from "$lib/server/chat";',
+			'  await chat.createConversation({ participantIds: [userA, userB] });',
+			'  await chat.sendMessage({ conversationId, authorId: user.id, content: "Bonjour" });',
+			'Optional: realtime → publish message.created on conversation:{id}',
+			'  uploads → attachments, notifications → alert non-active participants'
+		];
+		// Unverified capabilities (#323): on a non-SVForge project whose auth/db
+		// wiring could not be confirmed structurally, install proceeds WITH a
+		// clear warning instead of silently pretending support.
+		if (typeof cwd === 'string') {
+			const gate = checkModuleCapabilities(cwd, 'chat');
+			if (gate.ok) steps.push(...gate.warnings);
+		}
+		return steps;
+	}
 });

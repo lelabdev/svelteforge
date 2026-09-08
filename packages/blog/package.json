@@ -2,14 +2,13 @@
 	"name": "@svforge/blog",
 	"version": "0.0.1",
 	"type": "module",
-	"description": "SVForge Blog \u2014 MDsveX blog with posts list and article pages",
+	"description": "SVForge Blog — MDsveX blog with posts list and article pages",
 	"author": "Ludo (https://lelab.dev)",
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/lelabdev/svelteforge.git",
 		"directory": "packages/blog"
 	},
-	"types": "./dist/index.d.ts",
 	"exports": {
 		".": {
 			"types": "./dist/index.d.ts",
@@ -24,6 +23,7 @@
 		"sv": "^0.13.0"
 	},
 	"devDependencies": {
+		"@svforge/addon-kit": "workspace:*",
 		"sv": "^0.15.3",
 		"tsdown": "^0.22.14",
 		"typescript": "^6.0.3"
@@ -41,5 +41,6 @@
 		"markdown",
 		"svelte",
 		"sveltekit"
-	]
+	],
+	"types": "./dist/index.d.ts"
 }

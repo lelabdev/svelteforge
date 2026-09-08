@@ -110,22 +110,32 @@ if [ "$TEMPLATE" = "dashboard-integrations" ]; then
 	test -f src/lib/server/email.ts || { echo "❌ email server lib missing (#284)"; exit 1; }
 fi
 
-# Module composition guards (#190): graph/ui_toast on base, oauth on dashboard.
-# A bare project must REFUSE oauth/graph with a clear unsupported message.
+# Module composition guards (#190, capability contract #323): graph on base,
+# oauth on dashboard. A bare project must REFUSE modules whose required
+# capabilities are absent, with a readable message naming the capability.
 if [ "$TEMPLATE" = "base-modules" ]; then
-	# 1. graph on bare project → refused
-	if $SV_CMD add "file:$REPO_ROOT/packages/graph" --install bun --no-download-check 2>&1 | grep -q "requires the svforge base template"; then
-		echo "✅ graph refused on bare project (#190)"
+	# 1. graph on bare project → refused (missing capability ui.svforge).
+	# The refusal makes sv exit non-zero, so capture output separately from
+	# the exit code (set -o pipefail would otherwise fail the check).
+	graph_output=$($SV_CMD add "file:$REPO_ROOT/packages/graph" --install bun --no-download-check 2>&1 || true)
+	if printf '%s' "$graph_output" | grep -q "ui.svforge"; then
+		echo "✅ graph refused on bare project (missing ui.svforge, #323)"
 	else
-		echo "❌ graph was not refused on bare project (#190)"; exit 1
+		echo "❌ graph was not refused on bare project (#323)"; exit 1
 	fi
-	# 2. ui_toast on bare project → installs and declares skeleton-svelte
-	$SV_CMD add "file:$REPO_ROOT/packages/ui_toast" --install bun --no-download-check
-	grep -q "skeleton-svelte" package.json || { echo "❌ skeleton-svelte not declared (#190)"; exit 1; }
-	# 3. graph on svforge base → works
+	# 2. ui_toast on bare project → refused (missing capability ui.skeleton, #323)
+	toast_output=$($SV_CMD add "file:$REPO_ROOT/packages/ui_toast" --install bun --no-download-check 2>&1 || true)
+	if printf '%s' "$toast_output" | grep -q "ui.skeleton"; then
+		echo "✅ ui_toast refused on bare project (missing ui.skeleton, #323)"
+	else
+		echo "❌ ui_toast was not refused on bare project (#323)"; exit 1
+	fi
+	# 3. both modules on svforge base → the template provides the capabilities
 	$SV_CMD add "file:$REPO_ROOT/packages/svforge=template:base+testing:vitest+hooks:none" --install bun --no-download-check
 	$SV_CMD add "file:$REPO_ROOT/packages/graph" --install bun --no-download-check
 	test -f src/lib/components/svforge/graph/KnowledgeGraph.svelte || { echo "❌ graph files missing on base (#190)"; exit 1; }
+	$SV_CMD add "file:$REPO_ROOT/packages/ui_toast" --install bun --no-download-check
+	grep -q "skeleton-svelte" package.json || { echo "❌ skeleton-svelte not declared (#190)"; exit 1; }
 fi
 
 # 3. Dashboard: env vars required at build time (auth.ts / db/index.ts)

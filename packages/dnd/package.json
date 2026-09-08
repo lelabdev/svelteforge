@@ -2,14 +2,13 @@
 	"name": "@svforge/dnd",
 	"version": "0.0.2",
 	"type": "module",
-	"description": "SVForge Drag & Drop \u2014 sortable lists via @thisux/sveltednd",
+	"description": "SVForge Drag & Drop — sortable lists via @thisux/sveltednd",
 	"author": "Ludo (https://lelab.dev)",
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/lelabdev/svelteforge.git",
 		"directory": "packages/dnd"
 	},
-	"types": "./dist/index.d.ts",
 	"exports": {
 		".": {
 			"types": "./dist/index.d.ts",
@@ -25,6 +24,7 @@
 		"@skeletonlabs/skeleton-svelte": "^5.0.0"
 	},
 	"devDependencies": {
+		"@svforge/addon-kit": "workspace:*",
 		"sv": "^0.15.3",
 		"tsdown": "^0.22.14",
 		"typescript": "^6.0.3"
@@ -42,5 +42,6 @@
 		"sortable",
 		"svelte",
 		"sveltekit"
-	]
+	],
+	"types": "./dist/index.d.ts"
 }
