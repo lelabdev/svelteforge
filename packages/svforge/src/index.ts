@@ -108,7 +108,6 @@ export default defineAddon({
 		sv.devDependency('eslint', '^10.0.0');
 		sv.devDependency('eslint-config-prettier', '^10.0.0');
 		sv.devDependency('eslint-plugin-svelte', '^3.0.0');
-		sv.devDependency('eslint-plugin-svforge', '^1.2.0');
 		sv.devDependency('globals', '^17.0.0');
 		sv.devDependency('prettier', '^3.0.0');
 		sv.devDependency('prettier-plugin-svelte', '^3.0.0');

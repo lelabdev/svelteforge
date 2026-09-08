@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { ESLint } from 'eslint';
 import type { SvApi } from 'sv';
 import svelte from 'eslint-plugin-svelte';
-import svforge from '../packages/eslint-plugin-svforge/src/index';
+import svforge from '../packages/svforge/templates/base/root/eslint-plugin-svforge.mjs';
 import { baseFiles, baseRootFiles, dashboardFiles, dashboardRootFiles } from '../packages/svforge/src/templates';
 import { applyBaseMode } from '../packages/svforge/src/modes/base';
 import { applyDashboardMode } from '../packages/svforge/src/modes/dashboard';
@@ -73,7 +73,7 @@ function scaffoldFiles(template: 'base' | 'dashboard'): Map<string, string> {
 describe('scaffolded ESLint configuration (#346)', () => {
 	it.each(['base', 'dashboard'] as const)('writes the required svforge plugin config at the project root for %s', (template) => {
 		const config = scaffoldFiles(template).get('eslint.config.js');
-		expect(config).toContain("import svforge from 'eslint-plugin-svforge';");
+		expect(config).toContain("import svforge from './eslint-plugin-svforge.mjs';");
 		expect(config).toContain("'svforge/no-design-violations': 'error'");
 		expect(config).not.toContain('try {');
 		expect(JSON.parse(scaffoldFiles(template).get('package.json')!).scripts.lint).toBe('eslint .');

@@ -61,16 +61,7 @@ elif [ "$TEMPLATE" = "dashboard-integrations" ]; then
 fi
 if [ "$TEMPLATE" != "base-modules" ] && [ "$TEMPLATE" != "dashboard-foundations" ]; then
 	ADD_SPEC="${ADD_SPEC:-file:$REPO_ROOT/packages/svforge=template:base+testing:vitest+hooks:none}"
-	if [ "$TEMPLATE" = "base" ] || [ "$TEMPLATE" = "dashboard" ]; then
-		# The package is unpublished while this local scaffold test runs. Install
-		# its workspace sources after `sv add` writes the consumer manifest; normal
-		# release installs resolve the declared npm versions.
-		$SV_CMD add "$ADD_SPEC" --no-install --no-download-check
-		node -e 'const fs = require("node:fs"); const root = process.argv[1]; const p = JSON.parse(fs.readFileSync("package.json", "utf8")); p.devDependencies["eslint-plugin-svforge"] = `file:${root}/packages/eslint-plugin-svforge`; p.devDependencies.svforge = `file:${root}/packages/svforge`; p.overrides = { ...(p.overrides || {}), svforge: `file:${root}/packages/svforge` }; fs.writeFileSync("package.json", JSON.stringify(p, null, 2) + "\n");' "$REPO_ROOT"
-		bun install
-	else
-		$SV_CMD add "$ADD_SPEC" --install bun --no-download-check
-	fi
+	$SV_CMD add "$ADD_SPEC" --install bun --no-download-check
 fi
 
 # Blog module on top of base (#185): mdsvex must integrate via vite.config.ts
