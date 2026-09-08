@@ -134,6 +134,26 @@ describe('admin users +page.server — user management', () => {
 		expect(deleteSession).toHaveBeenCalledTimes(1);
 	});
 
+	it('refuses self-deactivation before updating the user or deleting sessions', async () => {
+		const { isAdmin } = await import('$lib/server/admin');
+		vi.mocked(isAdmin).mockResolvedValue(true);
+
+		const { db } = await import('$lib/server/db');
+		const mod = await import('./+page.server');
+		const formData = new FormData();
+		formData.set('id', 'admin1');
+		formData.set('disabled', 'true');
+		const result = await mod.actions.toggleStatus({
+			locals: { user: { id: 'admin1' } },
+			request: { formData: async () => formData }
+		} as any);
+
+		expect(result).toMatchObject({ status: 400, data: { code: 'self_deactivate' } });
+		expect(db.update).not.toHaveBeenCalled();
+		expect(db.delete).not.toHaveBeenCalled();
+		expect(db.transaction).not.toHaveBeenCalled();
+	});
+
 	it('reactivates a user without revoking sessions', async () => {
 		const { isAdmin } = await import('$lib/server/admin');
 		vi.mocked(isAdmin).mockResolvedValue(true);
