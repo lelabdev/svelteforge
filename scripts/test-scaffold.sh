@@ -195,7 +195,7 @@ fi
 # violations with their source files and positions — never a silently omitted rule.
 if [ "$TEMPLATE" = "base" ] || [ "$TEMPLATE" = "dashboard" ]; then
 	test -f eslint.config.js || { echo "❌ eslint.config.js missing at project root (#346)"; exit 1; }
-	test -d node_modules/eslint-plugin-svforge || { echo "❌ eslint-plugin-svforge missing (#346)"; exit 1; }
+	test -f eslint-plugin-svforge.mjs || { echo "❌ eslint-plugin-svforge.mjs missing (#346)"; exit 1; }
 	mkdir -p src/lib/lint-probe
 	printf "import { Dialog } from 'bits-ui';\n" > src/lib/lint-probe/Violation.js
 	printf "import { Dialog } from 'bits-ui';\n" > src/lib/lint-probe/Violation.ts
