@@ -271,9 +271,13 @@ for (const file of walk(join(ROOT, 'src'), ['.svelte', '.html'])) {
 	for (const match of source.matchAll(wrapperPattern)) {
 		const className = match[1] ?? match[2];
 		if (!className) continue;
-		const violations = classViolations(className);
+		// Svelte expressions inside class="…" are not literal class names —
+		// prettier-wrapped markup can split them into bare tokens (e.g. btn.check
+		// from {isActive(btn.check)}), so validate the static part only (#346).
+		const staticClassName = className.replace(/\{[^}]*\}/g, ' ');
+		const violations = classViolations(staticClassName);
 		if (match[1] !== undefined) {
-			for (const token of className.split(/\s+/).filter(Boolean)) {
+			for (const token of staticClassName.split(/\s+/).filter(Boolean)) {
 				if (isSkeletonUtility(lastSegment(token), INVENTORY)) {
 					violations.push(`The SVForge wrapper already renders its Skeleton primitive: select the visual through props — not class ("${token}").`);
 				}

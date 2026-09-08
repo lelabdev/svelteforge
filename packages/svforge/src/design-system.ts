@@ -728,10 +728,14 @@ export function checkSvelteMarkup(source: string, ctx: MarkupContext): { classNa
 	for (const match of source.matchAll(classAttrPattern)) {
 		const className = match[1] ?? match[2];
 		if (!className) continue;
-		const violations = checkClassString(className, ctx);
+		// Svelte expressions inside class="…" are not literal class names —
+		// prettier-wrapped markup can split them into bare tokens (e.g. btn.check
+		// from {isActive(btn.check)}), so validate the static part only (#346).
+		const staticClassName = className.replace(/\{[^}]*\}/g, ' ');
+		const violations = checkClassString(staticClassName, ctx);
 		if (match[1] !== undefined) {
 			// SVForge wrapper: any Skeleton primitive inside class is an error.
-			const tokens = className.split(/\s+/).filter(Boolean);
+			const tokens = staticClassName.split(/\s+/).filter(Boolean);
 			for (const token of tokens) {
 				const segment = token.includes(':') ? token.slice(token.lastIndexOf(':') + 1) : token;
 				if (isSkeletonUtility(segment, ctx)) {
