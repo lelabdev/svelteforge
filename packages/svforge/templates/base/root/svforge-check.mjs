@@ -32,8 +32,26 @@ const ADDON_COMPONENTS = /*__ADDON_COMPONENTS__*/ {};
 const AVOID_PATTERNS = /*__AVOID_PATTERNS__*/ [];
 const FORBIDDEN_KITS = [
 	'@shadcn/svelte', 'shadcn-svelte', 'bits-ui', '@melt-ui/svelte',
-	'flowbite-svelte', 'svelteui', '@svelteuidev/core'
+	'flowbite-svelte', 'skeletonlabs/skeleton-v2', 'svelteui', '@svelteuidev/core'
 ];
+
+// ── Shared rule contract (#346): one analysis engine, many surfaces ──
+// The scaffolded ESLint plugin (eslint-plugin-svforge.mjs) imports these —
+// this checker is the single source of truth shared with `bun run check`
+// and the Vite build gate. Never duplicate engine logic in the adapter.
+export const DESIGN_RULE_IDS = {
+	forbiddenUiKit: 'forbiddenUiKit',
+	duplicatedSkeletonPrimitive: 'duplicatedSkeletonPrimitive'
+};
+export const DESIGN_MESSAGES = {
+	forbiddenUiKit: (kit) =>
+		`Second UI kit detected: ${kit}. SvelteForge uses Skeleton as the single UI source. Remove it.`,
+	duplicatedSkeletonPrimitive: (name, file) =>
+		`Duplicated Skeleton primitive "${name}" at ${file}. Use ${name} from @skeletonlabs/skeleton-svelte or the svforge catalog instead.`
+};
+export function isForbiddenUiKit(packageName) {
+	return FORBIDDEN_KITS.some((kit) => packageName === kit || packageName.startsWith(`${kit}/`));
+}
 const THEME_FILES = new Set([
 	'src/lib/styles/svelteforge-theme.css',
 	'src/lib/styles/tokens.css',
@@ -107,14 +125,14 @@ function isTailwind(token) {
 // Primitives and utilities are derived independently: a consumer can install a
 // newer skeleton-svelte (new primitives) or skeleton (new utilities), and each
 // side falls back to the shipped inventory when its package is missing (#361).
-function deriveInventoryFromNodeModules() {
+function deriveInventoryFromNodeModules(projectRoot = ROOT) {
 	const inventory = {
 		versions: { ...SKELETON_INVENTORY.versions },
 		primitives: [...SKELETON_INVENTORY.primitives],
 		utilities: [...SKELETON_INVENTORY.utilities],
 		utilityPrefixes: [...SKELETON_INVENTORY.utilityPrefixes]
 	};
-	const svelteComponentsDir = join(ROOT, 'node_modules', '@skeletonlabs', 'skeleton-svelte', 'dist', 'components');
+	const svelteComponentsDir = join(projectRoot, 'node_modules', '@skeletonlabs', 'skeleton-svelte', 'dist', 'components');
 	if (existsSync(svelteComponentsDir)) {
 		const derived = new Set();
 		for (const entry of readdirSync(svelteComponentsDir, { withFileTypes: true })) {
@@ -128,7 +146,7 @@ function deriveInventoryFromNodeModules() {
 		}
 		if (derived.size) inventory.primitives = [...derived].sort();
 	}
-	const utilitiesDir = join(ROOT, 'node_modules', '@skeletonlabs', 'skeleton', 'src', 'utilities');
+	const utilitiesDir = join(projectRoot, 'node_modules', '@skeletonlabs', 'skeleton', 'src', 'utilities');
 	if (existsSync(utilitiesDir)) {
 		const utilities = new Set();
 		const utilityPrefixes = new Set();
@@ -145,6 +163,78 @@ function deriveInventoryFromNodeModules() {
 	return inventory;
 }
 
+// Catalog + manifest exemptions shared by the checker walk and the exported
+// per-file helper below: exact approved catalog paths (#361) and exact
+// component paths of INSTALLED addons. One collection, one meaning.
+function collectCatalogExempts(projectRoot) {
+	const paths = new Set();
+	const wrappers = [];
+	const entries = [];
+	const installedModules = [];
+	// The project catalog is NESTED (designSystem.primitives/ui/layout) — collect
+	// component entries recursively, not just the first level.
+	const catalogPath = join(projectRoot, 'svforge-catalog.json');
+	if (existsSync(catalogPath)) {
+		try {
+			const collect = (node) => {
+				if (!node || typeof node !== 'object' || Array.isArray(node)) return;
+				for (const [key, value] of Object.entries(node)) {
+					if (!value || typeof value !== 'object' || Array.isArray(value)) continue;
+					if (typeof value.path === 'string') {
+						paths.add(value.path);
+						wrappers.push(key); // the entry name IS the component name
+						entries.push({ component: key, path: value.path });
+					}
+					collect(value);
+				}
+			};
+			collect(JSON.parse(readFileSync(catalogPath, 'utf-8')));
+		} catch {
+			// unreadable catalog: nothing is exempt except installed addon paths
+		}
+	}
+	// .svforge.json modules gate the addon-path exemptions (#361): the exact
+	// path must belong to an INSTALLED addon.
+	const manifestPath = join(projectRoot, '.svforge.json');
+	if (existsSync(manifestPath)) {
+		try {
+			const modules = JSON.parse(readFileSync(manifestPath, 'utf-8')).modules;
+			if (Array.isArray(modules)) installedModules.push(...modules);
+		} catch {
+			// unreadable manifest: addon paths are not exempt
+		}
+	}
+	return { paths, wrappers, entries, installedModules };
+}
+
+/**
+ * Deterministic per-file primitive-duplication check (#361) — the exact rule
+ * the section-2 walk applies, exposed for the ESLint adapter. Returns the
+ * duplicated primitive name, or null when the file is exempt or not a
+ * Skeleton primitive at all.
+ */
+const perFileExemptsCache = new Map();
+export function duplicatedSkeletonPrimitiveName(filename, projectRoot = process.cwd()) {
+	const inventory = deriveInventoryFromNodeModules(projectRoot) ?? SKELETON_INVENTORY;
+	const name = basename(filename, '.svelte');
+	if (!inventory.primitives.includes(name)) return null;
+	let exempts = perFileExemptsCache.get(projectRoot);
+	if (!exempts) {
+		exempts = collectCatalogExempts(projectRoot);
+		perFileExemptsCache.set(projectRoot, exempts);
+	}
+	const componentsDir = join(projectRoot, 'src', 'lib', 'components', 'svforge');
+	// POSIX-normalized: catalog/generated paths always use forward slashes.
+	const rel = relative(componentsDir, filename).split(sep).join('/');
+	if (exempts.paths.has(rel)) return null; // approved catalog component
+	// The addon id is the mapping KEY — it may differ from the path's first
+	// segment (notifications → ui/NotificationsBell.svelte, ui_toast → ui/Toaster.svelte).
+	const owningAddon = exempts.installedModules.find(
+		(moduleId) => (ADDON_COMPONENTS[moduleId] ?? []).includes(rel)
+	);
+	return owningAddon !== undefined ? null : name; // exact component of an installed addon
+}
+
 export async function checkDesignSystem(projectRoot = process.cwd(), options = {}) {
 	ROOT = resolve(projectRoot);
 	results = [];
@@ -157,10 +247,9 @@ if (!existsSync(pkgPath)) {
 }
 const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'));
 const allDeps = { ...(pkg.dependencies || {}), ...(pkg.devDependencies || {}) };
-for (const kit of FORBIDDEN_KITS) {
-	if (allDeps[kit]) {
-		results.push({ status: 'error', msg: `Second UI kit detected: ${kit}. Use Skeleton as the single UI source.` });
-	}
+for (const dep of Object.keys(allDeps)) {
+	if (!isForbiddenUiKit(dep)) continue;
+	results.push({ status: 'error', msg: `[svforge/${DESIGN_RULE_IDS.forbiddenUiKit}] ${DESIGN_MESSAGES.forbiddenUiKit(dep)}` });
 }
 
 // ── 2. Duplicated Skeleton primitives (ERROR) ────────────────────
@@ -168,56 +257,12 @@ const componentsDir = join(ROOT, 'src', 'lib', 'components', 'svforge');
 // Only exact approved catalog paths are exempt. A new local component under
 // components/svforge/ (e.g. ui/Marquee.svelte) is still rejected when its name
 // matches a primitive of the installed Skeleton inventory (#361).
-const catalogPath = join(ROOT, 'svforge-catalog.json');
-// The project catalog is NESTED (designSystem.primitives/ui/layout) — collect
-// component entries recursively, not just the first level.
-const catalogPaths = new Set();
-const catalogWrappers = [];
-const catalogEntries = [];
-const collectCatalogEntries = (node) => {
-	if (!node || typeof node !== 'object' || Array.isArray(node)) return;
-	for (const [key, value] of Object.entries(node)) {
-		if (!value || typeof value !== 'object' || Array.isArray(value)) continue;
-		if (typeof value.path === 'string') {
-			catalogPaths.add(value.path);
-			catalogWrappers.push(key); // the entry name IS the component name
-			catalogEntries.push({ component: key, path: value.path });
-		}
-		collectCatalogEntries(value);
-	}
-};
-if (existsSync(catalogPath)) {
-	try {
-		collectCatalogEntries(JSON.parse(readFileSync(catalogPath, 'utf-8')));
-	} catch {
-		// unreadable catalog: nothing is exempt except installed addon paths
-	}
-}
-// .svforge.json modules gate the addon-path exemptions (#361): the exact
-// path must belong to an INSTALLED addon.
-const manifestPath = join(ROOT, '.svforge.json');
-const installedModules = [];
-if (existsSync(manifestPath)) {
-	try {
-		const modules = JSON.parse(readFileSync(manifestPath, 'utf-8')).modules;
-		if (Array.isArray(modules)) installedModules.push(...modules);
-	} catch {
-		// unreadable manifest: addon paths are not exempt
-	}
-}
+// Exemptions come from the SAME collection the ESLint adapter uses (#346).
+const { paths: catalogPaths, wrappers: catalogWrappers, entries: catalogEntries, installedModules } = collectCatalogExempts(ROOT);
 for (const file of walk(join(ROOT, 'src'), ['.svelte'])) {
-	const base = basename(file, '.svelte');
-	if (!INVENTORY.primitives.includes(base)) continue;
-	// POSIX-normalized: catalog/generated paths always use forward slashes.
-	const relFromComponents = relative(componentsDir, file).split(sep).join('/');
-	if (catalogPaths.has(relFromComponents)) continue; // approved catalog component
-	// The addon id is the mapping KEY — it may differ from the path's first
-	// segment (notifications → ui/NotificationsBell.svelte, ui_toast → ui/Toaster.svelte).
-	const owningAddon = installedModules.find(
-		(moduleId) => (ADDON_COMPONENTS[moduleId] ?? []).includes(relFromComponents)
-	);
-	if (owningAddon !== undefined) continue; // exact component of an installed addon
-	results.push({ status: 'error', msg: `Duplicated Skeleton primitive "${base}" at ${relative(ROOT, file)}. Use it from @skeletonlabs/skeleton-svelte or the svforge catalog instead.` });
+	const base = duplicatedSkeletonPrimitiveName(file, ROOT);
+	if (!base) continue;
+	results.push({ status: 'error', msg: `[svforge/${DESIGN_RULE_IDS.duplicatedSkeletonPrimitive}] ${DESIGN_MESSAGES.duplicatedSkeletonPrimitive(base, relative(ROOT, file))}` });
 }
 
 // ── 3. Skeleton markup composition (#335, ERROR) ─────────────────
@@ -271,9 +316,13 @@ for (const file of walk(join(ROOT, 'src'), ['.svelte', '.html'])) {
 	for (const match of source.matchAll(wrapperPattern)) {
 		const className = match[1] ?? match[2];
 		if (!className) continue;
-		const violations = classViolations(className);
+		// Svelte expressions inside class="…" are not literal class names —
+		// prettier-wrapped markup can split them into bare tokens (e.g. btn.check
+		// from {isActive(btn.check)}), so validate the static part only (#346).
+		const staticClassName = className.replace(/\{[^}]*\}/g, ' ');
+		const violations = classViolations(staticClassName);
 		if (match[1] !== undefined) {
-			for (const token of className.split(/\s+/).filter(Boolean)) {
+			for (const token of staticClassName.split(/\s+/).filter(Boolean)) {
 				if (isSkeletonUtility(lastSegment(token), INVENTORY)) {
 					violations.push(`The SVForge wrapper already renders its Skeleton primitive: select the visual through props — not class ("${token}").`);
 				}

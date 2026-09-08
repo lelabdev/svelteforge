@@ -190,6 +190,26 @@ if [ "$TEMPLATE" = "base" ] || [ "$TEMPLATE" = "dashboard" ] || [ "$TEMPLATE" = 
 	bun run check || { echo "❌ svelte-check failed on $TEMPLATE scaffold (#266)"; exit 1; }
 fi
 
+# ESLint design diagnostics (#346): the config and plugin must be delivered
+# to BOTH base and dashboard projects. Real lint verifies JS, TS, and Svelte
+# violations with their source files and positions — never a silently omitted rule.
+if [ "$TEMPLATE" = "base" ] || [ "$TEMPLATE" = "dashboard" ]; then
+	test -f eslint.config.js || { echo "❌ eslint.config.js missing at project root (#346)"; exit 1; }
+	test -f eslint-plugin-svforge.mjs || { echo "❌ eslint-plugin-svforge.mjs missing (#346)"; exit 1; }
+	mkdir -p src/lib/lint-probe
+	printf "import { Dialog } from 'bits-ui';\n" > src/lib/lint-probe/Violation.js
+	printf "import { Dialog } from 'bits-ui';\n" > src/lib/lint-probe/Violation.ts
+	printf "<script>\n\timport { Dialog } from 'bits-ui';\n</script>\n" > src/lib/lint-probe/Violation.svelte
+	if bun run lint >/tmp/sf-eslint.log 2>&1; then
+		cat /tmp/sf-eslint.log; echo "❌ ESLint did not report design violations (#346)"; exit 1
+	fi
+	for file in Violation.js Violation.ts Violation.svelte; do
+		grep -q "src/lib/lint-probe/$file" /tmp/sf-eslint.log || { cat /tmp/sf-eslint.log; echo "❌ ESLint missing $file location (#346)"; exit 1; }
+	done
+	grep -q "svforge/no-design-violations" /tmp/sf-eslint.log || { cat /tmp/sf-eslint.log; echo "❌ ESLint missing svforge rule identifier (#346)"; exit 1; }
+	rm -rf src/lib/lint-probe
+fi
+
 # Baseline Vitest (#235): vitest.config.ts must land at the PROJECT ROOT on
 # base too (prebuild only embeds templates/base/src/**), and the baseline
 # test must actually run.

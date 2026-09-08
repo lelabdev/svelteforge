@@ -7,6 +7,7 @@ import { defineConfig } from 'eslint/config';
 import globals from 'globals';
 import ts from 'typescript-eslint';
 import svelteConfig from './svelte.config.js';
+import svforge from './eslint-plugin-svforge.mjs';
 
 const gitignorePath = path.resolve(import.meta.dirname, '.gitignore');
 
@@ -37,8 +38,10 @@ export default defineConfig(
 		}
 	},
 	{
-		// Override or add rule settings here, such as:
-		// 'svelte/button-has-type': 'error'
-		rules: {}
+		plugins: { svforge },
+		rules: {
+			// Deterministic design-system violations are editor diagnostics too.
+			'svforge/no-design-violations': 'error'
+		}
 	}
 );
