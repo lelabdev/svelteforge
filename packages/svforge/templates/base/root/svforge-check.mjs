@@ -145,7 +145,7 @@ function deriveInventoryFromNodeModules() {
 	return inventory;
 }
 
-export function checkDesignSystem(projectRoot = process.cwd()) {
+export async function checkDesignSystem(projectRoot = process.cwd(), options = {}) {
 	ROOT = resolve(projectRoot);
 	results = [];
 	const INVENTORY = deriveInventoryFromNodeModules() ?? SKELETON_INVENTORY;
@@ -339,7 +339,7 @@ for (const file of walk(join(ROOT, 'src'), ['.svelte'])) {
 // Opt-in while the threshold is calibrated. References include both the
 // project's SVForge catalog and the installed Skeleton source, so a renamed
 // Skeleton anatomy file is caught even when its filename is unrelated.
-if (process.env.SVFORGE_EXPERIMENTAL_STRUCTURAL_DUPLICATION === '1') {
+if (options.experimentalStructuralDuplication || process.env.SVFORGE_EXPERIMENTAL_STRUCTURAL_DUPLICATION === '1') {
 	try {
 		const { parse } = await import('svelte/compiler');
 		const fingerprint = (source) => {
@@ -464,7 +464,7 @@ export function printDesignSystemResults(diagnostics) {
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
-	const diagnostics = checkDesignSystem();
+	const diagnostics = await checkDesignSystem();
 	printDesignSystemResults(diagnostics);
 	process.exitCode = diagnostics.some((result) => result.status === 'error' || (process.argv.includes('--strict') && result.status === 'warn')) ? 1 : 0;
 }

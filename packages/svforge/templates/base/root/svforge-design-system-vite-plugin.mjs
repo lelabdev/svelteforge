@@ -11,8 +11,8 @@ export function svforgeDesignSystemPlugin({ root = process.cwd(), strict = false
 	return {
 		name: 'svforge-design-system',
 		apply: 'build',
-		buildStart() {
-			const diagnostics = checkDesignSystem(root);
+		async buildStart() {
+			const diagnostics = await checkDesignSystem(root);
 			const blocking = diagnostics.filter((diagnostic) =>
 				diagnostic.status === 'error' || (strict && diagnostic.status === 'warn')
 			);
