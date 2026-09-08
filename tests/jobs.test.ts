@@ -67,17 +67,17 @@ describe('jobs module (#231)', () => {
 		expect(readme).toMatch(/idempotent/);
 	});
 
-	it('module requires dashboard, auto-starts runner, enriches context', () => {
+	it('module requires DB capability, auto-starts runner, enriches context', () => {
 		const index = readFileSync(join(ROOT, 'packages/jobs/src/index.ts'), 'utf-8');
-		expect(index).toMatch(/template:dashboard/);
+		// #323: the gate is capability-based (structural check), not template-name based
+		expect(index).toMatch(/checkModuleCapabilities\(cwd, 'jobs'\)/);
 		expect(index).toMatch(/startJobRunner/);
 		expect(index).toMatch(/hooks\.server\.ts/);
-		expect(index).toMatch(/enrichManifest/);
-		expect(index).toMatch(/sv\.file\('\.svforge\.json'/);
-		// #258: the module also merges its capability into llms.txt (manifest
-		// alone is not enough — svforge is not installed in generated projects)
-		expect(index).toMatch(/mergeLlmstxt/);
-		expect(index).toMatch(/sv\.file\('llms\.txt'/);
+		// #324: JSON merges go through the shared kit, planned before any write
+		expect(index).toMatch(/planAddonContext/);
+		// #258/#323: the AI-context merge (manifest + llms.txt, incl. capability
+		// tokens) is planned through the shared kit
+		expect(index).toMatch(/planAddonContext/);
 		expect(index).toMatch(/background jobs/);
 	});
 });

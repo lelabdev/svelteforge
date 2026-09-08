@@ -1,76 +1,7 @@
 import { defineAddon, defineAddonOptions } from 'sv';
+import { checkModuleCapabilities, planAddonContext } from '@svforge/addon-kit';
 import { files } from './templates';
 
-/**
- * Enrich the project's .svforge.json AI manifest (#234) without overwriting
- * user edits. Small inline helper — modules are standalone packages.
- */
-interface SvforgeManifest {
-	template: string;
-	modules: string[];
-	capabilities: string[];
-	patterns: Record<string, string>;
-}
-
-function enrichManifest(
-	content: string | undefined,
-	moduleId: string,
-	capability: string,
-	pattern: string
-): string {
-	let manifest: SvforgeManifest = { template: 'base', modules: [], capabilities: [], patterns: {} };
-	try {
-		manifest = content && content.trim() ? JSON.parse(content) : manifest;
-	} catch {
-		manifest = { template: 'base', modules: [], capabilities: [], patterns: {} };
-	}
-	if (!Array.isArray(manifest.modules)) manifest.modules = [];
-	if (!Array.isArray(manifest.capabilities)) manifest.capabilities = [];
-	if (!manifest.patterns) manifest.patterns = {};
-	// Full manifest contract (#296): .svforge.json must carry the same
-	// module + capability + pattern data as llms.txt, immediately after sv add.
-	if (!manifest.modules.includes(moduleId)) manifest.modules.push(moduleId);
-	if (!manifest.capabilities.includes(capability)) manifest.capabilities.push(capability);
-	manifest.patterns[capability] = pattern;
-	return `${JSON.stringify(manifest, null, 2)}\n`;
-}
-
-/**
- * Merge this module's capability + canonical pattern into the scaffolded
- * llms.txt (#296) so the AI context reflects the blog module — it was the
- * only historical module still missing this (contract #234).
- */
-function mergeLlmstxt(content: string, capability: string, pattern: string): string {
-	const lines = (content || '').split('\n');
-	const capLine = `- ${capability}`;
-	if (!lines.some((l) => l === capLine)) {
-		// Append at the END of the Capabilities section (before the next
-		// "## " header): module order then matches installation order, so
-		// `svforge context` regenerates a byte-identical llms.txt (#296).
-		let insertAt = lines.length;
-		const header = lines.findIndex((l) => l === '## Capabilities installed');
-		if (header >= 0) {
-			const nextSection = lines.findIndex((l, i) => i > header && l.startsWith('## '));
-			insertAt = nextSection >= 0 ? nextSection : lines.length;
-			// insert BEFORE the blank line that closes the section, so the
-			// byte layout matches renderLlmstxt exactly (#296)
-			if (insertAt > header + 1 && lines[insertAt - 1] === '') insertAt -= 1;
-		}
-		lines.splice(insertAt, 0, capLine);
-	}
-	const patLine = `- ${capability}: ${pattern}`;
-	if (!lines.some((l) => l === patLine)) {
-		let insertAt = lines.length;
-		const header = lines.findIndex((l) => l === '## Canonical patterns');
-		if (header >= 0) {
-			const nextSection = lines.findIndex((l, i) => i > header && l.startsWith('## '));
-			insertAt = nextSection >= 0 ? nextSection : lines.length;
-			if (insertAt > header + 1 && lines[insertAt - 1] === '') insertAt -= 1;
-		}
-		lines.splice(insertAt, 0, patLine);
-	}
-	return lines.join('\n');
-}
 
 /**
  * Find the end of a `export const transport = <expr>;` declaration: returns
@@ -196,7 +127,15 @@ export default defineAddon({
 	setup: ({ unsupported, isKit }) => {
 		if (!isKit) unsupported('SVForge Blog requires SvelteKit');
 	},
-	run: ({ sv }) => {
+	run: ({ sv, cancel, cwd }) => {
+		// Capability gate (#323): blog imports Card/Badge from the SVForge base
+		// UI kit ($lib/components/svforge) — the project must provide it.
+		const gate = checkModuleCapabilities(cwd, 'blog');
+		if (!gate.ok) {
+			cancel(gate.message);
+			return;
+		}
+
 		sv.dependency('mdsvex', '^0.12.8');
 
 		// ── mdsvex integration ──
@@ -204,6 +143,11 @@ export default defineAddon({
 		// generates svelte.config.js — the config lives in vite.config.ts via
 		// sveltekit({...}). mdsvex must be wired there (extensions + preprocess).
 		// Old projects still have svelte.config.js — patch both when present.
+		const context = planAddonContext(cwd, { moduleId: 'blog', capability: 'blog (MDsveX)', pattern: 'src/routes/blog/' });
+		if (!context.ok) {
+			cancel(context.error);
+			return;
+		}
 		sv.file('vite.config.ts', (content) => {
 			if (!content || content.includes('mdsvex')) return content;
 			let updated = content;
@@ -263,9 +207,11 @@ export default defineAddon({
 			sv.file(`src${path}`, () => content);
 		}
 
-		// AI context (#234): declare this module in .svforge.json.
-		sv.file('.svforge.json', (content) => enrichManifest(content, 'blog', 'blog (MDsveX)', 'src/routes/blog/'));
-		sv.file('llms.txt', (content) => mergeLlmstxt(content, 'blog (MDsveX)', 'src/routes/blog/'));
+		// AI context (#234): planned in memory first (#324) — an invalid
+		// .svforge.json cancels the install instead of resetting the file.
+		for (const write of context.writes) {
+			sv.file(write.path, () => write.content);
+		}
 
 		// Transport hook (#293): MDsveX posts are Svelte components (functions)
 		// which SvelteKit cannot serialize through the data boundary. The

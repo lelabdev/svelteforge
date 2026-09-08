@@ -34,10 +34,20 @@ export {
 	buildManifest,
 	renderLlmstxt,
 	mergeManifest,
-	enrichManifest,
 	regenerateLlmstxt,
 	MODULE_CAPABILITIES
 } from './ai-context';
+/**
+ * Deprecated compatibility alias (#324): kept exported through the package
+ * entry so existing imports of the old name keep working. Delegates to the
+ * non-destructive planning core (planManifestEnrichContent in
+ * @svforge/addon-kit) and warns once — an invalid manifest throws the
+ * diagnosable JsonGuardError instead of being reset to an empty base.
+ *
+ * @deprecated Use `planManifestEnrich(rootDir, enrichment)` from
+ *   @svforge/addon-kit (plan-then-write, non-destructive).
+ */
+export { enrichManifest } from './ai-context';
 export type { SvforgeManifest } from './ai-context';
 
 // Export upgrade command for programmatic use

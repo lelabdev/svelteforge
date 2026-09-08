@@ -293,7 +293,8 @@ describe('realtime module (#229/#264)', () => {
 		expect(pkg.name).toBe('@svforge/realtime');
 		const index = readFileSync(join(root, 'packages/realtime/src/index.ts'), 'utf-8');
 		expect(index).toMatch(/sv\.dependency\('ws'/);
-		expect(index).toMatch(/enrichManifest/);
-		expect(index).toMatch(/sv\.file\('\.svforge\.json'/);
+		// #324: the AI-context merges are planned through the shared kit
+		expect(index).toMatch(/planAddonContext/);
+		expect(index).toMatch(/sv\.file\(write\.path/);
 	});
 });

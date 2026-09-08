@@ -41,6 +41,7 @@
 		"sv": "^0.13.0"
 	},
 	"devDependencies": {
+		"@svforge/addon-kit": "workspace:*",
 		"sv": "^0.15.3",
 		"tsdown": "^0.22.14",
 		"typescript": "^6.0.3"

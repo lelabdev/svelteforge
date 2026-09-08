@@ -1,68 +1,7 @@
 import { defineAddon, defineAddonOptions } from 'sv';
+import { checkModuleCapabilities, planAddonContext } from '@svforge/addon-kit';
 import { files } from './templates';
 
-/**
- * Enrich the project's .svforge.json AI manifest (#234) without overwriting
- * user edits — module id, capability and canonical pattern are merged
- * idempotently (#258). Small inline helper — modules are standalone packages.
- */
-function enrichManifest(content: string, moduleId: string, capability: string, pattern: string): string {
-	let manifest: {
-		template: string;
-		modules: string[];
-		capabilities: string[];
-		patterns: Record<string, string>;
-	} = { template: 'base', modules: [], capabilities: [], patterns: {} };
-	try {
-		manifest = content && content.trim() ? JSON.parse(content) : manifest;
-	} catch {
-		manifest = { template: 'base', modules: [], capabilities: [], patterns: {} };
-	}
-	if (!Array.isArray(manifest.modules)) manifest.modules = [];
-	if (!Array.isArray(manifest.capabilities)) manifest.capabilities = [];
-	if (!manifest.patterns) manifest.patterns = {};
-	if (!manifest.modules.includes(moduleId)) manifest.modules.push(moduleId);
-	if (!manifest.capabilities.includes(capability)) manifest.capabilities.push(capability);
-	if (!manifest.patterns[capability]) manifest.patterns[capability] = pattern;
-	return `${JSON.stringify(manifest, null, 2)}\n`;
-}
-
-/**
- * Merge this module's capability + canonical pattern into the scaffolded
- * llms.txt (#258) so the AI context reflects every installed module even
- * though svforge itself is not installed in the generated project.
- */
-function mergeLlmstxt(content: string, capability: string, pattern: string): string {
-	const lines = (content || '').split('\n');
-	const capLine = `- ${capability}`;
-	if (!lines.some((l) => l === capLine)) {
-		// Append at the END of the Capabilities section (before the next
-		// "## " header): module order then matches installation order, so
-		// `svforge context` regenerates a byte-identical llms.txt (#296).
-		let insertAt = lines.length;
-		const header = lines.findIndex((l) => l === '## Capabilities installed');
-		if (header >= 0) {
-			const nextSection = lines.findIndex((l, i) => i > header && l.startsWith('## '));
-			insertAt = nextSection >= 0 ? nextSection : lines.length;
-			// insert BEFORE the blank line that closes the section, so the
-			// byte layout matches renderLlmstxt exactly (#296)
-			if (insertAt > header + 1 && lines[insertAt - 1] === '') insertAt -= 1;
-		}
-		lines.splice(insertAt, 0, capLine);
-	}
-	const patLine = `- ${capability}: ${pattern}`;
-	if (!lines.some((l) => l === patLine)) {
-		let insertAt = lines.length;
-		const header = lines.findIndex((l) => l === '## Canonical patterns');
-		if (header >= 0) {
-			const nextSection = lines.findIndex((l, i) => i > header && l.startsWith('## '));
-			insertAt = nextSection >= 0 ? nextSection : lines.length;
-			if (insertAt > header + 1 && lines[insertAt - 1] === '') insertAt -= 1;
-		}
-		lines.splice(insertAt, 0, patLine);
-	}
-	return lines.join('\n');
-}
 
 export default defineAddon({
 	id: 'svforge-realtime',
@@ -77,26 +16,51 @@ export default defineAddon({
 		if (!isKit) unsupported('SVForge Realtime requires SvelteKit');
 	},
 
-	run: ({ sv }) => {
+	run: ({ sv, cancel, cwd }) => {
+		// Capability gate (#323): realtime needs a WebSocket-capable runtime.
+		// This cannot be verified from files — the gate succeeds but returns a
+		// warning that surfaces in nextSteps.
+		const gate = checkModuleCapabilities(cwd, 'realtime');
+		if (!gate.ok) {
+			cancel(gate.message);
+			return;
+		}
+
 		sv.dependency('ws', '^8.21.3');
 		sv.devDependency('@types/ws', '^8.5.14');
 
+		const context = planAddonContext(cwd, { moduleId: 'realtime', capability: 'realtime (WebSocket)', pattern: 'src/lib/server/realtime/' });
+		if (!context.ok) {
+			cancel(context.error);
+			return;
+		}
 		for (const [path, content] of Object.entries(files)) {
 			sv.file(`src${path}`, () => content);
 		}
 
-		// AI context (#234): declare this module in .svforge.json.
-		sv.file('.svforge.json', (content) => enrichManifest(content, 'realtime', 'realtime (WebSocket)', 'src/lib/server/realtime/'));
-		sv.file('llms.txt', (content) => mergeLlmstxt(content, 'realtime (WebSocket)', 'src/lib/server/realtime/'));
+		// AI context (#234): planned in memory first (#324) — an invalid
+		// .svforge.json cancels the install instead of resetting the file.
+		for (const write of context.writes) {
+			sv.file(write.path, () => write.content);
+		}
 	},
 
-	nextSteps: () => [
-		'@svforge/realtime installed!',
-		'Wire the hub: in src/hooks.server.ts, attach the WS server on startup',
-		'  or run `realtime.listen(PORT)` (see README)',
-		'Publish: import { realtime } from "$lib/server/realtime";',
-		'  await realtime.publish({ channel: "org:1", event: "punch.created", payload: { punchId } });',
-		'Client: const rt = createRealtimeClient("/api/realtime");',
-		'  rt.subscribe("org:1", "punch.created", (p) => invalidate("app:punches"));'
-	]
+	nextSteps: ({ cwd }) => {
+		const steps = [
+			'@svforge/realtime installed!',
+			'Wire the hub: in src/hooks.server.ts, attach the WS server on startup',
+			'  or run `realtime.listen(PORT)` (see README)',
+			'Publish: import { realtime } from "$lib/server/realtime";',
+			'  await realtime.publish({ channel: "org:1", event: "punch.created", payload: { punchId } });',
+			'Client: const rt = createRealtimeClient("/api/realtime");',
+			'  rt.subscribe("org:1", "punch.created", (p) => invalidate("app:punches"));'
+		];
+		// runtime.websocket is unverifiable from files (#323): surface the
+		// deployment constraint as a warning, never as a hard failure.
+		if (typeof cwd === 'string') {
+			const gate = checkModuleCapabilities(cwd, 'realtime');
+			if (gate.ok) steps.push(...gate.warnings);
+		}
+		return steps;
+	}
 });

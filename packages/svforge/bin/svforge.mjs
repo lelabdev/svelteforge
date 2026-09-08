@@ -82,7 +82,15 @@ async function main() {
 			return;
 		}
 		const manifest = fs.readFileSync(manifestPath, 'utf-8');
-		fs.writeFileSync(llmstxtPath, api.regenerateLlmstxt(manifest));
+		try {
+			fs.writeFileSync(llmstxtPath, api.regenerateLlmstxt(manifest));
+		} catch (error) {
+			// #324: a corrupt manifest must fail loudly with its remediation,
+			// never silently regenerate from an empty base project.
+			console.error(error instanceof Error ? error.message : String(error));
+			process.exitCode = 1;
+			return;
+		}
 		console.log('✓ llms.txt regenerated from .svforge.json (#234).');
 		return;
 	}

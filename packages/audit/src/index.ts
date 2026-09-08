@@ -1,92 +1,7 @@
 import { defineAddon, defineAddonOptions } from 'sv';
-import { existsSync } from 'node:fs';
-import { join } from 'node:path';
+import { checkModuleCapabilities, planCatalogMerges, planAddonContext } from '@svforge/addon-kit';
 import { files } from './templates';
 
-/**
- * Enrich the project's .svforge.json AI manifest (#234) without overwriting
- * user edits — module id, capability and canonical pattern are merged
- * idempotently (#258). Small inline helper — modules are standalone packages.
- */
-function enrichManifest(content: string, moduleId: string, capability: string, pattern: string): string {
-	let manifest: {
-		template: string;
-		modules: string[];
-		capabilities: string[];
-		patterns: Record<string, string>;
-	} = { template: 'base', modules: [], capabilities: [], patterns: {} };
-	try {
-		manifest = content && content.trim() ? JSON.parse(content) : manifest;
-	} catch {
-		manifest = { template: 'base', modules: [], capabilities: [], patterns: {} };
-	}
-	if (!Array.isArray(manifest.modules)) manifest.modules = [];
-	if (!Array.isArray(manifest.capabilities)) manifest.capabilities = [];
-	if (!manifest.patterns) manifest.patterns = {};
-	if (!manifest.modules.includes(moduleId)) manifest.modules.push(moduleId);
-	if (!manifest.capabilities.includes(capability)) manifest.capabilities.push(capability);
-	if (!manifest.patterns[capability]) manifest.patterns[capability] = pattern;
-	return `${JSON.stringify(manifest, null, 2)}\n`;
-}
-
-/**
- * Merge this module's capability + canonical pattern into the scaffolded
- * llms.txt (#258) so the AI context reflects every installed module even
- * though svforge itself is not installed in the generated project.
- */
-function mergeLlmstxt(content: string, capability: string, pattern: string): string {
-	const lines = (content || '').split('\n');
-	const capLine = `- ${capability}`;
-	if (!lines.some((l) => l === capLine)) {
-		// Append at the END of the Capabilities section (before the next
-		// "## " header): module order then matches installation order, so
-		// `svforge context` regenerates a byte-identical llms.txt (#296).
-		let insertAt = lines.length;
-		const header = lines.findIndex((l) => l === '## Capabilities installed');
-		if (header >= 0) {
-			const nextSection = lines.findIndex((l, i) => i > header && l.startsWith('## '));
-			insertAt = nextSection >= 0 ? nextSection : lines.length;
-			// insert BEFORE the blank line that closes the section, so the
-			// byte layout matches renderLlmstxt exactly (#296)
-			if (insertAt > header + 1 && lines[insertAt - 1] === '') insertAt -= 1;
-		}
-		lines.splice(insertAt, 0, capLine);
-	}
-	const patLine = `- ${capability}: ${pattern}`;
-	if (!lines.some((l) => l === patLine)) {
-		let insertAt = lines.length;
-		const header = lines.findIndex((l) => l === '## Canonical patterns');
-		if (header >= 0) {
-			const nextSection = lines.findIndex((l, i) => i > header && l.startsWith('## '));
-			insertAt = nextSection >= 0 ? nextSection : lines.length;
-			if (insertAt > header + 1 && lines[insertAt - 1] === '') insertAt -= 1;
-		}
-		lines.splice(insertAt, 0, patLine);
-	}
-	return lines.join('\n');
-}
-
-/**
- * Merge Paraglide catalog entries into an existing messages/{locale}.json
- * (#239). Never overwrites existing keys.
- */
-function mergeMessages(content: string, additions: Record<string, string>): string {
-	let catalog: Record<string, unknown> = {};
-	if (content && content.trim()) {
-		try {
-			catalog = JSON.parse(content);
-		} catch {
-			catalog = {};
-		}
-	}
-	for (const [key, value] of Object.entries(additions)) {
-		// NEVER overwrite an existing key (#296): a consumer may have
-		// customized a translation, and recomposition/reinstall must not
-		// clobber it.
-		if (!(key in catalog)) catalog[key] = value;
-	}
-	return `${JSON.stringify(catalog, null, 2)}\n`;
-}
 
 export default defineAddon({
 	id: 'svforge-audit',
@@ -100,15 +15,66 @@ export default defineAddon({
 	},
 
 	run: ({ sv, cancel, cwd }) => {
-		// audit/index.ts imports $lib/server/db — provided only by the svforge
-		// dashboard template (Drizzle). Checked in run() so `sv add
-		// svforge=template:dashboard audit` in ONE call works (setup() of all
-		// addons runs before any run()).
-		if (!existsSync(join(cwd, 'src/lib/server/db/index.ts'))) {
-			cancel('SVForge Audit requires the svforge dashboard template (src/lib/server/db missing — run `sv add svforge=template:dashboard` first)');
+		// Capability gate (#323): audit needs the database, auth and i18n
+		// contracts. Checked STRUCTURALLY on the real project (works in a
+		// single `sv add svforge=template:dashboard audit` invocation and for
+		// external implementations), FIRST so a refusal writes nothing.
+		const gate = checkModuleCapabilities(cwd, 'audit');
+		if (!gate.ok) {
+			cancel(gate.message);
+			return;
+		}
+		// Capability warnings (#323): unverifiable or unverified requirements are
+		// emitted as diagnostics — the install proceeds, support is never pretended.
+		for (const warning of gate.warnings) console.warn(`[svforge] ${warning}`);
+
+
+		// JSON merges are PLANNED in memory before any write (#324): one
+		// invalid catalog or manifest cancels the install and every file
+		// stays byte-for-byte identical.
+		const catalogs = planCatalogMerges(cwd, [
+			{
+				path: 'messages/fr.json',
+				additions: {
+					audit_title: 'Journal d’audit',
+					audit_subtitle: 'Qui a fait quoi, sur quelle entité, quand.',
+					audit_action: 'Action',
+					audit_entity: 'Entité',
+					audit_when: 'Quand',
+					audit_actor: 'Acteur',
+					audit_empty: 'Aucune entrée d’audit.',
+					common_filter: 'Filtrer',
+					common_previous: 'Précédent',
+					common_next: 'Suivant'
+				}
+			},
+			{
+				path: 'messages/en.json',
+				additions: {
+					audit_title: 'Audit log',
+					audit_subtitle: 'Who did what, on which entity, when.',
+					audit_action: 'Action',
+					audit_entity: 'Entity',
+					audit_when: 'When',
+					audit_actor: 'Actor',
+					audit_empty: 'No audit entries.',
+					common_filter: 'Filter',
+					common_previous: 'Previous',
+					common_next: 'Next'
+				}
+			}
+		]);
+		if (!catalogs.ok) {
+			cancel(catalogs.error);
+			return;
+		}
+		const context = planAddonContext(cwd, { moduleId: 'audit', capability: 'audit trail', pattern: 'src/lib/server/audit/' });
+		if (!context.ok) {
+			cancel(context.error);
 			return;
 		}
 
+		// Every validation succeeded — writes may start.
 		for (const [path, content] of Object.entries(files)) {
 			sv.file(`src${path}`, () => content);
 		}
@@ -119,46 +85,33 @@ export default defineAddon({
 			return `import { auditLogs } from '$lib/server/audit/schema';\n${content}\nexport { auditLogs };\n`;
 		});
 
-		// Paraglide messages (#239): audit UI copy merged FR/EN.
-		sv.file('messages/fr.json', (content) =>
-			mergeMessages(content, {
-				audit_title: 'Journal d’audit',
-				audit_subtitle: 'Qui a fait quoi, sur quelle entité, quand.',
-				audit_action: 'Action',
-				audit_entity: 'Entité',
-				audit_when: 'Quand',
-				audit_actor: 'Acteur',
-				audit_empty: 'Aucune entrée d’audit.',
-				common_filter: 'Filtrer',
-				common_previous: 'Précédent',
-				common_next: 'Suivant'
-			})
-		);
-		sv.file('messages/en.json', (content) =>
-			mergeMessages(content, {
-				audit_title: 'Audit log',
-				audit_subtitle: 'Who did what, on which entity, when.',
-				audit_action: 'Action',
-				audit_entity: 'Entity',
-				audit_when: 'When',
-				audit_actor: 'Actor',
-				audit_empty: 'No audit entries.',
-				common_filter: 'Filter',
-				common_previous: 'Previous',
-				common_next: 'Next'
-			})
-		);
+		// Paraglide messages (#239): audit UI copy merged FR/EN — precomputed
+		// above, applied here (existing keys are never overwritten).
+		for (const write of catalogs.writes) {
+			sv.file(write.path, () => write.content);
+		}
 
-		// AI context (#234): declare this module in .svforge.json.
-		sv.file('.svforge.json', (content) => enrichManifest(content, 'audit', 'audit trail', 'src/lib/server/audit/'));
-		sv.file('llms.txt', (content) => mergeLlmstxt(content, 'audit trail', 'src/lib/server/audit/'));
+		// AI context (#234): declare this module in .svforge.json (#324 plan).
+		for (const write of context.writes) {
+			sv.file(write.path, () => write.content);
+		}
 	},
 
-	nextSteps: () => [
-		'@svforge/audit installed!',
-		'Record: import { audit } from "$lib/server/audit";',
-		'  await audit.record({ actorId: user.id, action: "punch.corrected", entityType: "punch", entityId: punch.id });',
-		'Read: await audit.forEntity("punch", punchId); await audit.byActor(userId);',
-		'Admin view: /admin/audit (pagination + filters)'
-	]
+	nextSteps: ({ cwd }) => {
+		const steps = [
+			'@svforge/audit installed!',
+			'Record: import { audit } from "$lib/server/audit";',
+			'  await audit.record({ actorId: user.id, action: "punch.corrected", entityType: "punch", entityId: punch.id });',
+			'Read: await audit.forEntity("punch", punchId); await audit.byActor(userId);',
+			'Admin view: /admin/audit (pagination + filters)'
+		];
+		// Unverified capabilities (#323): on a non-SVForge project whose auth/db
+		// wiring could not be confirmed structurally, install proceeds WITH a
+		// clear warning instead of silently pretending support.
+		if (typeof cwd === 'string') {
+			const gate = checkModuleCapabilities(cwd, 'audit');
+			if (gate.ok) steps.push(...gate.warnings);
+		}
+		return steps;
+	}
 });

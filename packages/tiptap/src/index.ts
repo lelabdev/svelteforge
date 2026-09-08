@@ -1,98 +1,7 @@
 import { defineAddon, defineAddonOptions } from 'sv';
+import { checkModuleCapabilities, planCatalogMerges, planAddonContext } from '@svforge/addon-kit';
 import { files } from './templates';
 
-/**
- * Merge Paraglide catalog entries into an existing messages/{locale}.json
- * (#239). Never overwrites existing keys.
- */
-function mergeMessages(content: string, additions: Record<string, string>): string {
-	let catalog: Record<string, unknown> = {};
-	if (content && content.trim()) {
-		try {
-			catalog = JSON.parse(content);
-		} catch {
-			catalog = {};
-		}
-	}
-	for (const [key, value] of Object.entries(additions)) {
-		// NEVER overwrite an existing key (#296): a consumer may have
-		// customized a translation, and recomposition/reinstall must not
-		// clobber it.
-		if (!(key in catalog)) catalog[key] = value;
-	}
-	return `${JSON.stringify(catalog, null, 2)}\n`;
-}
-
-/**
- * Enrich the project's .svforge.json AI manifest (#234) without overwriting
- * user edits. Small inline helper — modules are standalone packages.
- */
-interface SvforgeManifest {
-	template: string;
-	modules: string[];
-	capabilities: string[];
-	patterns: Record<string, string>;
-}
-
-function enrichManifest(
-	content: string | undefined,
-	moduleId: string,
-	capability: string,
-	pattern: string
-): string {
-	let manifest: SvforgeManifest = { template: 'base', modules: [], capabilities: [], patterns: {} };
-	try {
-		manifest = content && content.trim() ? JSON.parse(content) : manifest;
-	} catch {
-		manifest = { template: 'base', modules: [], capabilities: [], patterns: {} };
-	}
-	if (!Array.isArray(manifest.modules)) manifest.modules = [];
-	if (!Array.isArray(manifest.capabilities)) manifest.capabilities = [];
-	if (!manifest.patterns) manifest.patterns = {};
-	// Full manifest contract (#296): .svforge.json must carry the same
-	// module + capability + pattern data as llms.txt, immediately after sv add.
-	if (!manifest.modules.includes(moduleId)) manifest.modules.push(moduleId);
-	if (!manifest.capabilities.includes(capability)) manifest.capabilities.push(capability);
-	manifest.patterns[capability] = pattern;
-	return `${JSON.stringify(manifest, null, 2)}\n`;
-}
-
-/**
- * Merge this module's capability + canonical pattern into the scaffolded
- * llms.txt (#258/#284) so the AI context reflects every installed module
- * even though svforge itself is not installed in the generated project.
- */
-function mergeLlmstxt(content: string, capability: string, pattern: string): string {
-	const lines = (content || '').split('\n');
-	const capLine = `- ${capability}`;
-	if (!lines.some((l) => l === capLine)) {
-		// Append at the END of the Capabilities section (before the next
-		// "## " header): module order then matches installation order, so
-		// `svforge context` regenerates a byte-identical llms.txt (#296).
-		let insertAt = lines.length;
-		const header = lines.findIndex((l) => l === '## Capabilities installed');
-		if (header >= 0) {
-			const nextSection = lines.findIndex((l, i) => i > header && l.startsWith('## '));
-			insertAt = nextSection >= 0 ? nextSection : lines.length;
-			// insert BEFORE the blank line that closes the section, so the
-			// byte layout matches renderLlmstxt exactly (#296)
-			if (insertAt > header + 1 && lines[insertAt - 1] === '') insertAt -= 1;
-		}
-		lines.splice(insertAt, 0, capLine);
-	}
-	const patLine = `- ${capability}: ${pattern}`;
-	if (!lines.some((l) => l === patLine)) {
-		let insertAt = lines.length;
-		const header = lines.findIndex((l) => l === '## Canonical patterns');
-		if (header >= 0) {
-			const nextSection = lines.findIndex((l, i) => i > header && l.startsWith('## '));
-			insertAt = nextSection >= 0 ? nextSection : lines.length;
-			if (insertAt > header + 1 && lines[insertAt - 1] === '') insertAt -= 1;
-		}
-		lines.splice(insertAt, 0, patLine);
-	}
-	return lines.join('\n');
-}
 
 
 export default defineAddon({
@@ -108,54 +17,76 @@ export default defineAddon({
 		if (!isKit) unsupported('SVForge Tiptap requires SvelteKit');
 	},
 
-	run: ({ sv }) => {
+	run: ({ sv, cancel, cwd }) => {
+		// Capability gate (#323): the toolbar imports Paraglide messages and
+		// renders Skeleton-styled controls — both contracts must be present.
+		const gate = checkModuleCapabilities(cwd, 'tiptap');
+		if (!gate.ok) {
+			cancel(gate.message);
+			return;
+		}
+
 		sv.dependency('@tiptap/core', '^3.30.1');
 		sv.dependency('@tiptap/starter-kit', '^3.30.1');
 		sv.dependency('@tiptap/extension-underline', '^3.30.1');
 		sv.dependency('@tiptap/extension-link', '^3.30.1');
 
+		const catalogs = planCatalogMerges(cwd, [
+			{
+				path: 'messages/fr.json',
+				additions: {
+					tiptap_bold: 'Gras',
+					tiptap_italic: 'Italique',
+					tiptap_underline: 'Souligné',
+					tiptap_strikethrough: 'Barré',
+					tiptap_blockquote: 'Citation',
+					tiptap_code_block: 'Bloc de code',
+					tiptap_bullet_list: 'Liste à puces',
+					tiptap_ordered_list: 'Liste numérotée',
+					tiptap_heading: 'Titre {level}',
+					tiptap_link: 'Lien',
+					tiptap_insert_link: 'Insérer un lien',
+					tiptap_loading: 'Chargement…'
+				}
+			},
+			{
+				path: 'messages/en.json',
+				additions: {
+					tiptap_bold: 'Bold',
+					tiptap_italic: 'Italic',
+					tiptap_underline: 'Underline',
+					tiptap_strikethrough: 'Strikethrough',
+					tiptap_blockquote: 'Blockquote',
+					tiptap_code_block: 'Code block',
+					tiptap_bullet_list: 'Bullet list',
+					tiptap_ordered_list: 'Ordered list',
+					tiptap_heading: 'Heading {level}',
+					tiptap_link: 'Link',
+					tiptap_insert_link: 'Insert link',
+					tiptap_loading: 'Loading…'
+				}
+			}
+		]);
+		if (!catalogs.ok) {
+			cancel(catalogs.error);
+			return;
+		}
+		const context = planAddonContext(cwd, { moduleId: 'tiptap', capability: 'rich text (Tiptap)', pattern: 'src/lib/components/svforge/tiptap/' });
+		if (!context.ok) {
+			cancel(context.error);
+			return;
+		}
 		for (const [path, content] of Object.entries(files)) {
 			sv.file(`src${path}`, () => content);
 		}
 
-		// Paraglide messages (#239): toolbar copy merged FR/EN without
-		// overwriting existing project keys.
-		sv.file('messages/fr.json', (content) =>
-			mergeMessages(content, {
-				tiptap_bold: 'Gras',
-				tiptap_italic: 'Italique',
-				tiptap_underline: 'Souligné',
-				tiptap_strikethrough: 'Barré',
-				tiptap_blockquote: 'Citation',
-				tiptap_code_block: 'Bloc de code',
-				tiptap_bullet_list: 'Liste à puces',
-				tiptap_ordered_list: 'Liste numérotée',
-				tiptap_heading: 'Titre {level}',
-				tiptap_link: 'Lien',
-				tiptap_insert_link: 'Insérer un lien',
-				tiptap_loading: 'Chargement…'
-			})
-		);
-		sv.file('messages/en.json', (content) =>
-			mergeMessages(content, {
-				tiptap_bold: 'Bold',
-				tiptap_italic: 'Italic',
-				tiptap_underline: 'Underline',
-				tiptap_strikethrough: 'Strikethrough',
-				tiptap_blockquote: 'Blockquote',
-				tiptap_code_block: 'Code block',
-				tiptap_bullet_list: 'Bullet list',
-				tiptap_ordered_list: 'Ordered list',
-				tiptap_heading: 'Heading {level}',
-				tiptap_link: 'Link',
-				tiptap_insert_link: 'Insert link',
-				tiptap_loading: 'Loading…'
-			})
-		);
+		// Paraglide messages (#239) + manifest (#234): PLANNED in memory before
+		// any write (#324) — one invalid catalog or manifest cancels the whole
+		// install and every file stays byte-for-byte identical.
 
-		// AI context (#234): declare this module in .svforge.json.
-		sv.file('.svforge.json', (content) => enrichManifest(content, 'tiptap', 'rich text (Tiptap)', 'src/lib/components/svforge/tiptap/'));
-		sv.file('llms.txt', (content) => mergeLlmstxt(content, 'rich text (Tiptap)', 'src/lib/components/svforge/tiptap/'));
+		for (const write of [...catalogs.writes, ...context.writes]) {
+			sv.file(write.path, () => write.content);
+		}
 	},
 
 	nextSteps: () => [

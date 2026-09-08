@@ -12,10 +12,13 @@
  * `svforge context` regenerates deterministically.
  */
 
+import { JsonGuardError, parseJsonFile, planManifestEnrichContent, validateManifestShape, TEMPLATE_PROVIDES } from '@svforge/addon-kit';
+import { MODULES } from './module-composition';
+
 export interface SvforgeManifest {
 	schema: 1;
 	template: 'base' | 'dashboard';
-	stack: {
+	stack?: {
 		framework: 'sveltekit';
 		ui: 'skeleton';
 		i18n: 'paraglide';
@@ -25,29 +28,26 @@ export interface SvforgeManifest {
 		database?: 'postgresql';
 	};
 	modules: string[];
+	/**
+	 * Canonical capability tokens (#323) granted by the template plus the
+	 * tokens/features contributed by the installed modules. The template-level
+	 * legacy labels (skeleton-ui, paraglide-fr-en, auth, db…) are replaced by
+	 * the shared vocabulary from @svforge/addon-kit so .svforge.json, llms.txt
+	 * and the install gates all speak the same capability language.
+	 */
 	capabilities: string[];
 	patterns: Record<string, string>;
+	/** Capability contracts of the installed modules (#323). */
+	moduleCapabilities?: Record<string, { provides: string[]; requires: string[] }>;
 	generatedBy: string;
 }
 
-const BASE_CAPABILITIES = [
-	'skeleton-ui',
-	'paraglide-fr-en',
-	'vitest',
-	'seo',
-	'sitemap',
-	'theme',
-	'layouts'
-];
-
-const DASHBOARD_CAPABILITIES = [
-	'auth',
-	'db',
-	'admin',
-	'user-management',
-	'zod-validation'
-];
-
+/**
+ * Template-level canonical capability tokens come from TEMPLATE_PROVIDES
+ * (@svforge/addon-kit) — the same source the install gates and
+ * validateComposition use, so llms.txt/.svforge.json never drift from the
+ * contract.
+ */
 const BASE_PATTERNS: Record<string, string> = {
 	'UI components': 'src/lib/components/svforge/',
 	'Skeleton theme': 'src/lib/styles/svelteforge-theme.css',
@@ -82,10 +82,11 @@ export const MODULE_CAPABILITIES: Record<string, { capability: string; pattern?:
 
 /** Build the manifest for a given template + installed modules. */
 export function buildManifest(template: 'base' | 'dashboard', modules: string[]): SvforgeManifest {
-	const capabilities = [...BASE_CAPABILITIES];
+	// Canonical capability tokens (#323): the template grants come from the
+	// shared vocabulary — no legacy ad-hoc labels.
+	const capabilities: string[] = [...TEMPLATE_PROVIDES[template]];
 	const patterns = { ...BASE_PATTERNS };
 	if (template === 'dashboard') {
-		capabilities.push(...DASHBOARD_CAPABILITIES);
 		Object.assign(patterns, DASHBOARD_PATTERNS);
 	}
 	for (const mod of modules) {
@@ -93,6 +94,20 @@ export function buildManifest(template: 'base' | 'dashboard', modules: string[])
 		if (!meta) continue;
 		capabilities.push(meta.capability);
 		if (meta.pattern) patterns[meta.capability] = meta.pattern;
+		// Capability tokens the module itself provides (#323, e.g. uploads →
+		// storage.object) so the manifest exposes the project's FULL canonical
+		// capability list, not just per-module contracts.
+		for (const token of MODULES[mod]?.provides ?? []) {
+			if (!capabilities.includes(token)) capabilities.push(token);
+		}
+	}
+	// Capability contracts (#323): expose each installed module's capability
+	// tokens so AI agents can read the project's real capability graph.
+	const moduleCapabilities: SvforgeManifest['moduleCapabilities'] = {};
+	for (const mod of modules) {
+		const contract = MODULES[mod];
+		if (!contract) continue;
+		moduleCapabilities[mod] = { provides: [...contract.provides], requires: [...contract.requires] };
 	}
 	return {
 		schema: 1,
@@ -107,6 +122,7 @@ export function buildManifest(template: 'base' | 'dashboard', modules: string[])
 		modules,
 		capabilities: [...new Set(capabilities)],
 		patterns,
+		moduleCapabilities,
 		generatedBy: 'svforge'
 	};
 }
@@ -118,12 +134,24 @@ export function renderLlmstxt(manifest: SvforgeManifest): string {
 	lines.push('');
 	lines.push(`Template: ${manifest.template}`);
 	lines.push('Stack: SvelteKit + Skeleton UI v5 + Tailwind v4 + Paraglide FR/EN + Vitest');
-	if (manifest.stack.auth) lines.push(`Auth: ${manifest.stack.auth}  •  ORM: ${manifest.stack.orm}`);
-	if (manifest.stack.database) lines.push(`Database: ${manifest.stack.database}`);
+	if (manifest.stack?.auth) lines.push(`Auth: ${manifest.stack.auth}  •  ORM: ${manifest.stack.orm}`);
+	if (manifest.stack?.database) lines.push(`Database: ${manifest.stack.database}`);
 	lines.push('');
 	lines.push('## Capabilities installed');
 	for (const cap of manifest.capabilities) lines.push(`- ${cap}`);
 	lines.push('');
+	// Capability contracts (#323): the tokens each installed module requires
+	// and provides — derived from the manifest, deterministic.
+	const contracts = Object.entries(manifest.moduleCapabilities ?? {});
+	if (contracts.length > 0) {
+		lines.push('## Capability contracts');
+		for (const [mod, caps] of contracts) {
+			const requires = caps.requires.length > 0 ? caps.requires.join(', ') : '—';
+			const provides = caps.provides.length > 0 ? caps.provides.join(', ') : '—';
+			lines.push(`- ${mod}: requires ${requires}; provides ${provides}`);
+		}
+		lines.push('');
+	}
 	lines.push('## Canonical patterns');
 	for (const [name, path] of Object.entries(manifest.patterns)) {
 		lines.push(`- ${name}: ${path}`);
@@ -167,30 +195,70 @@ export function mergeManifest(existing: SvforgeManifest, template: 'base' | 'das
 /**
  * Enrichment callback for modules (#234): given the existing .svforge.json
  * content ('' on first write), return the merged manifest JSON.
+ *
+ * DEPRECATED (#324 remediation): the original helper swallowed parse errors
+ * (`try { JSON.parse } catch { buildManifest('base', []) }`) and rewrote a
+ * corrupt manifest from an empty base, destroying user content. The behavior
+ * now lives in `planManifestEnrich` (@svforge/addon-kit), which validates the
+ * file and fails the installation BEFORE anything is written. This alias is
+ * kept ONLY so imports of the old name keep working: it delegates to the same
+ * non-destructive planning core (planManifestEnrichContent) and warns once.
+ * It does NOT reset an invalid manifest to an empty base — an invalid input
+ * THROWS the diagnosable JsonGuardError instead.
+ *
+ * @deprecated Use `planManifestEnrich(rootDir, enrichment)` from
+ *   @svforge/addon-kit (plan-then-write, non-destructive).
  */
+let enrichManifestDeprecationWarned = false;
 export function enrichManifest(content: string, moduleId: string): string {
-	let existing: SvforgeManifest;
-	try {
-		existing = content && content.trim() ? JSON.parse(content) : buildManifest('base', []);
-	} catch {
-		existing = buildManifest('base', []);
+	if (!enrichManifestDeprecationWarned) {
+		enrichManifestDeprecationWarned = true;
+		console.warn(
+			'[svforge] enrichManifest() is deprecated and will be removed in the next major version — use planManifestEnrich() from @svforge/addon-kit (non-destructive, plan-before-write).'
+		);
 	}
-	const merged = mergeManifest(existing, existing.template ?? 'base', [moduleId]);
-	return `${JSON.stringify(merged, null, 2)}\n`;
+	const meta = MODULE_CAPABILITIES[moduleId];
+	const plan = planManifestEnrichContent(content ?? '', {
+		moduleId,
+		capability: meta?.capability ?? moduleId,
+		pattern: meta?.pattern ?? ''
+	});
+	if (!plan.ok) {
+		throw new JsonGuardError('.svforge.json', plan.error, 'use planManifestEnrich(rootDir, enrichment) — the diagnosable plan-then-write API');
+	}
+	return plan.writes[0].content;
 }
 
 /**
  * Regenerate llms.txt deterministically from the project's .svforge.json
  * (run via `svforge context`). Returns the new llms.txt content.
+ *
+ * Strict (#324): an invalid manifest THROWS a JsonGuardError carrying the
+ * parse diagnostic and a remediation step — a corrupt manifest is never
+ * silently treated as an empty base project (that would silently DROP every
+ * module from the AI context).
  */
 export function regenerateLlmstxt(manifestContent: string): string {
-	try {
-		const manifest = JSON.parse(manifestContent) as SvforgeManifest;
-		// Rebuild from the template + installed modules so capabilities/patterns
-		// always reflect the real state (module enrich only adds its id).
-		const rebuilt = buildManifest(manifest.template ?? 'base', manifest.modules ?? []);
-		return renderLlmstxt(rebuilt);
-	} catch {
-		return renderLlmstxt(buildManifest('base', []));
+	const parsed = parseJsonFile('.svforge.json', manifestContent);
+	if (!parsed.ok) throw parsed.error;
+	if (parsed.empty) {
+		throw new JsonGuardError(
+			'.svforge.json',
+			'the manifest file is empty',
+			'restore a valid .svforge.json (it is generated by `sv add svforge=template:<template>`) or re-run the scaffold to regenerate it'
+		);
 	}
+	const problems = validateManifestShape(parsed.value, '.svforge.json');
+	if (problems.length > 0) {
+		throw new JsonGuardError(
+			'.svforge.json',
+			problems.join(' '),
+			'fix the manifest fields above (keep schema 1, template "base"|"dashboard", modules as a string array) — or delete .svforge.json and re-run `sv add svforge=template:<template>` to regenerate it, then re-install your modules'
+		);
+	}
+	const manifest = parsed.value as SvforgeManifest;
+	// Rebuild from the template + installed modules so capabilities/patterns
+	// always reflect the real state (module enrich only adds its id).
+	const rebuilt = buildManifest(manifest.template ?? 'base', manifest.modules ?? []);
+	return renderLlmstxt(rebuilt);
 }

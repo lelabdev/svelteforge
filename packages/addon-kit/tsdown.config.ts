@@ -1,0 +1,11 @@
+import { defineConfig } from 'tsdown';
+
+export default defineConfig({
+	entry: ['src/index.ts'],
+	format: 'esm',
+	dts: { resolve: [] },
+	deps: { neverBundle: [] },
+	entryNames: '[name]',
+	hash: false,
+	outExtensions: () => ({ js: '.js', dts: '.d.ts' })
+});

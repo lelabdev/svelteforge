@@ -26,9 +26,9 @@ describe('independent release plan (#330)', () => {
 		expect(plan.schemaVersion).toBe(1);
 		expect(plan.versionPolicy).toBe('independent');
 		expect(plan.commit).toBe('test-commit');
-		expect(plan.packages).toHaveLength(14);
+		expect(plan.packages).toHaveLength(15);
 		expect(plan.packages.every((pkg: { name: string; version: string; manifestPath: string }) => pkg.name && pkg.version && pkg.manifestPath)).toBe(true);
-		expect(new Set(plan.packages.map((pkg: { name: string }) => pkg.name)).size).toBe(14);
+		expect(new Set(plan.packages.map((pkg: { name: string }) => pkg.name)).size).toBe(15);
 	});
 
 	it('compares full SemVer prerelease identifiers and accepts build metadata', () => {

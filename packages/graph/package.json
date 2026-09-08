@@ -9,7 +9,6 @@
 		"url": "git+https://github.com/lelabdev/svelteforge.git",
 		"directory": "packages/graph"
 	},
-	"types": "./dist/index.d.ts",
 	"exports": {
 		".": {
 			"types": "./dist/index.d.ts",
@@ -25,6 +24,7 @@
 		"@skeletonlabs/skeleton-svelte": "^5.0.0"
 	},
 	"devDependencies": {
+		"@svforge/addon-kit": "workspace:*",
 		"sv": "^0.15.3",
 		"tsdown": "^0.22.14",
 		"typescript": "^6.0.3"
@@ -43,5 +43,6 @@
 		"visualization",
 		"svelte",
 		"sveltekit"
-	]
+	],
+	"types": "./dist/index.d.ts"
 }

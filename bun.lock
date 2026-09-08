@@ -23,10 +23,19 @@
         "ws": "^8.21.3",
       },
     },
+    "packages/addon-kit": {
+      "name": "@svforge/addon-kit",
+      "version": "0.0.1",
+      "devDependencies": {
+        "tsdown": "^0.22.14",
+        "typescript": "^6.0.3",
+      },
+    },
     "packages/audit": {
       "name": "@svforge/audit",
       "version": "0.0.1",
       "devDependencies": {
+        "@svforge/addon-kit": "workspace:*",
         "sv": "^0.15.3",
         "tsdown": "^0.22.14",
         "typescript": "^6.0.3",
@@ -39,6 +48,7 @@
       "name": "@svforge/blog",
       "version": "0.0.1",
       "devDependencies": {
+        "@svforge/addon-kit": "workspace:*",
         "sv": "^0.15.3",
         "tsdown": "^0.22.14",
         "typescript": "^6.0.3",
@@ -51,6 +61,7 @@
       "name": "@svforge/chat",
       "version": "0.0.1",
       "devDependencies": {
+        "@svforge/addon-kit": "workspace:*",
         "sv": "^0.15.3",
         "tsdown": "^0.22.14",
         "typescript": "^6.0.3",
@@ -63,6 +74,7 @@
       "name": "@svforge/dnd",
       "version": "0.0.2",
       "devDependencies": {
+        "@svforge/addon-kit": "workspace:*",
         "sv": "^0.15.3",
         "tsdown": "^0.22.14",
         "typescript": "^6.0.3",
@@ -76,6 +88,7 @@
       "name": "@svforge/email",
       "version": "0.0.1",
       "devDependencies": {
+        "@svforge/addon-kit": "workspace:*",
         "sv": "^0.15.3",
         "tsdown": "^0.22.14",
         "typescript": "^6.0.3",
@@ -88,6 +101,7 @@
       "name": "@svforge/graph",
       "version": "0.0.1",
       "devDependencies": {
+        "@svforge/addon-kit": "workspace:*",
         "sv": "^0.15.3",
         "tsdown": "^0.22.14",
         "typescript": "^6.0.3",
@@ -101,6 +115,7 @@
       "name": "@svforge/jobs",
       "version": "0.0.1",
       "devDependencies": {
+        "@svforge/addon-kit": "workspace:*",
         "sv": "^0.15.3",
         "tsdown": "^0.22.14",
         "typescript": "^6.0.3",
@@ -113,6 +128,7 @@
       "name": "@svforge/notifications",
       "version": "0.0.1",
       "devDependencies": {
+        "@svforge/addon-kit": "workspace:*",
         "sv": "^0.15.3",
         "tsdown": "^0.22.14",
         "typescript": "^6.0.3",
@@ -125,6 +141,7 @@
       "name": "@svforge/oauth",
       "version": "0.0.1",
       "devDependencies": {
+        "@svforge/addon-kit": "workspace:*",
         "sv": "^0.15.3",
         "tsdown": "^0.22.14",
         "typescript": "^6.0.3",
@@ -137,6 +154,7 @@
       "name": "@svforge/realtime",
       "version": "0.0.1",
       "devDependencies": {
+        "@svforge/addon-kit": "workspace:*",
         "sv": "^0.15.3",
         "tsdown": "^0.22.14",
         "typescript": "^6.0.3",
@@ -152,6 +170,7 @@
         "svforge": "./bin/svforge.mjs",
       },
       "devDependencies": {
+        "@svforge/addon-kit": "workspace:*",
         "sv": "^0.15.3",
         "tsdown": "^0.22.14",
         "typescript": "^6.0.3",
@@ -164,6 +183,7 @@
       "name": "@svforge/tiptap",
       "version": "0.0.2",
       "devDependencies": {
+        "@svforge/addon-kit": "workspace:*",
         "sv": "^0.15.3",
         "tsdown": "^0.22.14",
         "typescript": "^6.0.3",
@@ -177,6 +197,7 @@
       "name": "@svforge/ui_toast",
       "version": "0.0.2",
       "devDependencies": {
+        "@svforge/addon-kit": "workspace:*",
         "sv": "^0.15.3",
         "tsdown": "^0.22.14",
         "typescript": "^6.0.3",
@@ -190,6 +211,7 @@
       "name": "@svforge/uploads",
       "version": "0.0.1",
       "devDependencies": {
+        "@svforge/addon-kit": "workspace:*",
         "sv": "^0.15.3",
         "tsdown": "^0.22.14",
         "typescript": "^6.0.3",
@@ -417,6 +439,8 @@
     "@sveltejs/acorn-typescript": ["@sveltejs/acorn-typescript@1.0.10", "", { "peerDependencies": { "acorn": "^8.9.0" } }, "sha512-4WfKk68eTih+MiJD4fSbxN7E8kVBmTMPWHUPYjvl2N0rMs53YLTT8/YjKU5Dtnz5LqDjl7LEw4U7lXR2W3J5WA=="],
 
     "@sveltejs/sv-utils": ["@sveltejs/sv-utils@0.2.2", "", {}, "sha512-2rmR7HKhqcMR6vz9eoYPPMgVaKLME2+tZGFsxy1QV44HkVrLttXzUrE8GXBHDsd2uMOr945cBnQLs7+DYPNopA=="],
+
+    "@svforge/addon-kit": ["@svforge/addon-kit@workspace:packages/addon-kit"],
 
     "@svforge/audit": ["@svforge/audit@workspace:packages/audit"],
 

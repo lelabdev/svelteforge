@@ -9,7 +9,6 @@
 		"url": "git+https://github.com/lelabdev/svelteforge.git",
 		"directory": "packages/oauth"
 	},
-	"types": "./dist/index.d.ts",
 	"exports": {
 		".": {
 			"types": "./dist/index.d.ts",
@@ -24,6 +23,7 @@
 		"sv": "^0.13.0"
 	},
 	"devDependencies": {
+		"@svforge/addon-kit": "workspace:*",
 		"sv": "^0.15.3",
 		"tsdown": "^0.22.14",
 		"typescript": "^6.0.3"
@@ -43,5 +43,6 @@
 		"better-auth",
 		"svelte",
 		"sveltekit"
-	]
+	],
+	"types": "./dist/index.d.ts"
 }

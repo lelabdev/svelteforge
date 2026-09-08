@@ -50,11 +50,13 @@ describe('notifications module (#230)', () => {
 		expect(bell).toMatch(/notif_mark_all/);
 	});
 
-	it('module requires dashboard (DB) and enriches context/messages', () => {
+	it('module requires DB capability (dashboard) and enriches context/messages', () => {
 		const index = readFileSync(join(ROOT, 'packages/notifications/src/index.ts'), 'utf-8');
-		expect(index).toMatch(/template:dashboard/);
-		expect(index).toMatch(/enrichManifest/);
-		expect(index).toMatch(/mergeMessages/);
+		// #323: the gate is capability-based (structural check), not template-name based
+		expect(index).toMatch(/checkModuleCapabilities\(cwd, 'notifications'\)/);
+		// #324: JSON merges go through the shared kit, planned before any write
+		expect(index).toMatch(/planAddonContext/);
+		expect(index).toMatch(/planCatalogMerges/);
 		expect(index).toMatch(/notif_title/);
 	});
 
