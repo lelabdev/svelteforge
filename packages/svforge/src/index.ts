@@ -12,7 +12,13 @@ export {
 	SKELETON_PRIMITIVES,
 	FORBIDDEN_UI_KITS
 } from './design-system';
-export type { CatalogEntry, Severity } from './design-system';
+export type { CatalogEntry, Severity, DesignSystemCheckOptions } from './design-system';
+export {
+	checkStructuralDuplicates,
+	fingerprintSvelte,
+	STRUCTURAL_DUPLICATION_THRESHOLD
+} from './structural-duplication';
+export type { StructuralDuplicate } from './structural-duplication';
 export {
 	MODULES,
 	PRESETS,

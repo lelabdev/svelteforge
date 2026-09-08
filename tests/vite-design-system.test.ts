@@ -45,7 +45,7 @@ describe('Vite design-system build gate (#350)', () => {
 		writeFileSync(join(root, 'src/lib/features/ai/Dialog.svelte'), '<div>duplicate</div>');
 
 		const plugin = await vitePlugin(root);
-		expect(() => plugin.buildStart()).toThrow(/Duplicated Skeleton primitive "Dialog".*@skeletonlabs\/skeleton-svelte/);
+		await expect(plugin.buildStart()).rejects.toThrow(/Duplicated Skeleton primitive "Dialog".*@skeletonlabs\/skeleton-svelte/);
 	});
 
 	it('shares the checker diagnostics with the Vite hook', async () => {
@@ -54,9 +54,9 @@ describe('Vite design-system build gate (#350)', () => {
 		mkdirSync(join(root, 'src/lib/features/ai'), { recursive: true });
 		writeFileSync(join(root, 'src/lib/features/ai/Dialog.svelte'), '<div>duplicate</div>');
 
-		const diagnostic = (await checker(root)).checkDesignSystem(root).find((result: { status: string }) => result.status === 'error');
+		const diagnostic = (await (await checker(root)).checkDesignSystem(root)).find((result: { status: string }) => result.status === 'error');
 		const plugin = await vitePlugin(root);
-		expect(() => plugin.buildStart()).toThrow(diagnostic?.msg);
+		await expect(plugin.buildStart()).rejects.toThrow(diagnostic?.msg);
 	});
 
 	it('keeps WARN diagnostics non-blocking unless strict mode is requested', async () => {
@@ -66,9 +66,9 @@ describe('Vite design-system build gate (#350)', () => {
 		writeFileSync(join(root, 'src/lib/features/ai/Notice.svelte'), '<div class="p-[13px]">notice</div>');
 
 		const plugin = await vitePlugin(root);
-		expect(() => plugin.buildStart()).not.toThrow();
+		await expect(plugin.buildStart()).resolves.toBeUndefined();
 		const strictPlugin = (await import(`${pathToFileURL(join(root, 'svforge-design-system-vite-plugin.mjs')).href}?strict`))
 			.svforgeDesignSystemPlugin({ root, strict: true });
-		expect(() => strictPlugin.buildStart()).toThrow(/Arbitrary radius\/spacing/);
+		await expect(strictPlugin.buildStart()).rejects.toThrow(/Arbitrary radius\/spacing/);
 	});
 });
