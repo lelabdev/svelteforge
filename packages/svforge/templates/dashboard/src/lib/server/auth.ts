@@ -6,12 +6,20 @@ import { env } from '$env/dynamic/private';
 import { getRequestEvent } from '$app/server';
 import { eq } from 'drizzle-orm';
 import { db } from '$lib/server/db';
-import { user } from '$lib/server/db/schema';
+import { user, session, account, verification } from '$lib/server/db/schema';
 
 export const auth = betterAuth({
 	baseURL: env.ORIGIN,
 	secret: env.BETTER_AUTH_SECRET,
-	database: drizzleAdapter(db, { provider: 'pg' }),
+	// Since better-auth 1.7 (#319) the drizzle adapter NO LONGER introspects
+	// the drizzle instance — the model → table mapping must be passed
+	// explicitly or every write fails with "Cannot convert undefined or null
+	// to object". Kept in sync with src/lib/server/db/auth.schema.ts; the
+	// scaffold gate diffs the CLI-generated schema against it.
+	database: drizzleAdapter(db, {
+		provider: 'pg',
+		schema: { user, session, account, verification }
+	}),
 	emailAndPassword: { enabled: true },
 	// This is deliberately enforced by Better Auth's session creation hook,
 	// rather than only by the /login action. Every Better Auth flow that tries

@@ -10,6 +10,10 @@
 #   the canary workflow (#205) is what tests against ecosystem `latest`.
 # - The dashboard needs a .env at build time (auth/db modules are evaluated);
 #   drizzle push is best-effort until drizzle.config.ts is delivered (#187).
+# - The plain `dashboard` profile (#319) additionally runs the template vitest
+#   baseline, the CLI-schema diff and an HTTP smoke against the REAL Better
+#   Auth version — it therefore needs a reachable PostgreSQL (like the
+#   dashboard-foundations / -integrations profiles).
 set -euo pipefail
 
 TEMPLATE="${1:-base}"
@@ -428,6 +432,120 @@ if [ "$TEMPLATE" = "base" ]; then
 		exit 1
 	fi
 	echo "✓ bun run check severity contract: ERROR fails, WARN-only passes (#343)"
+fi
+
+# 5f. Better Auth runtime gate (#319): the PINNED better-auth version must
+#     actually work in the scaffolded dashboard, not just typecheck. Three
+#     checks on the plain dashboard profile (needs the real PostgreSQL from
+#     the CI service, like the dashboard-foundations profile):
+#     a. template vitest baseline — credential lifecycle + admin CRUD against
+#        real PG, incl. "admin creates user without losing their session; the
+#        created user can sign in" through the REAL Better Auth endpoint;
+#     b. @better-auth/cli generate output vs the committed auth.schema.ts;
+#     c. HTTP smoke: /setup (first admin) → login → admin CRUD (create user
+#        B, admin session survives) → B signs in. E2E OAuth is a documented
+#        follow-up (docs/better-auth-upgrades.md) — it needs provider stubs.
+if [ "$TEMPLATE" = "dashboard" ]; then
+	# 5f.a Template vitest baseline (uses the .env + schema pushed above).
+	bun run test || { echo "❌ vitest failed on dashboard scaffold (#319 better-auth runtime gate)"; exit 1; }
+
+	# 5f.b The CLI-generated schema must be reproducible (the template's
+	# `auth:schema` path works), and the committed auth.schema.ts must match
+	# the INSTALLED better-auth runtime schema — derived via `getSchema()`
+	# from the project's own node_modules, NOT from the version-lagging CLI
+	# (whose 1.4.x schema knowledge misses runtime 1.7 type/nullability/
+	# default/index/FK drift — #319 review). The generator runs via bunx —
+	# @better-auth/cli must NOT be a project dependency (its nested
+	# @better-auth/core@1.4.x hoists over the runtime's 1.7.x copy and breaks
+	# the SSR build). The CLI version is pinned here and in the template's
+	# auth:schema source. Two CLI gotchas (#319): the output path must NOT
+	# already exist (pre-existing files get overwritten to 0 bytes) and must
+	# be relative (absolute paths resolved from the bunx cache are
+	# unreliable) — hence the guarded temp file inside the project.
+	SCHEMA_GEN=".sf-auth-schema-gate.ts"
+	rm -f "$SCHEMA_GEN"
+	if ! bunx @better-auth/cli@1.4.21 generate --config src/lib/server/auth.ts --output "$SCHEMA_GEN" --yes >"${TMPDIR:-/tmp}/sf-auth-generate.log" 2>&1; then
+		cat "${TMPDIR:-/tmp}/sf-auth-generate.log"
+		echo "❌ better-auth generate failed (#319)"; exit 1
+	fi
+	if [ ! -s "$SCHEMA_GEN" ]; then
+		echo "❌ better-auth generate produced an empty schema file (#319)"; exit 1
+	fi
+	rm -f "$SCHEMA_GEN"
+	if ! node "$REPO_ROOT/scripts/check-auth-schema.mjs" src/lib/server/db/auth.schema.ts --project .; then
+		echo "❌ committed auth.schema.ts drifted from the installed better-auth runtime schema (#319)"; exit 1
+	fi
+
+	# 5f.c Runtime HTTP smoke against the dev server (the /setup route is
+	# dev-only). Reset the users table first so the first-user-is-admin
+	# pattern makes the smoke admin deterministic. SvelteKit form-action
+	# CSRF: POSTs need a matching `origin` header (no token/cookie dance).
+	# Action responses may carry `"type":"failure"` bodies over HTTP 200 —
+	# assert bodies, not just status codes.
+	bun -e 'const { default: postgres } = await import("postgres"); const { readFileSync } = await import("node:fs"); const dotenv = readFileSync(".env", "utf8"); const url = dotenv.match(/^DATABASE_URL="?([^"\n]+)"?$/m)?.[1]; const sql = postgres(url, { max: 1 }); await sql.unsafe("DELETE FROM session"); await sql.unsafe("DELETE FROM account"); await sql.unsafe("DELETE FROM \"user\""); await sql.end();'
+
+	SMOKE_PORT=5173 # must equal ORIGIN in .env — SvelteKit CSRF and better-auth trust that origin only
+	ORIGIN="http://localhost:$SMOKE_PORT"
+	(
+		set -euo pipefail
+		DEV_PID=0
+		trap 'kill $DEV_PID 2>/dev/null || true' EXIT
+		fail() { echo "❌ $1 (#319)"; exit 1; }
+
+		bun run dev --port "$SMOKE_PORT" --strictPort >"${TMPDIR:-/tmp}/sf-dashboard-dev.log" 2>&1 &
+		DEV_PID=$!
+		for _ in $(seq 1 90); do
+			if curl -sf -o /dev/null "$ORIGIN/login"; then break; fi
+			sleep 2
+		done
+		curl -sf -o /dev/null "$ORIGIN/login" || fail "dev server never became ready on :$SMOKE_PORT"
+
+		ADMIN_JAR="${TMPDIR:-/tmp}/sf-smoke-admin-jar.txt"
+		USER_JAR="${TMPDIR:-/tmp}/sf-smoke-user-jar.txt"
+		rm -f "$ADMIN_JAR" "$USER_JAR"
+
+		# Setup: create the first admin (dev-only route redirects to /login).
+		setup_body=$(curl -sf -b "$ADMIN_JAR" -c "$ADMIN_JAR" -H "origin: $ORIGIN" \
+			--data 'name=Smoke Admin&email=smoke-admin@example.com&password=smokepass123' \
+			"$ORIGIN/setup") || fail "POST /setup errored"
+		if printf '%s' "$setup_body" | grep -q '"type":"failure"'; then
+			fail "POST /setup failed: $setup_body"
+		fi
+
+		# Admin login through the real Better Auth credential flow.
+		curl -sf -o /dev/null -b "$ADMIN_JAR" -c "$ADMIN_JAR" -H "origin: $ORIGIN" \
+			--data 'email=smoke-admin@example.com&password=smokepass123' \
+			"$ORIGIN/login" || fail "admin login action errored"
+		grep -q better-auth.session_token "$ADMIN_JAR" || fail "admin login did not set a session cookie"
+
+		# Admin CRUD: the users page authorizes the admin and the create
+		# action persists user B.
+		admin_status=$(curl -s -o "${TMPDIR:-/tmp}/sf-smoke-admin.html" -w '%{http_code}' -b "$ADMIN_JAR" "$ORIGIN/admin/users")
+		[ "$admin_status" = "200" ] || fail "GET /admin/users returned $admin_status for the admin"
+		grep -q smoke-admin@example.com "${TMPDIR:-/tmp}/sf-smoke-admin.html" || fail "admin users page does not list the admin"
+
+		create_body=$(curl -sf -b "$ADMIN_JAR" -c "$ADMIN_JAR" -H "origin: $ORIGIN" \
+			--data 'name=Smoke User&email=smoke-user@example.com&password=smokepass123' \
+			"$ORIGIN/admin/users?/create") || fail "admin create action errored"
+		if printf '%s' "$create_body" | grep -q '"type":"failure"'; then
+			fail "admin create action failed: $create_body"
+		fi
+
+		# THE contract: the admin's OWN session survives the create action —
+		# the users page must still authorize as the ADMIN (HTTP 200).
+		still_admin=$(curl -s -o "${TMPDIR:-/tmp}/sf-smoke-admin2.html" -w '%{http_code}' -b "$ADMIN_JAR" "$ORIGIN/admin/users")
+		[ "$still_admin" = "200" ] || fail "admin session did not survive the create action (HTTP $still_admin)"
+		grep -q smoke-user@example.com "${TMPDIR:-/tmp}/sf-smoke-admin2.html" || fail "admin create action did not persist user B"
+
+		# B can sign in with the credentials the admin created.
+		curl -sf -o /dev/null -b "$USER_JAR" -c "$USER_JAR" -H "origin: $ORIGIN" \
+			--data 'email=smoke-user@example.com&password=smokepass123' \
+			"$ORIGIN/login" || fail "created user B could not sign in"
+		grep -q better-auth.session_token "$USER_JAR" || fail "user B login did not set a session cookie"
+
+		kill "$DEV_PID" 2>/dev/null || true
+		echo "✓ Better Auth runtime smoke: setup → admin login → admin CRUD → user B sign-in (#319)"
+	)
 fi
 
 # 6. AI-ready: AGENTS.md scaffolded at the project root (#203)

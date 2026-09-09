@@ -6,12 +6,18 @@ import { describe, it, expect, beforeAll, vi } from 'vitest';
 vi.mock('$env/dynamic/private', async () => {
 	const { readFileSync } = await import('node:fs');
 	const dotenv = readFileSync('.env', 'utf8');
-	const m = dotenv.match(/^DATABASE_URL="?([^"\n]+)"?$/m);
-	return { env: { DATABASE_URL: m ? m[1].trim() : undefined } };
+	const value = (key: string) => dotenv.match(new RegExp(`^${key}="?([^"\\n]+)"?$`, 'm'))?.[1].trim();
+	return { env: { DATABASE_URL: value('DATABASE_URL'), ORIGIN: value('ORIGIN'), BETTER_AUTH_SECRET: value('BETTER_AUTH_SECRET') } };
 });
+
+// The real auth instance wires sveltekitCookies(getRequestEvent); outside a
+// request the event is simply absent, exactly like auth.test.ts (#337).
+vi.mock('$app/server', () => ({ getRequestEvent: () => undefined }));
 
 import { createCredentialUser, DuplicateEmailError } from './admin-users';
 import { verifyPassword } from 'better-auth/crypto';
+import { auth } from './auth';
+import { env } from '$env/dynamic/private';
 import { db } from '$lib/server/db';
 import { user, account, session } from '$lib/server/db/schema';
 import { eq } from 'drizzle-orm';
@@ -41,6 +47,53 @@ describe('admin-created credential users (#292)', () => {
 		// Seed the admin (first user = admin under the first-user-is-admin
 		// pattern used by the dashboard).
 		await createCredentialUser({ name: 'Admin', email: 'admin@example.com', password: PASSWORD });
+	});
+
+	/** Signs in through the REAL Better Auth endpoint (same pattern as auth.test.ts #337). */
+	function signInAs(email: string, password: string): Promise<Response> {
+		const origin = env.ORIGIN ?? 'http://localhost:5173';
+		return auth.handler(
+			new Request(`${origin}/api/auth/sign-in/email`, {
+				method: 'POST',
+				headers: { 'content-type': 'application/json', origin },
+				body: JSON.stringify({ email, password })
+			})
+		);
+	}
+
+	it('admin A creates B without losing their own session; B can sign in (#319)', async () => {
+		// A (admin) signs in and owns a live session.
+		const adminResponse = await signInAs('admin@example.com', PASSWORD);
+		expect(adminResponse.status).toBe(200);
+		const adminSessionCookie = adminResponse.headers.get('set-cookie');
+		expect(adminSessionCookie).toContain('better-auth.session_token');
+
+		const sessionsWhenAdminActive = await db.select({ id: session.id }).from(session);
+
+		// A creates B — the creation must not create, drop, or replace any session.
+		const created = await createCredentialUser({ name: 'Ivy', email: 'ivy@example.com', password: PASSWORD });
+		const sessionsAfterCreate = await db.select({ id: session.id }).from(session);
+		expect(sessionsAfterCreate).toHaveLength(sessionsWhenAdminActive.length);
+
+		// B signs in with the real Better Auth credential flow (hash verified
+		// by signInEmail against the account row the helper created).
+		const ivyResponse = await signInAs('ivy@example.com', PASSWORD);
+		expect(ivyResponse.status).toBe(200);
+		expect(ivyResponse.headers.get('set-cookie')).toContain('better-auth.session_token');
+		const body = (await ivyResponse.json()) as { user?: { id?: string; email?: string } };
+		expect(body.user?.id).toBe(created.id);
+		expect(body.user?.email).toBe('ivy@example.com');
+
+		// B's session exists in the DB and belongs to the created user id.
+		const graceSessions = await db.select({ id: session.id, userId: session.userId }).from(session).where(eq(session.userId, created.id));
+		expect(graceSessions).toHaveLength(1);
+	});
+
+	it('rejects a wrong password through the real sign-in endpoint (#319)', async () => {
+		await createCredentialUser({ name: 'Heidi', email: 'heidi@example.com', password: PASSWORD });
+		const response = await signInAs('heidi@example.com', 'wrong-password-123');
+		expect(response.status).toBe(401);
+		expect(response.headers.get('set-cookie')).toBeNull();
 	});
 
 	it('stores the email lowercased exactly like Better Auth sign-up (#292)', async () => {
