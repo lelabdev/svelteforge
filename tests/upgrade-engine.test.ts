@@ -10,6 +10,7 @@ import {
 	loadTrackingFile,
 	planUpgrade,
 	resolveDestination,
+	safeProjectPath,
 	sha256,
 	TRACKING_FILE,
 	defineModuleRecipe
@@ -393,6 +394,53 @@ describe('versioned backups + atomicity (#327)', () => {
 		expect(runs).toHaveLength(2);
 	});
 
+	it('force + same-second collision: rollback restores from — and removes — the SELECTED suffixed dir', () => {
+		writeFileSync(join(project, 'src/lib/a.ts'), 'v1\n');
+		writeFileSync(join(project, 'src/lib/b.ts'), 'v1\n');
+		writeFileSync(
+			join(project, TRACKING_FILE),
+			initTrackingJson('demo', '1.0.0', { '/lib/a.ts': 'v1\n', '/lib/b.ts': 'v1\n' })
+		);
+
+		const sameNow = new Date('2026-01-01T10:00:00Z');
+		// First apply claims the unsuffixed directory `…-2.0.0`.
+		const v2 = makeRecipe({ id: 'demo', version: '2.0.0', files: { '/lib/a.ts': 'v2\n', '/lib/b.ts': 'v2\n' } });
+		applyPlan(v2, planUpgrade(v2, project), project, { now: sameNow });
+
+		// The user edits a.ts; re-applying the SAME version at the SAME
+		// timestamp with --force collides → the SELECTED dir is the SUFFIXED
+		// `…-2.0.0-1`. A sabotaged op then forces a mid-apply rollback.
+		writeFileSync(join(project, 'src/lib/a.ts'), 'user v2 edit\n');
+		const plan = planUpgrade(v2, project, { force: true });
+		expect(plan.operations.find((op) => op.path === 'src/lib/a.ts')?.resolution).toBe('apply');
+		const sabotaged = {
+			...plan,
+			operations: [
+				...plan.operations,
+				{ action: 'add' as const, path: 'src/lib/z.ts', resolution: 'apply' as const, reason: 'sabotage' }
+			]
+		};
+		mkdirSync(join(project, 'src/lib/z.ts')); // write to it must fail (EISDIR)
+		const result = applyPlan(v2, sabotaged, project, { now: sameNow });
+
+		expect(result.rolledBack).toBe(true);
+		expect(result.error).toBeTruthy();
+		// Restored from the SELECTED suffixed dir: the user's collision-era
+		// content — reading backupBase instead would restore the FIRST run's
+		// v1 content and lose the user edit.
+		expect(readFileSync(join(project, 'src/lib/a.ts'), 'utf-8')).toBe('user v2 edit\n');
+		expect(readFileSync(join(project, 'src/lib/b.ts'), 'utf-8')).toBe('v2\n');
+		// The suffixed dir is GONE — only the first apply's backup remains.
+		const runs = readdirSync(join(project, '.svforge-backup', 'demo')).sort();
+		expect(runs).toHaveLength(1);
+		expect(runs[0]).toContain('-2.0.0');
+		expect(runs[0]).not.toContain('-2.0.0-1');
+		// A rolled-back apply reports no backup dir (it no longer exists).
+		expect(result.backupDir).toBeUndefined();
+		// Tracking was never advanced by the failed apply.
+		expect(loadTrackingFile(project).demo.version).toBe('2.0.0');
+	});
+
 	it('a mid-apply failure rolls EVERYTHING back — the project is left unchanged', () => {
 		writeFileSync(join(project, 'src/lib/a.ts'), 'v1\n');
 		writeFileSync(join(project, TRACKING_FILE), initTrackingJson('demo', '1.0.0', { '/lib/a.ts': 'v1\n' }));
@@ -435,6 +483,49 @@ describe('module recipe factory (#327)', () => {
 		const recipe = defineModuleRecipe({ id: 'blog', version: '0.0.2', files: { '/lib/utils/posts.ts': 'x' } });
 		expect(recipe.rootPaths).toEqual([]);
 		expect(resolveDestination('/lib/utils/posts.ts', recipe.rootPaths)).toBe('src/lib/utils/posts.ts');
+	});
+});
+
+describe('standalone module baselines — identical files are recorded (#327)', () => {
+	let project: string;
+
+	beforeEach(() => {
+		project = mkdtempSync(join(tmpdir(), 'sf-baseline-'));
+		writeFileSync(
+			join(project, 'package.json'),
+			JSON.stringify({ name: 'app', dependencies: {}, devDependencies: {}, scripts: {} }, null, 2) + '\n'
+		);
+		mkdirSync(join(project, 'src/lib'), { recursive: true });
+	});
+
+	afterEach(() => rmSync(project, { recursive: true, force: true }));
+
+	it('a first module upgrade baselines ALREADY-IDENTICAL files — not just applied ones (non-vacuous)', () => {
+		// Standalone module: files on disk, NO install-time tracking at all.
+		writeFileSync(join(project, 'src/lib/a.ts'), 'same\n'); // identical to the recipe
+		writeFileSync(join(project, 'src/lib/b.ts'), 'user edit\n'); // user-modified → conflict
+		const recipe = makeRecipe({ id: 'blog', version: '0.0.2', files: { '/lib/a.ts': 'same\n', '/lib/b.ts': 'new\n' } });
+
+		const plan = planUpgrade(recipe, project);
+		expect(plan.operations.find((op) => op.path === 'src/lib/a.ts')?.resolution).toBe('unchanged');
+		expect(plan.operations.find((op) => op.path === 'src/lib/b.ts')?.resolution).toBe('conflict');
+
+		const result = applyPlan(recipe, plan, project);
+		expect(result.rolledBack).toBe(false);
+
+		// NON-VACUOUS: the checksum map must actually CONTAIN the identical
+		// file — an empty map would satisfy any `every()` assertion for free.
+		const checksums = loadTrackingFile(project).blog?.fileChecksums ?? {};
+		expect(Object.keys(checksums)).toContain('src/lib/a.ts');
+		expect(checksums['src/lib/a.ts']).toBe(sha256('same\n'));
+		// The conflicted file keeps NO baseline — it is not ours.
+		expect(checksums['src/lib/b.ts']).toBeUndefined();
+
+		// The payoff: the NEXT upgrade trusts that baseline — a recipe change
+		// applies cleanly instead of inventing a "no baseline" conflict.
+		const next = planUpgrade(makeRecipe({ id: 'blog', version: '0.0.3', files: { '/lib/a.ts': 'v3\n' } }), project);
+		expect(next.operations[0]?.resolution).toBe('apply');
+		expect(next.operations[0]?.reason).not.toMatch(/no install baseline/i);
 	});
 });
 
@@ -506,6 +597,45 @@ describe('path containment — every recipe path stays inside the project root (
 		});
 		expect(() => planUpgrade(recipe, project)).toThrow(/#386/);
 		expect(existsSync(join(outside, 'payload', 'evil.txt'))).toBe(false);
+	});
+
+	it('rejects a DANGLING symlink pointing outside the root — lstat, never existsSync (#386)', () => {
+		// The link TARGET does not exist: existsSync(link) reads "absent", so an
+		// existsSync-based ancestor walk would skip PAST the link — and the
+		// later writeFileSync would follow it OUTSIDE the root. lstat must see
+		// the symlink itself.
+		mkdirSync(join(project, 'src/lib'), { recursive: true });
+		symlinkSync(join(outside, 'payload', 'evil.txt'), join(project, 'src/lib/dangling.ts'));
+		expect(() => safeProjectPath(project, 'src/lib/dangling.ts', 'test')).toThrow(/DANGLING symlink/);
+		expect(() => safeProjectPath(project, 'src/lib/dangling.ts', 'test')).toThrow(/#386/);
+
+		const recipe = makeRecipe({ id: 'dangling', files: { '/lib/dangling.ts': 'pwned\n' } });
+		expect(() => planUpgrade(recipe, project)).toThrow(/#386/);
+		// Nothing was created through the link — the outside target is absent.
+		expect(existsSync(join(outside, 'payload', 'evil.txt'))).toBe(false);
+		expect(existsSync(join(outside, 'payload'))).toBe(false);
+	});
+
+	it('rejects a symlinked .svforge-backup directory and a symlinked tracking file (#386)', () => {
+		mkdirSync(join(outside, 'exfil'), { recursive: true });
+		const recipe = makeRecipe({ id: 'demo', files: { '/lib/a.ts': 'v2\n' } });
+
+		// a) symlinked tracking file: both the READ (planning) and the WRITE
+		//    (apply) are containment-checked before touching the filesystem.
+		symlinkSync(join(outside, 'exfil', 'tracking.json'), join(project, TRACKING_FILE));
+		expect(() => planUpgrade(recipe, project)).toThrow(/#386/);
+		const planA = planUpgrade(recipe, project, { tracking: {} });
+		expect(() => applyPlan(recipe, planA, project)).toThrow(/#386/);
+		// Nothing was written through the link.
+		expect(existsSync(join(outside, 'exfil', 'tracking.json'))).toBe(false);
+		rmSync(join(project, TRACKING_FILE));
+
+		// b) symlinked backup root: applyPlan validates the BACKUP destination
+		//    before taking any backup — nothing may land in the outside dir.
+		symlinkSync(join(outside, 'exfil'), join(project, '.svforge-backup'), 'dir');
+		const planB = planUpgrade(recipe, project, { tracking: {} });
+		expect(() => applyPlan(recipe, planB, project)).toThrow(/#386/);
+		expect(readdirSync(join(outside, 'exfil'))).toEqual([]);
 	});
 
 	it('applyPlan fails CLOSED on a poisoned plan — no write, no backup, project untouched', () => {

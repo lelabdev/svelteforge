@@ -18,7 +18,9 @@
  *   `.svforge-backup/<recipe>/<timestamp>-<version>/` — successive upgrades
  *   never overwrite a previous backup.
  * - ATOMIC-OR-UNCHANGED: on any mid-apply failure every completed write is
- *   rolled back from the fresh backup, leaving the project unchanged.
+ *   rolled back from the fresh backup — including the tracking file, which is
+ *   written LAST inside the rollback-protected scope — leaving the project
+ *   exactly as it was (no stray backup directory either).
  *
  * The engine is dependency-free (node builtins only) and bundled into every
  * addon dist, so modules can adopt the exact same protocol.
@@ -28,13 +30,15 @@ import { createHash } from 'node:crypto';
 import {
 	copyFileSync,
 	existsSync,
+	lstatSync,
 	mkdirSync,
 	readFileSync,
 	readdirSync,
 	realpathSync,
 	rmSync,
 	statSync,
-	writeFileSync
+	writeFileSync,
+	type Stats
 } from 'node:fs';
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 
@@ -85,15 +89,27 @@ function staysInside(rel: string): boolean {
 	return rel !== '' && rel !== '..' && !rel.startsWith(`..${sep}`) && !isAbsolute(rel);
 }
 
+/** True when the path exists — WITHOUT following symlinks (lstat, #386). */
+function lstatSafe(path: string): boolean {
+	try {
+		lstatSync(path);
+		return true;
+	} catch {
+		return false;
+	}
+}
+
 /**
  * Full containment check before ANY filesystem effect — read, write, backup,
  * move or delete (#386):
  *
  *   1. lexical rules (see assertSafeRelativePath),
  *   2. the resolved target must stay INSIDE the project root,
- *   3. symlinks: the target itself, or its nearest existing ancestor (for
- *      files about to be created), must resolve inside the REAL root — a
- *      symlinked directory pointing outside is refused.
+ *   3. symlinks: the deepest EXISTING component of the path (found with an
+ *      lstat walk, never existsSync — a DANGLING symlink reads as "absent"
+ *      to existsSync but the later write would still follow it outside the
+ *      root) must resolve inside the REAL root. Because realpath resolves
+ *      the whole chain, one check covers every ancestor symlink too.
  *
  * Fails closed: any uncertainty is an error, before any partial write.
  *
@@ -108,18 +124,49 @@ export function safeProjectPath(projectRoot: string, relativePath: string, what 
 			`Invalid ${what}: "${relativePath}" resolves to "${full}", outside the project root "${root}" (#386).`
 		);
 	}
-	let existing = full;
-	while (existing !== root && !existsSync(existing)) existing = dirname(existing);
 	try {
-		const realTarget = realpathSync(existing);
 		const realRoot = realpathSync(root);
-		// '' here means the existing ancestor IS the root — valid. Only a
-		// resolution OUTSIDE the real root is refused.
-		const relReal = relative(realRoot, realTarget);
-		if (relReal !== '' && !staysInside(relReal)) {
-			throw new Error(
-				`Invalid ${what}: "${relativePath}" resolves through a symlink to "${realTarget}", outside the project root (#386).`
-			);
+		// lstat-based walk (#386): lstat does NOT follow symlinks, so a dangling
+		// symlink is reported as a symlink instead of being skipped as "absent"
+		// (existsSync would skip it, and the later writeFileSync would follow
+		// the link OUTSIDE the root).
+		let current = full;
+		for (;;) {
+			let st: Stats;
+			try {
+				st = lstatSync(current);
+			} catch (walkError) {
+				if ((walkError as NodeJS.ErrnoException).code === 'ENOENT') {
+					// Genuinely absent — keep walking toward the root.
+					const parent = dirname(current);
+					if (parent === current || current === root) break;
+					current = parent;
+					continue;
+				}
+				throw walkError;
+			}
+			// Deepest existing component: its realpath resolves the ENTIRE chain
+			// above it, so ONE containment check covers every ancestor symlink.
+			let realTarget: string;
+			try {
+				realTarget = realpathSync(current);
+			} catch (linkError) {
+				if (st.isSymbolicLink() && (linkError as NodeJS.ErrnoException).code === 'ENOENT') {
+					throw new Error(
+						`Invalid ${what}: "${relativePath}" crosses a DANGLING symlink ("${current}") whose target does not exist — containment cannot be verified, refusing (#386).`
+					);
+				}
+				throw linkError;
+			}
+			// '' here means the component IS the (real) root — valid. Only a
+			// resolution OUTSIDE the real root is refused.
+			const relReal = relative(realRoot, realTarget);
+			if (relReal !== '' && !staysInside(relReal)) {
+				throw new Error(
+					`Invalid ${what}: "${relativePath}" resolves through a symlink to "${realTarget}", outside the project root (#386).`
+				);
+			}
+			break;
 		}
 	} catch (error) {
 		if (error instanceof Error && error.message.includes('#386')) throw error;
@@ -168,8 +215,13 @@ export interface RecipeTracking {
 
 export type TrackingFile = Record<string, RecipeTracking>;
 
-/** Read the tracking file. Missing or corrupt → {} (never throws). */
+/**
+ * Read the tracking file. Missing or corrupt → {}. The read is
+ * containment-checked FIRST (#386): a symlinked tracking file must not
+ * redirect the read outside the project root.
+ */
 export function loadTrackingFile(projectRoot: string): TrackingFile {
+	safeProjectPath(projectRoot, TRACKING_FILE, 'tracking file');
 	try {
 		const parsed = JSON.parse(readFileSync(join(projectRoot, TRACKING_FILE), 'utf-8')) as unknown;
 		if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
@@ -180,7 +232,14 @@ export function loadTrackingFile(projectRoot: string): TrackingFile {
 }
 
 export function saveTrackingFile(projectRoot: string, state: TrackingFile): void {
-	writeFileSync(join(projectRoot, TRACKING_FILE), `${JSON.stringify(state, null, 2)}\n`);
+	// The tracking file is a WRITE destination derived from engine constants —
+	// it must pass the same containment check as recipe paths (#386), or a
+	// symlinked `.svforge-versions.json` would redirect the write outside the
+	// project root.
+	writeFileSync(
+		safeProjectPath(projectRoot, TRACKING_FILE, 'tracking file'),
+		`${JSON.stringify(state, null, 2)}\n`
+	);
 }
 
 /**
@@ -730,8 +789,10 @@ function stamp(now: Date): string {
 
 /**
  * Apply a plan. Destructive writes are backed up under a versioned,
- * timestamped directory; any failure rolls back every completed write so the
- * project is left exactly as it was (#327).
+ * timestamped directory; any failure rolls back every completed write — files
+ * AND the tracking file — so the project is left exactly as it was (#327).
+ * Backup and tracking destinations are containment-checked like recipe paths
+ * (#386); after a rollback the freshly created backup directory is removed.
  */
 export function applyPlan(recipe: UpgradeRecipe, plan: UpgradePlan, projectRoot: string, options: ApplyOptions = {}): ApplyResult {
 	const dryRun = options.dryRun ?? false;
@@ -740,32 +801,46 @@ export function applyPlan(recipe: UpgradeRecipe, plan: UpgradePlan, projectRoot:
 	}
 
 	const applicable = plan.operations.filter((op) => op.resolution === 'apply');
+	const now = options.now ?? new Date();
 
 	// ── Fail closed BEFORE any filesystem effect (#386) ──
 	// A plan is plain data: even a hand-built/poisoned plan cannot direct a
 	// write, backup or deletion outside the project root. Every path of every
 	// applicable operation is validated before the first backup is taken.
+	assertSafeRelativePath(recipe.id, `recipe id "${recipe.id}"`);
 	for (const op of applicable) {
 		safeProjectPath(projectRoot, op.path, `planned ${op.action}`);
 		if (op.action === 'move' && op.from) safeProjectPath(projectRoot, op.from, 'planned move source');
 	}
+	// The backup and tracking destinations are engine-owned but sit on the
+	// same filesystem boundary: a malicious recipe id or a planted symlink
+	// (.svforge-backup dir, .svforge-versions.json) must not redirect the
+	// writes outside the root (#386). Both are containment-checked here,
+	// before the first backup is taken.
+	const backupBase = safeProjectPath(
+		projectRoot,
+		join(BACKUP_ROOT, recipe.id, `${stamp(now)}-${plan.toVersion}`),
+		'backup directory'
+	);
+	safeProjectPath(projectRoot, TRACKING_FILE, 'tracking file');
 
 	const journal: JournalEntry[] = [];
-	const now = options.now ?? new Date();
-	const backupBase = join(projectRoot, BACKUP_ROOT, recipe.id, `${stamp(now)}-${plan.toVersion}`);
 	let backupDir: string | undefined;
-	let usedBackupRel: string | undefined;
+	/** The backup dir actually SELECTED by ensureBackupDir (suffixed on collision). */
+	let selectedBackup: string | undefined;
 
 	const ensureBackupDir = (): string => {
-		if (usedBackupRel) return usedBackupRel;
+		if (selectedBackup) return selectedBackup;
 		let candidate = backupBase;
 		let suffix = 1;
-		while (existsSync(candidate)) {
+		// lstat, not existsSync: a dangling symlink at the candidate path is
+		// still an occupied name — never create a directory over it (#386).
+		while (lstatSafe(candidate)) {
 			candidate = `${backupBase}-${suffix}`;
 			suffix++;
 		}
 		mkdirSync(candidate, { recursive: true });
-		usedBackupRel = candidate;
+		selectedBackup = candidate;
 		return candidate;
 	};
 
@@ -779,15 +854,19 @@ export function applyPlan(recipe: UpgradeRecipe, plan: UpgradePlan, projectRoot:
 	const writeTracking = () => {
 		const tracking = loadTrackingFile(projectRoot);
 		const checksums: Record<string, string> = { ...(tracking[recipe.id]?.fileChecksums ?? {}) };
-		// Record what THIS apply wrote; drop deleted paths; rekey moves. Files
-		// skipped or in conflict keep their previous baseline (#283).
-		for (const op of applicable) {
+		// Record what THIS upgrade delivers — applied writes AND already
+		// identical files (#327): a standalone module's first upgrade finds its
+		// files unchanged and must still baseline them, or every later upgrade
+		// would treat them as user modifications (#283). Skipped and conflicted
+		// paths keep their previous baseline (or none).
+		for (const op of plan.operations) {
 			if (op.action === 'add' || op.action === 'modify') {
+				if (op.resolution !== 'apply' && op.resolution !== 'unchanged') continue;
 				const manifestPath = Object.keys(recipe.files).find((p) => resolveDestination(p, recipe.rootPaths) === op.path);
 				if (manifestPath) checksums[op.path] = sha256(recipe.files[manifestPath]);
 			} else if (op.action === 'delete') {
-				delete checksums[op.path];
-			} else if (op.action === 'move' && op.from && op.to) {
+				if (op.resolution === 'apply') delete checksums[op.path];
+			} else if (op.action === 'move' && op.from && op.to && op.resolution === 'apply') {
 				delete checksums[op.from];
 				// The moved content is what landed on disk (a pure rename carries
 				// the source content, which is not in recipe.files).
@@ -802,6 +881,12 @@ export function applyPlan(recipe: UpgradeRecipe, plan: UpgradePlan, projectRoot:
 		};
 		saveTrackingFile(projectRoot, tracking);
 	};
+
+	// Exact pre-apply state of the tracking file — writeTracking runs INSIDE
+	// the try below, so a rollback must be able to restore it byte for byte
+	// (#327 atomicity).
+	const trackingPath = join(projectRoot, TRACKING_FILE);
+	const trackingSnapshot = lstatSafe(trackingPath) ? readFileSync(trackingPath, 'utf-8') : undefined;
 
 	try {
 		// ── Phase 1: backups (before ANY write) ──
@@ -894,6 +979,11 @@ export function applyPlan(recipe: UpgradeRecipe, plan: UpgradePlan, projectRoot:
 			return 3;
 		};
 		for (const op of [...applicable].sort((a, b) => order(a) - order(b))) applyOne(op);
+
+		// ── Phase 3: tracking — INSIDE the rollback-protected try, as the
+		// LAST write (#327): a failure here must roll the whole apply back,
+		// never leave files upgraded with stale or absent tracking.
+		writeTracking();
 	} catch (error) {
 		// ── Rollback: undo every completed write, newest first ──
 		for (let i = journal.length - 1; i >= 0; i--) {
@@ -908,11 +998,11 @@ export function applyPlan(recipe: UpgradeRecipe, plan: UpgradePlan, projectRoot:
 					if (from) writeFileSync(join(projectRoot, from), entry.moveFrom);
 				} else if (entry.existed) {
 					const manifestPath = Object.keys(recipe.files).find((p) => resolveDestination(p, recipe.rootPaths) === entry.dest);
-					// Restore from the backup when we have one; otherwise fall
-					// back to the recipe content (an add over an existing file
-					// cannot happen — adds only apply to absent paths).
-					const backupPath = join(backupBase, entry.dest);
-					if (existsSync(backupPath)) copyFileSync(backupPath, full);
+					// Restore from the SELECTED backup dir — on a same-second
+					// collision that is the SUFFIXED directory, never the
+					// unsuffixed backupBase (#327).
+					const backupPath = selectedBackup ? join(selectedBackup, entry.dest) : undefined;
+					if (backupPath && existsSync(backupPath)) copyFileSync(backupPath, full);
 					else if (manifestPath) writeFileSync(full, recipe.files[manifestPath]);
 				} else {
 					rmSync(full, { force: true });
@@ -922,16 +1012,32 @@ export function applyPlan(recipe: UpgradeRecipe, plan: UpgradePlan, projectRoot:
 				// Best-effort rollback: keep unwinding the remaining entries.
 			}
 		}
+		// Restore the tracking file to its exact pre-apply state (#327).
+		try {
+			if (trackingSnapshot === undefined) rmSync(trackingPath, { force: true });
+			else writeFileSync(trackingPath, trackingSnapshot);
+		} catch {
+			// Best-effort: the journal unwind above already restored the files.
+		}
+		// The project is unchanged again — the fresh backup must not survive as
+		// a stray claiming content that is no longer applied: remove the
+		// SELECTED (possibly suffixed) directory, then prune its empty parents.
+		if (selectedBackup) {
+			try {
+				rmSync(selectedBackup, { recursive: true, force: true });
+				pruneEmptyDirs(projectRoot, dirname(selectedBackup));
+			} catch {
+				// Best-effort.
+			}
+		}
 		return {
 			dryRun: false,
 			applied: 0,
 			rolledBack: true,
-			error: error instanceof Error ? error.message : String(error),
-			...(usedBackupRel ? { backupDir: usedBackupRel.slice(projectRoot.length + 1) } : {})
+			error: error instanceof Error ? error.message : String(error)
 		};
 	}
 
-	writeTracking();
 	return {
 		dryRun: false,
 		applied: applicable.length,
