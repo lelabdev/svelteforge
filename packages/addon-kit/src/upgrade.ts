@@ -915,9 +915,11 @@ export function applyPlan(recipe: UpgradeRecipe, plan: UpgradePlan, projectRoot:
 				if (!manifestPath) throw new Error(`Apply lost the recipe content for "${op.path}".`);
 				const full = safeProjectPath(projectRoot, op.path, `applied ${op.action}`);
 				const existed = existsSync(full);
+				// Journal BEFORE mutating: if mkdir/write fails after changing the
+				// filesystem, rollback must already know how to undo this operation.
+				journal.push({ dest: op.path, existed });
 				if (!existed) mkdirSync(dirname(full), { recursive: true });
 				writeFileSync(full, recipe.files[manifestPath]);
-				journal.push({ dest: op.path, existed });
 				return;
 			}
 			if (op.action === 'json' || op.action === 'dependency' || op.action === 'script') {
@@ -951,8 +953,10 @@ export function applyPlan(recipe: UpgradeRecipe, plan: UpgradePlan, projectRoot:
 					else scripts[op.script.name] = op.script.command;
 					json.scripts = scripts;
 				}
-				writeFileSync(full, `${JSON.stringify(json, null, 2)}\n`);
+				// Journal BEFORE mutating: a failed package/JSON write must be
+				// rolled back even if the write partially changed the file.
 				journal.push({ dest: op.path, existed });
+				writeFileSync(full, `${JSON.stringify(json, null, 2)}\n`);
 				return;
 			}
 			if (op.action === 'move' && op.from && op.to) {
@@ -974,9 +978,11 @@ export function applyPlan(recipe: UpgradeRecipe, plan: UpgradePlan, projectRoot:
 				return;
 			}
 			if (op.action === 'delete') {
+				// Journal BEFORE mutating: rm/pruning can fail after the file or
+				// its parent directory has already been removed.
+				journal.push({ dest: op.path, existed: true });
 				rmSync(safeProjectPath(projectRoot, op.path, 'applied deletion'), { force: true });
 				pruneEmptyDirs(projectRoot, dirname(join(projectRoot, op.path)));
-				journal.push({ dest: op.path, existed: true });
 				return;
 			}
 			throw new Error(`Unsupported operation: ${op.action}`);
