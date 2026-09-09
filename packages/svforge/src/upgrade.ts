@@ -1,114 +1,158 @@
 /**
- * SVForge Upgrade — explicit, reviewable module upgrades.
+ * SVForge Upgrade — the diffable upgrade engine entry (#327).
  *
- * Installed SVForge source files are intentionally owned by each project.
- * Users need an explicit upgrade workflow that detects local modifications
- * and presents a safe result before changing files.
+ * One protocol for base, dashboard AND the 13 standalone modules:
  *
- * This command is never automatic — it requires an explicit module name
- * and preserves modified files unless `--force` is passed.
+ *   1. PLAN    — planUpgrade() reads the project and produces a complete
+ *                operation list (add / modify / delete / move / dependency /
+ *                script / JSON transformation) with readable diffs, BEFORE
+ *                any write. Conflicts come from the actual installed baseline
+ *                (.svforge-versions.json, SHA-256) — never from a guess.
+ *   2. DIFF    — the plan is inspectable (printable or JSON) and a --dry-run
+ *                writes nothing at all.
+ *   3. APPLY   — applyPlan() backs up every overwritten file under a
+ *                versioned, timestamped directory and rolls everything back
+ *                on failure: applied atomically or not at all.
+ *
+ * Version inputs are the structured changelog (#348) and the recipe version
+ * derived from the package (#283, #330): release notes between the installed
+ * and target versions are attached to every result.
+ *
+ * The engine itself lives in @svforge/addon-kit so the 13 standalone modules
+ * share the exact same protocol (extraction at prebuild → module-recipes.ts).
  */
 
-import { readFileSync, existsSync, writeFileSync, mkdirSync, copyFileSync } from 'node:fs';
-import { join, dirname } from 'node:path';
-import { baseFiles, dashboardFiles } from './templates';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { baseFiles, dashboardFiles, baseRootFiles, dashboardRootFiles } from './templates';
+import { BASE_ROOT_PATHS, DASHBOARD_ROOT_PATHS } from './destinations';
+import { MODULE_RECIPE_DATA } from './module-recipes';
 import { SDFORGE_RECIPE_VERSION } from './recipe-version';
 import { RELEASE_NOTES, entriesBetween } from './changelog';
 import type { ChangelogEntry } from './changelog';
+import {
+	applyPlan,
+	loadTrackingFile,
+	planUpgrade
+} from '@svforge/addon-kit';
+import type {
+	ApplyResult,
+	PlannedOperation,
+	UpgradePlan,
+	UpgradeRecipe
+} from '@svforge/addon-kit';
 
-/** A single file in an upgrade operation. */
+// Re-export the shared protocol types so consumers import upgrade concerns
+// from one place.
+export type { ApplyResult, PlannedOperation, UpgradePlan, UpgradeRecipe } from '@svforge/addon-kit';
+export { planUpgrade, applyPlan, sha256, resolveDestination, TRACKING_FILE } from '@svforge/addon-kit';
+
+/** A single file in an upgrade result (stable, human-oriented view). */
 export interface UpgradeFile {
-	/** Relative path within the project. */
+	/** Project-relative path. */
 	path: string;
 	/** Upgrade status for this file. */
 	status: 'updated' | 'unchanged' | 'skipped' | 'conflict';
 	/** Human-readable detail. */
 	message: string;
+	/** Readable diff when content changes are involved. */
+	diff?: string;
 }
 
-/** Result of an upgrade operation. */
+/** Result of an upgrade operation (also the machine-readable --json payload). */
 export interface UpgradeResult {
-	/** Module that was upgraded. */
+	/** Recipe that was upgraded (base, dashboard or a module id). */
 	module: string;
 	/** Recipe version installed before the upgrade. */
 	fromVersion: string | null;
 	/** Recipe version applied by the upgrade. */
 	toVersion: string;
-	/** Per-file results. */
+	/** Full operation plan (add/modify/delete/move/dependency/script/json). */
+	operations: PlannedOperation[];
+	/** Per-file summary (back-compatible view over the operations). */
 	files: UpgradeFile[];
-	/** Number of files that were actually changed. */
+	/** Number of file operations actually applied. */
 	updatedCount: number;
-	/** Number of files skipped due to local modifications. */
+	/** Number of files skipped (conflicts or profile-gated). */
 	skippedCount: number;
-	/** Release notes between the installed and target recipe versions. */
+	/** Release notes between the installed and target versions (#348). */
 	changes: ChangelogEntry[];
+	/** True when nothing was written (dry run). */
+	dryRun: boolean;
+	/** Number of operations applied on disk. */
+	applied: number;
+	/** Versioned backup directory (project-relative), when backups were made. */
+	backupDir?: string;
+	/** True when a mid-apply failure reverted every write (#327 atomicity). */
+	rolledBack: boolean;
+	/** Error message when rolledBack. */
+	error?: string;
+	/** Aggregate plan summary. */
+	summary: UpgradePlan['summary'];
 }
 
-/**
- * Known SVForge modules and their recipe files.
- *
- * Recipes are generated from the EMBEDDED template manifests (#189): base
- * ships src/** from templates/base/src, dashboard = base + dashboard overlay.
- * Module addon recipes (blog, dnd, …) are embedded in their own packages;
- * the base/dashboard recipes live here since this is the main addon.
- */
-export const MODULE_RECIPES: Record<string, { version: string; files: Record<string, string> }> = {
-	// Recipe version is derived from the addon package version at prebuild time
-	// (#283) — it cannot drift from the actually shipped template/package.
-	base: {
-		version: SDFORGE_RECIPE_VERSION,
-		files: baseFiles
-	},
-	dashboard: {
-		version: SDFORGE_RECIPE_VERSION,
-		files: { ...baseFiles, ...dashboardFiles }
-	}
+/** The base recipe: src/** plus the root-delivered files (vitest config, Paraglide, checker…). */
+export const BASE_RECIPE: UpgradeRecipe = {
+	id: 'base',
+	version: SDFORGE_RECIPE_VERSION,
+	files: { ...baseFiles, ...baseRootFiles },
+	rootPaths: BASE_ROOT_PATHS
 };
 
-/** Compute a simple checksum of file content to detect modifications. */
-export function checksum(content: string): string {
-	let hash = 0;
-	for (let i = 0; i < content.length; i++) {
-		hash = ((hash << 5) - hash + content.charCodeAt(i)) | 0;
-	}
-	return hash.toString(16);
-}
-
-/** Tracking file: installed version + per-file checksums of the last install. */
-const TRACKING_FILE = '.svforge-versions.json';
-
-interface TrackingState {
-	[module: string]: {
-		version: string;
-		/** path → checksum of the content we installed */
-		fileChecksums?: Record<string, string>;
-	};
-}
-
-function loadTracking(projectRoot: string): TrackingState {
-	try {
-		return JSON.parse(readFileSync(join(projectRoot, TRACKING_FILE), 'utf-8'));
-	} catch {
-		return {};
-	}
-}
-
-function saveTracking(projectRoot: string, state: TrackingState): void {
-	writeFileSync(join(projectRoot, TRACKING_FILE), JSON.stringify(state, null, 2) + '\n');
-}
+/** The dashboard recipe: base + overlay + root files, with root-delivered test configs (#186). */
+export const DASHBOARD_RECIPE: UpgradeRecipe = {
+	id: 'dashboard',
+	version: SDFORGE_RECIPE_VERSION,
+	files: { ...baseFiles, ...baseRootFiles, ...dashboardFiles, ...dashboardRootFiles },
+	rootPaths: DASHBOARD_ROOT_PATHS
+};
 
 /**
- * Upgrade an SVForge module in the current project.
+ * Known recipes: base + dashboard + the 13 standalone modules (#327).
+ * Recipe versions are derived at prebuild time (#283) and cannot drift from
+ * the actually shipped packages.
+ */
+export const MODULE_RECIPES: Record<string, UpgradeRecipe> = {
+	base: BASE_RECIPE,
+	dashboard: DASHBOARD_RECIPE,
+	...Object.fromEntries(
+		Object.values(MODULE_RECIPE_DATA).map((data) => [
+			data.id,
+			{
+				id: data.id,
+				version: data.version,
+				files: data.files,
+				rootPaths: [] as string[],
+				dependencies: data.dependencies
+			} satisfies UpgradeRecipe
+		])
+	)
+};
+
+/** Changelog package name of a recipe (#348: 'svforge' | '@svforge/<module>'). */
+export function changelogPackageOf(moduleName: string): string {
+	return moduleName === 'base' || moduleName === 'dashboard' ? 'svforge' : `@svforge/${moduleName}`;
+}
+
+/** Manifest paths of the dashboard playwright profile (#181, known broken on vitest projects — #186). */
+const PLAYWRIGHT_MANIFEST_PATHS = Object.keys(dashboardFiles).filter(
+	(path) => path === '/playwright.config.ts' || path.startsWith('/e2e/')
+);
+
+/**
+ * Upgrade an SVForge recipe (base, dashboard or one of the 13 modules) in a
+ * project. Plans first, prints nothing, writes only after the plan succeeds.
  *
- * @param moduleName - Name of the module to upgrade (e.g., "base", "dashboard").
+ * @param moduleName - Recipe id (e.g. "base", "dashboard", "blog").
  * @param projectRoot - Absolute path to the project root.
- * @param options - Force overwrite of locally modified files.
- * @returns Structured upgrade result.
+ * @param options - force: overwrite user-modified files (backed up).
+ *                  targetVersion: validate an explicit target.
+ *                  dryRun: plan + diff only — write NOTHING.
  */
 export async function upgrade(
 	moduleName: string,
 	projectRoot: string = process.cwd(),
-	options: { force?: boolean; targetVersion?: string } = {}
+	options: { force?: boolean; targetVersion?: string; dryRun?: boolean } = {}
 ): Promise<UpgradeResult> {
 	const recipe = MODULE_RECIPES[moduleName];
 	if (!recipe) {
@@ -119,105 +163,85 @@ export async function upgrade(
 
 	const targetVersion = options.targetVersion ?? recipe.version;
 	if (targetVersion !== recipe.version) {
-		throw new Error(`Target version ${targetVersion} is not available in this svforge package (current: ${recipe.version}).`);
+		throw new Error(
+			`Target version ${targetVersion} is not available in this svforge package (current: ${recipe.version}).`
+		);
 	}
 
-	const files: UpgradeFile[] = [];
-	let updatedCount = 0;
-	let skippedCount = 0;
-
-	const tracking = loadTracking(projectRoot);
-	const installed = tracking[moduleName];
-	const fromVersion = installed?.version ?? null;
-	// Checksums of what WE last installed — the baseline to detect user edits (#189).
-	const installedChecksums = installed?.fileChecksums ?? {};
-	// New baseline: only files actually written by THIS operation get a new
-	// checksum; skipped/conflict files keep their previous baseline (or none),
-	// so the next upgrade still treats them as potentially modified (#283).
-	const newChecksums: Record<string, string> = { ...installedChecksums };
-
-	for (const [manifestPath, newContent] of Object.entries(recipe.files)) {
-		// Manifest paths start with "/" and are src-relative (e.g. "/lib/ui/Button.svelte").
-		// In a scaffolded project they live under src/ (#187 layout).
-		const relPath = `src${manifestPath}`;
-		const fullPath = join(projectRoot, relPath);
-
-		if (!existsSync(fullPath)) {
-			// File doesn't exist yet — write it
-			mkdirSync(dirname(fullPath), { recursive: true });
-			writeFileSync(fullPath, newContent);
-			files.push({ path: relPath, status: 'updated', message: 'New file created' });
-			newChecksums[manifestPath] = checksum(newContent);
-			updatedCount++;
-			continue;
-		}
-
-		const currentContent = readFileSync(fullPath, 'utf-8');
-		const currentChecksum = checksum(currentContent);
-
-		if (currentContent === newContent) {
-			files.push({ path: relPath, status: 'unchanged', message: 'Already up to date' });
-			newChecksums[manifestPath] = currentChecksum;
-			continue;
-		}
-
-		// Detect a LOCAL MODIFICATION: the file differs from what we installed
-		// last time (installedChecksums), not merely from the new template.
-		// Without a baseline (first upgrade, or file not tracked), ANY
-		// divergence from the template is a potential user edit (#283) —
-		// never overwrite it silently.
-		const baseline = installedChecksums[manifestPath];
-		const isUserModified = baseline === undefined || currentChecksum !== baseline;
-
-		if (isUserModified && !options.force) {
-			files.push({
-				path: relPath,
-				status: 'skipped',
-				message: 'Local modifications detected (or no install baseline). Use --force to overwrite.'
+	// Profile gating (#186): the playwright files are only delivered to a
+	// project that actually has @playwright/test — a vitest project keeps its
+	// profile, the files appear as skipped in the plan.
+	const exclusions: { manifestPath: string; reason: string }[] = [];
+	if (moduleName === 'dashboard' && !hasPlaywright(projectRoot)) {
+		for (const manifestPath of PLAYWRIGHT_MANIFEST_PATHS) {
+			exclusions.push({
+				manifestPath,
+				reason: 'Playwright testing profile not installed (#186) — file not delivered.'
 			});
-			skippedCount++;
-			// baseline kept (previous value, or absent) — do NOT record the new
-			// template checksum for a file that was not written.
-		} else {
-			// Create backup, then overwrite
-			const backupPath = `${fullPath}.svforge-backup`;
-			copyFileSync(fullPath, backupPath);
-			writeFileSync(fullPath, newContent);
-			files.push({
-				path: relPath,
-				status: 'updated',
-				message: 'Updated (backup saved as .svforge-backup)'
-			});
-			newChecksums[manifestPath] = checksum(newContent);
-			updatedCount++;
 		}
 	}
 
-	// Update version tracking with the NEW per-file checksums (files skipped
-	// or in conflict keep their previous baseline — or none).
-	saveTracking(projectRoot, {
-		...tracking,
-		[moduleName]: {
-			version: recipe.version,
-			fileChecksums: newChecksums
-		}
-	});
+	const tracking = loadTrackingFile(projectRoot);
+	const fromVersion = tracking[moduleName]?.version ?? null;
+	const plan = planUpgrade(recipe, projectRoot, { force: options.force, tracking, exclusions });
+	const changes = entriesBetween(RELEASE_NOTES, changelogPackageOf(moduleName), fromVersion, targetVersion);
 
+	if (options.dryRun) {
+		return toResult(moduleName, targetVersion, plan, changes, { dryRun: true, applied: 0, rolledBack: false });
+	}
+
+	const applied = applyPlan(recipe, plan, projectRoot, { dryRun: false });
+	return toResult(moduleName, targetVersion, plan, changes, { ...applied, dryRun: false });
+}
+
+function hasPlaywright(projectRoot: string): boolean {
+	try {
+		const pkg = JSON.parse(readFileSync(join(projectRoot, 'package.json'), 'utf-8'));
+		return Boolean(pkg.devDependencies?.['@playwright/test'] ?? pkg.dependencies?.['@playwright/test']);
+	} catch {
+		return false;
+	}
+}
+
+function toResult(
+	module: string,
+	toVersion: string,
+	plan: UpgradePlan,
+	changes: ChangelogEntry[],
+	applied: Pick<ApplyResult, 'dryRun' | 'applied' | 'rolledBack' | 'error' | 'backupDir'>
+): UpgradeResult {
+	const files: UpgradeFile[] = plan.operations.map((op) => ({
+		path: op.path,
+		status:
+			op.resolution === 'apply' ? 'updated'
+			: op.resolution === 'unchanged' ? 'unchanged'
+			: op.resolution === 'skipped' ? 'skipped'
+			: 'conflict',
+		message: op.reason,
+		...(op.diff ? { diff: op.diff } : {})
+	}));
 	return {
-		module: moduleName,
-		fromVersion,
-		toVersion: recipe.version,
+		module,
+		fromVersion: plan.fromVersion,
+		toVersion,
+		operations: plan.operations,
 		files,
-		updatedCount,
-		skippedCount,
-		changes: entriesBetween(RELEASE_NOTES, 'svforge', fromVersion, targetVersion)
+		updatedCount: files.filter((f) => f.status === 'updated').length,
+		skippedCount: files.filter((f) => f.status === 'skipped' || f.status === 'conflict').length,
+		changes,
+		dryRun: applied.dryRun,
+		applied: applied.applied,
+		rolledBack: applied.rolledBack,
+		...(applied.error ? { error: applied.error } : {}),
+		...(applied.backupDir ? { backupDir: applied.backupDir } : {}),
+		summary: plan.summary
 	};
 }
 
-/** Print an upgrade result to the console. */
+/** Print a plan/result to the console, conflicts with their readable diff. */
 export function printUpgradeResult(result: UpgradeResult): void {
 	console.log(`\n SVForge Upgrade: ${result.module}\n`);
-	console.log(`  Version: ${result.fromVersion ?? 'none'} → ${result.toVersion}\n`);
+	console.log(`  Version: ${result.fromVersion ?? 'none'} → ${result.toVersion}${result.dryRun ? '  (dry run — nothing written)' : ''}\n`);
 
 	if (result.changes.length) {
 		console.log('  Release notes:');
@@ -225,16 +249,23 @@ export function printUpgradeResult(result: UpgradeResult): void {
 		console.log('');
 	}
 
-	for (const file of result.files) {
+	for (const op of result.operations) {
 		const icon =
-			file.status === 'updated' ? '✓' :
-			file.status === 'unchanged' ? '=' :
-			file.status === 'skipped' ? '⚠' :
-			'✗';
-		console.log(`  ${icon} ${file.path} — ${file.message}`);
+			op.resolution === 'apply' ? '✓'
+			: op.resolution === 'unchanged' ? '='
+			: op.resolution === 'skipped' ? '⚠'
+			: '✗';
+		console.log(`  ${icon} [${op.action}] ${op.path} — ${op.reason}`);
+		if (op.resolution === 'conflict' && op.diff) {
+			console.log(op.diff.split('\n').map((line) => `      ${line}`).join('\n'));
+		}
 	}
 
+	const conflicts = result.operations.filter((op) => op.resolution === 'conflict').length;
 	console.log(
-		`\n  ${result.updatedCount} file(s) updated, ${result.skippedCount} skipped.\n`
+		`\n  ${result.applied} operation(s) applied, ${result.operations.filter((op) => op.resolution === 'unchanged').length} unchanged, ${conflicts} conflict(s), ${result.operations.filter((op) => op.resolution === 'skipped').length} skipped.`
 	);
+	if (result.backupDir) console.log(`  Backups: ${result.backupDir}`);
+	if (result.rolledBack) console.log(`  ✗ FAILED, rolled back: ${result.error}`);
+	console.log('');
 }

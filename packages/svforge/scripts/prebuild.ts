@@ -1,8 +1,9 @@
 import { readDirRecursively } from '../../../scripts/prebuild-utils';
 import { AVOID_PATTERNS } from '../src/design-system';
-import { readFileSync, writeFileSync } from 'fs';
+import { readFileSync, writeFileSync, mkdirSync, mkdtempSync, rmSync } from 'fs';
+import { tmpdir } from 'os';
 import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { fileURLToPath, pathToFileURL } from 'url';
 import { parseChangelog, readChangelog } from '../../../scripts/changelog.mjs';
 import { buildAddonComponents, buildSkeletonInventory } from './generate-skeleton-inventory';
 
@@ -91,6 +92,145 @@ writeFileSync(
 	`// AUTO-GENERATED - DO NOT EDIT\n// Exact component paths each SVForge addon delivers under src/lib/components/svforge/,\n// keyed by addon id. An addon's paths are only exemptions while that addon is\n// installed (.svforge.json modules). Run bun run prebuild to regenerate.\n\nexport const ADDON_COMPONENTS: Record<string, string[]> = ${JSON.stringify(addonComponents)};\n`
 );
 
+// ── Module upgrade recipes (#327) ───────────────────────────────────────
+// The 13 standalone modules participate in the SAME upgrade protocol as
+// base/dashboard: their owned files + dependency migrations are extracted
+// here by mock-running each addon's real run() against a capability-complete
+// fixture project, then embedded into src/module-recipes.ts. The extraction
+// is the REAL install path (gates, deps, sv.file writes) — it cannot drift
+// from what `sv add` actually delivers.
+const MODULE_DIRS = [
+	'audit', 'blog', 'chat', 'dnd', 'email', 'graph',
+	'jobs', 'notifications', 'oauth', 'realtime', 'tiptap', 'ui_toast', 'uploads'
+];
+
+function makeExtractionFixture(): string {
+	const fixture = mkdtempSync(join(tmpdir(), 'svforge-recipe-extract-'));
+	// package.json proving every dependency-detected capability (#323 fast path:
+	// SVForge origin + the dependency list IS the structural guarantee).
+	writeFileSync(join(fixture, 'package.json'), JSON.stringify({
+		name: 'recipe-extraction-fixture',
+		private: true,
+		dependencies: {
+			'@skeletonlabs/skeleton': '^5.0.0',
+			'@inlang/paraglide-js': '^2.24.0',
+			'better-auth': '~1.7.3',
+			'drizzle-orm': '^0.45.2',
+			'postgres': '^3.4.5',
+			'@aws-sdk/client-s3': '^3.1111.0'
+		},
+		devDependencies: {}
+	}));
+	// Valid schema-1 manifest listing every capability token — satisfies the
+	// install gates and gives planAddonContext a valid merge base.
+	writeFileSync(join(fixture, '.svforge.json'), JSON.stringify({
+		schema: 1,
+		template: 'dashboard',
+		stack: { framework: 'sveltekit', ui: 'skeleton', i18n: 'paraglide', test: 'vitest', auth: 'better-auth', orm: 'drizzle', database: 'postgresql' },
+		modules: [],
+		capabilities: [
+			'ui.skeleton', 'ui.svforge', 'i18n.messages', 'auth.currentUser', 'auth.admin',
+			'database.drizzle.postgres', 'storage.object', 'runtime.longLivedWorker', 'runtime.websocket'
+		],
+		patterns: {},
+		moduleCapabilities: {},
+		generatedBy: 'svforge'
+	}));
+	mkdirSync(join(fixture, 'messages'), { recursive: true });
+	writeFileSync(join(fixture, 'messages/en.json'), '{}\n');
+	writeFileSync(join(fixture, 'messages/fr.json'), '{}\n');
+	writeFileSync(join(fixture, 'llms.txt'), '');
+	mkdirSync(join(fixture, 'src'), { recursive: true });
+	writeFileSync(join(fixture, 'src/hooks.ts'), 'export const transport = {};\n');
+	writeFileSync(join(fixture, 'src/hooks.server.ts'), 'export const handle = async ({ event, resolve }) => resolve(event);\n');
+	mkdirSync(join(fixture, 'src/lib/components/svforge'), { recursive: true });
+	mkdirSync(join(fixture, 'src/lib/server/db'), { recursive: true });
+	writeFileSync(join(fixture, 'drizzle.config.ts'), '');
+	writeFileSync(join(fixture, 'src/lib/server/admin.ts'), 'export const isAdmin = () => false;\n');
+	return fixture;
+}
+
+interface ExtractedRecipe {
+	id: string;
+	package: string;
+	version: string;
+	dependencies: { name: string; range: string; dev: boolean }[];
+	files: Record<string, string>;
+}
+
+async function extractModuleRecipe(moduleDir: string, fixture: string): Promise<ExtractedRecipe> {
+	const pkg = JSON.parse(readFileSync(join(__dirname, `../../${moduleDir}/package.json`), 'utf-8'));
+	const addon = await import(pathToFileURL(join(__dirname, `../../${moduleDir}/src/index.ts`)).href);
+	const templates = await import(pathToFileURL(join(__dirname, `../../${moduleDir}/src/templates.ts`)).href);
+	const collected = new Map<string, string>();
+	const dependencies: { name: string; range: string; dev: boolean }[] = [];
+	const sv = {
+		dependency: (name: string, range: string) => dependencies.push({ name, range, dev: false }),
+		devDependency: (name: string, range: string) => dependencies.push({ name, range, dev: true }),
+		file: (path: string, init: (content: string) => string) => {
+			collected.set(path, init(''));
+		}
+	};
+	const cancel = (message: string) => {
+		throw new Error(`Recipe extraction for ${moduleDir} hit an install gate — the fixture is stale: ${message}`);
+	};
+	await addon.default.run({ sv, cancel, cwd: fixture, options: {} });
+	// OWNED files = exactly the module's templates (delivered wholesale via
+	// `sv.file('src' + path)`); consumer-file patches (hooks.ts, vite.config…)
+	// are project-owned and NEVER part of an upgrade recipe.
+	const files: Record<string, string> = {};
+	for (const [manifestPath] of Object.entries(templates.files as Record<string, string>)) {
+		const dest = `src${manifestPath}`;
+		const content = collected.get(dest);
+		if (content === undefined) {
+			// Option-gated template files (e.g. uploads `testpack`) are not part
+			// of a DEFAULT install — the recipe mirrors the default delivery.
+			console.warn(`   ⚠ ${moduleDir}: template file ${dest} not delivered by default — excluded from the upgrade recipe.`);
+			continue;
+		}
+		files[manifestPath] = content;
+	}
+	return {
+		id: moduleDir,
+		package: `@svforge/${moduleDir}`,
+		version: pkg.version,
+		dependencies: dependencies.sort((a, b) => a.name.localeCompare(b.name)),
+		files
+	};
+}
+
+const extractionFixture = makeExtractionFixture();
+const moduleRecipes: Record<string, ExtractedRecipe> = {};
+try {
+	for (const moduleDir of MODULE_DIRS) {
+		moduleRecipes[moduleDir] = await extractModuleRecipe(moduleDir, extractionFixture);
+	}
+} finally {
+	rmSync(extractionFixture, { recursive: true, force: true });
+}
+
+writeFileSync(
+	join(__dirname, '../src/module-recipes.ts'),
+	`// AUTO-GENERATED - DO NOT EDIT
+// Extracted from the real @svforge/* addon run() implementations (#327):
+// owned files, dependency migrations and package versions of the 13 standalone
+// modules — the same upgrade protocol as base/dashboard. Run bun run prebuild
+// to regenerate.
+
+export interface ModuleRecipeData {
+	id: string;
+	/** npm package name (changelog package, e.g. "@svforge/blog"). */
+	package: string;
+	version: string;
+	dependencies: { name: string; range: string; dev: boolean }[];
+	/** Manifest path ("/x/y") → delivered content. All module files are src-relative. */
+	files: Record<string, string>;
+}
+
+export const MODULE_RECIPE_DATA: Record<string, ModuleRecipeData> = ${JSON.stringify(moduleRecipes, null, 2)};
+`
+);
+
 const changelogEntries = parseChangelog(readChangelog(join(__dirname, '../../..')));
 writeFileSync(
 	join(__dirname, '../src/changelog.ts'),
@@ -115,10 +255,11 @@ export function entriesBetween(entries: ChangelogEntry[], packageName: string, f
 `
 );
 
-console.log('✅ Generated src/templates.ts + src/recipe-version.ts + src/changelog.ts + src/skeleton-inventory.ts');
+console.log('✅ Generated src/templates.ts + src/recipe-version.ts + src/changelog.ts + src/skeleton-inventory.ts + src/module-recipes.ts');
 console.log(`   approved addon components: ${Object.keys(addonComponents).length} addons`);
 console.log(`   ${Object.keys(baseFiles).length} base files`);
 console.log(`   ${Object.keys(dashboardFiles).length} dashboard files`);
 console.log(`   ${Object.keys(dashboardRootFiles).length} dashboard root files`);
 console.log(`   ${Object.keys(baseRootFiles).length} base root files`);
+console.log(`   module upgrade recipes (#327): ${Object.keys(moduleRecipes).length} modules (${Object.entries(moduleRecipes).map(([id, recipe]) => `${id}:${Object.keys(recipe.files).length}f`).join(', ')})`);
 console.log(`   skeleton inventory: ${skeletonInventory.primitives.length} primitives, ${skeletonInventory.utilities.length} utilities (${skeletonInventory.versions.css})`);

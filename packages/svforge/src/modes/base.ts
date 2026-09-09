@@ -1,10 +1,13 @@
 import type { SvApi } from 'sv';
+import { resolveDestination, initTrackingJson } from '@svforge/addon-kit';
 import { scaffoldedAgents } from '../scaffolded-agents';
 import { buildManifest, renderLlmstxt } from '../ai-context';
+import { BASE_ROOT_PATHS } from '../destinations';
+import { SDFORGE_RECIPE_VERSION } from '../recipe-version';
 
 // Files that must land at the PROJECT ROOT, not under src/ (#235):
-// Vitest discovers its config only at the project root.
-const ROOT_FILES = new Set(['/vitest.config.ts']);
+// resolved through the ONE canonical resolver shared with the upgrade engine
+// (#327) — BASE_ROOT_PATHS in destinations.ts.
 
 const LEFTHOOK_CONFIG = `pre-commit:
   commands:
@@ -105,16 +108,28 @@ export function applyBaseMode(
 		return updated;
 	});
 
-	// Write all base template files
+	// Write all base template files — destinations come from the ONE canonical
+	// resolver shared with the upgrade engine (#327): no install/upgrade drift.
 	for (const [path, content] of Object.entries(files)) {
-		const dest = ROOT_FILES.has(path) ? path.slice(1) : `src${path}`;
-		sv.file(dest, () => content);
+		sv.file(resolveDestination(path, BASE_ROOT_PATHS), () => content);
 	}
 
 	// Write root-level project files (messages/, project.inlang/) at the
 	// project root (#239) — same delivery model as the dashboard root files.
 	for (const [path, content] of Object.entries(rootFiles)) {
 		sv.file(path.slice(1), () => content);
+	}
+
+	// Upgrade baseline (#327): initialize .svforge-versions.json at INSTALL
+	// time — SHA-256 of every recipe-delivered file (src + root) — so the
+	// FIRST upgrade already has a real baseline instead of treating every
+	// divergence as a user modification (#283). Skipped when no recipe files
+	// are delivered (the dashboard flow reuses the base mode with an empty
+	// file set; the dashboard mode initializes its own merged baseline).
+	if (Object.keys(files).length > 0) {
+		sv.file('.svforge-versions.json', () =>
+			initTrackingJson('base', SDFORGE_RECIPE_VERSION, { ...files, ...rootFiles }, BASE_ROOT_PATHS)
+		);
 	}
 
 	// AI-ready: scaffold AGENTS.md at the project root (#203, #347) — the

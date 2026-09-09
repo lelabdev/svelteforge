@@ -43,7 +43,16 @@ L'entry `src/index.ts` : déclare les deps communes (fonts, skeleton, tailwind v
 
 ## doctor / upgrade
 
-`src/doctor.ts` (read-only, #178) et `src/upgrade.ts` (#179) sont exportés du package mais **sans CLI** — connus incomplets, voir #189 avant d'y toucher.
+`src/doctor.ts` (read-only, #178) and `src/upgrade.ts` (#179, complet par
+#327) sont exportés du package et exposés via le CLI (`bin/svforge.mjs`).
+L'upgrade est un moteur diffable : plan → diff → apply (`--dry-run`, `--json`),
+baseline SHA-256 écrite à l'install (`.svforge-versions.json`), sauvegardes
+versionnées `.svforge-backup/<recipe>/<timestamp>-<version>/`, rollback
+atomique. Le moteur vit dans `@svforge/addon-kit` (`src/upgrade.ts`) et est
+partagé par base, dashboard ET les 13 modules (recettes extraites au prebuild →
+`src/module-recipes.ts` — NE PAS éditer à la main). Le resolver de destination
+canonique (src vs racine) vit dans `src/destinations.ts`, utilisé à la fois par
+les modes de scaffold et par l'upgrade.
 
 ## Après modification d'un template
 

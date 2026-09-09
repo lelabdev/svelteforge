@@ -1,0 +1,439 @@
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync, statSync } from 'node:fs';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
+import {
+	applyPlan,
+	computeBaseline,
+	initTrackingJson,
+	isSha256,
+	loadTrackingFile,
+	planUpgrade,
+	resolveDestination,
+	sha256,
+	TRACKING_FILE,
+	defineModuleRecipe
+} from '../packages/addon-kit/src/index';
+import type { UpgradeRecipe } from '../packages/addon-kit/src/index';
+
+/**
+ * Behavioral tests for #327 — the diffable upgrade engine.
+ *
+ * The engine is exercised through SYNTHETIC recipes so every migration kind
+ * (add, modify, delete, move, dependency, script, JSON transformation) is
+ * proven on its own terms, independent of the shipped template data.
+ */
+
+function makeRecipe(partial: Partial<UpgradeRecipe> & { id?: string }): UpgradeRecipe {
+	return {
+		id: partial.id ?? 'test-recipe',
+		version: '2.0.0',
+		files: {},
+		rootPaths: [],
+		...partial
+	};
+}
+
+describe('upgrade engine primitives (#327)', () => {
+	it('sha256 produces 64-char hex digests and differs from the legacy 32-bit hash', () => {
+		const digest = sha256('hello\n');
+		expect(digest).toMatch(/^[0-9a-f]{64}$/);
+		expect(isSha256(digest)).toBe(true);
+		expect(isSha256('1a2b3c')).toBe(false);
+		// Digests are stable and content-sensitive.
+		expect(sha256('hello\n')).toBe(digest);
+		expect(sha256('hello\n ')).not.toBe(digest);
+	});
+
+	it('resolveDestination routes src and root files through ONE rule', () => {
+		expect(resolveDestination('/lib/ui/Button.svelte')).toBe('src/lib/ui/Button.svelte');
+		expect(resolveDestination('/vitest.config.ts', ['/vitest.config.ts'])).toBe('vitest.config.ts');
+		expect(resolveDestination('/e2e/auth.test.ts', ['/e2e/'])).toBe('e2e/auth.test.ts');
+		expect(resolveDestination('/messages/fr.json', ['/vitest.config.ts', '/messages/fr.json'])).toBe('messages/fr.json');
+		// Non-root paths keep the src prefix even when a rootPaths list exists.
+		expect(resolveDestination('/lib/base.ts', ['/vitest.config.ts'])).toBe('src/lib/base.ts');
+		expect(() => resolveDestination('lib/base.ts')).toThrow(/must start with/);
+	});
+});
+
+describe('baseline initialization on fresh install (#327)', () => {
+	let project: string;
+
+	beforeEach(() => {
+		project = mkdtempSync(join(tmpdir(), 'sf-engine-'));
+		writeFileSync(
+			join(project, 'package.json'),
+			JSON.stringify({ name: 'app', dependencies: {}, devDependencies: {}, scripts: {} }, null, 2) + '\n'
+		);
+	});
+
+	afterEach(() => rmSync(project, { recursive: true, force: true }));
+
+	it('initTrackingJson produces the tracking file written at install time with SHA-256 baselines', () => {
+		const files = { '/lib/a.ts': 'export const a = 1;\n', '/vitest.config.ts': 'export default {};\n' };
+		const json = initTrackingJson('base', '1.2.0', files, ['/vitest.config.ts']);
+		const state = JSON.parse(json);
+		expect(state.base.version).toBe('1.2.0');
+		// Root file keyed by its PROJECT path, src file by its src path.
+		expect(state.base.fileChecksums['vitest.config.ts']).toBe(sha256('export default {};\n'));
+		expect(state.base.fileChecksums['src/lib/a.ts']).toBe(sha256('export const a = 1;\n'));
+		expect(Object.values(state.base.fileChecksums).every(isSha256)).toBe(true);
+	});
+
+	it('a file modified AFTER install conflicts; an untouched file upgrades — the first upgrade has a real baseline', async () => {
+		// Simulate an install: write the delivered files + the baseline.
+		const files = { '/lib/a.ts': 'v1\n', '/lib/b.ts': 'v1\n' };
+		mkdirSync(join(project, 'src/lib'), { recursive: true });
+		writeFileSync(join(project, 'src/lib/a.ts'), 'v1\n');
+		writeFileSync(join(project, 'src/lib/b.ts'), 'v1\n');
+		writeFileSync(join(project, TRACKING_FILE), initTrackingJson('demo', '1.0.0', files));
+
+		// The user edits one file after the install.
+		writeFileSync(join(project, 'src/lib/b.ts'), 'v1 + user edit\n');
+
+		// The template moves on.
+		const recipe = makeRecipe({ id: 'demo', files: { '/lib/a.ts': 'v2\n', '/lib/b.ts': 'v2\n' } });
+		const plan = planUpgrade(recipe, project);
+
+		const a = plan.operations.find((op) => op.path === 'src/lib/a.ts');
+		const b = plan.operations.find((op) => op.path === 'src/lib/b.ts');
+		expect(a?.resolution).toBe('apply'); // untouched since install → safe update
+		expect(b?.resolution).toBe('conflict'); // modified after install → preserved
+		expect(b?.reason).toMatch(/user modification/i);
+
+		const result = applyPlan(recipe, plan, project);
+		expect(result.rolledBack).toBe(false);
+		expect(readFileSync(join(project, 'src/lib/a.ts'), 'utf-8')).toBe('v2\n');
+		expect(readFileSync(join(project, 'src/lib/b.ts'), 'utf-8')).toBe('v1 + user edit\n'); // preserved
+	});
+
+	it('a LEGACY 32-bit baseline degrades to "no baseline" — the file is preserved, never silently overwritten', () => {
+		mkdirSync(join(project, 'src/lib'), { recursive: true });
+		writeFileSync(join(project, 'src/lib/a.ts'), 'old installed content\n');
+		// Pre-#327 tracking: 32-bit hash values.
+		writeFileSync(
+			join(project, TRACKING_FILE),
+			JSON.stringify({ demo: { version: '1.0.0', fileChecksums: { 'src/lib/a.ts': '3f2a93bc' } } })
+		);
+		const recipe = makeRecipe({ id: 'demo', files: { '/lib/a.ts': 'new content\n' } });
+		const plan = planUpgrade(recipe, project);
+		expect(plan.operations[0]?.resolution).toBe('conflict');
+		expect(plan.operations[0]?.reason).toMatch(/no install baseline/i);
+	});
+
+	it('computeBaseline keys checksums by destination, not manifest path', () => {
+		const baseline = computeBaseline({ '/lib/a.ts': 'A', '/x.config.ts': 'X' }, ['/x.config.ts']);
+		expect(baseline).toEqual({ 'src/lib/a.ts': sha256('A'), 'x.config.ts': sha256('X') });
+	});
+});
+
+describe('plan + diff BEFORE any write (#327)', () => {
+	let project: string;
+	let snapshot: () => Record<string, string>;
+
+	const snap = (root: string): Record<string, string> => {
+		const out: Record<string, string> = {};
+		const walk = (dir: string) => {
+			for (const entry of readdirSync(dir)) {
+				const full = join(dir, entry);
+				if (statSync(full).isDirectory()) walk(full);
+				else out[full] = readFileSync(full, 'utf-8');
+			}
+		};
+		walk(root);
+		return out;
+	};
+
+	beforeEach(() => {
+		project = mkdtempSync(join(tmpdir(), 'sf-plan-'));
+		writeFileSync(
+			join(project, 'package.json'),
+			JSON.stringify({ name: 'app', dependencies: {}, devDependencies: {}, scripts: {} }, null, 2) + '\n'
+		);
+		snapshot = () => snap(project);
+	});
+
+	afterEach(() => rmSync(project, { recursive: true, force: true }));
+
+	it('planning writes NOTHING and produces the full operation list with readable diffs', () => {
+		mkdirSync(join(project, 'src/lib'), { recursive: true });
+		writeFileSync(join(project, 'src/lib/a.ts'), 'old\ncontent\n');
+		writeFileSync(join(project, TRACKING_FILE), initTrackingJson('demo', '1.0.0', { '/lib/a.ts': 'old\ncontent\n' }));
+
+		const recipe = makeRecipe({
+			id: 'demo',
+			files: { '/lib/new.ts': 'brand new\n', '/lib/a.ts': 'new\ncontent\ntoo\n' },
+			deletions: ['/lib/gone.ts'],
+			dependencies: [{ name: 'mdsvex', range: '^0.12.8' }],
+			scripts: { test: 'vitest run' },
+			jsonTransforms: [{ file: 'package.json', set: { 'stack.demo': 'on' } }]
+		});
+
+		const before = snapshot();
+		const plan = planUpgrade(recipe, project);
+
+		expect(snapshot()).toEqual(before); // planning is read-only
+		expect(plan.fromVersion).toBe('1.0.0');
+		expect(plan.toVersion).toBe('2.0.0');
+
+		const byPath = Object.fromEntries(plan.operations.map((op) => [op.path, op]));
+		expect(byPath['src/lib/new.ts'].action).toBe('add');
+		expect(byPath['src/lib/new.ts'].resolution).toBe('apply');
+		expect(byPath['src/lib/a.ts'].action).toBe('modify');
+		expect(byPath['src/lib/a.ts'].diff).toContain('--- a/src/lib/a.ts');
+		expect(byPath['src/lib/a.ts'].diff).toContain('-old');
+		expect(byPath['src/lib/a.ts'].diff).toContain('+new');
+		expect(byPath['src/lib/gone.ts'].action).toBe('delete');
+		expect(byPath['src/lib/gone.ts'].resolution).toBe('unchanged'); // already absent
+		// Both a dependency and a JSON transformation target package.json —
+		// find by action, the path alone cannot disambiguate.
+		const depOp = plan.operations.find((op) => op.action === 'dependency');
+		expect(depOp?.dependency?.name).toBe('mdsvex');
+		expect(plan.summary.dependency).toBe(1);
+		expect(plan.operations.some((op) => op.action === 'json')).toBe(true);
+		// The whole plan is machine-readable (JSON round-trips).
+		expect(() => JSON.parse(JSON.stringify(plan))).not.toThrow();
+	});
+
+	it('dry run writes nothing at all — not even the tracking file', () => {
+		mkdirSync(join(project, 'src/lib'), { recursive: true });
+		writeFileSync(join(project, 'src/lib/a.ts'), 'v1\n');
+		writeFileSync(join(project, TRACKING_FILE), initTrackingJson('demo', '1.0.0', { '/lib/a.ts': 'v1\n' }));
+
+		const recipe = makeRecipe({ id: 'demo', files: { '/lib/a.ts': 'v2\n' }, dependencies: [{ name: 'x', range: '^1' }] });
+		const plan = planUpgrade(recipe, project);
+		const before = snapshot();
+		const result = applyPlan(recipe, plan, project, { dryRun: true });
+
+		expect(result.dryRun).toBe(true);
+		expect(result.applied).toBe(0);
+		expect(snapshot()).toEqual(before);
+		// And through the same path the CLI uses: upgrade(dryRun) is covered in
+		// upgrade-behavioral.test.ts; here the engine contract is what matters.
+	});
+});
+
+describe('migration model: delete, move, dependency, script, JSON transformation (#327)', () => {
+	let project: string;
+
+	beforeEach(() => {
+		project = mkdtempSync(join(tmpdir(), 'sf-migrate-'));
+		writeFileSync(
+			join(project, 'package.json'),
+			JSON.stringify(
+				{ name: 'app', dependencies: { old: '^1.0.0' }, devDependencies: {}, scripts: { test: 'jest', keep: 'keep' } },
+				null,
+				2
+			) + '\n'
+		);
+		mkdirSync(join(project, 'src/lib'), { recursive: true });
+	});
+
+	afterEach(() => rmSync(project, { recursive: true, force: true }));
+
+	function installBaseline(recipeId: string, files: Record<string, string>, rootPaths: string[] = []) {
+		for (const [manifestPath, content] of Object.entries(files)) {
+			const dest = resolveDestination(manifestPath, rootPaths);
+			mkdirSync(join(project, dest, '..'), { recursive: true });
+			writeFileSync(join(project, dest), content);
+		}
+		writeFileSync(join(project, TRACKING_FILE), initTrackingJson(recipeId, '1.0.0', files, rootPaths));
+	}
+
+	it('deletes an unmodified file and keeps the user-modified one', () => {
+		installBaseline('demo', { '/lib/gone.ts': 'generated\n', '/lib/mine.ts': 'generated\n' });
+		writeFileSync(join(project, 'src/lib/mine.ts'), 'user content\n');
+		const recipe = makeRecipe({ id: 'demo', deletions: ['/lib/gone.ts', '/lib/mine.ts'] });
+		const plan = planUpgrade(recipe, project);
+		const byPath = Object.fromEntries(plan.operations.map((op) => [op.path, op]));
+		expect(byPath['src/lib/gone.ts'].resolution).toBe('apply');
+		expect(byPath['src/lib/mine.ts'].resolution).toBe('conflict');
+
+		applyPlan(recipe, plan, project);
+		expect(existsSync(join(project, 'src/lib/gone.ts'))).toBe(false);
+		expect(readFileSync(join(project, 'src/lib/mine.ts'), 'utf-8')).toBe('user content\n');
+		// The deleted file's baseline entry is gone; the conflicting one stays.
+		const tracking = loadTrackingFile(project);
+		expect(tracking.demo.fileChecksums['src/lib/gone.ts']).toBeUndefined();
+		expect(tracking.demo.fileChecksums['src/lib/mine.ts']).toBeDefined();
+	});
+
+	it('moves (renames) a file preserving content, and rekeys the baseline', () => {
+		installBaseline('demo', { '/lib/old.ts': 'export const x = 1;\n' });
+		// A pure rename: the target is NOT in files — its content comes from
+		// the source file on disk.
+		const recipe = makeRecipe({ id: 'demo', moves: { '/lib/old.ts': '/lib/new.ts' } });
+		const plan = planUpgrade(recipe, project);
+		const move = plan.operations.find((op) => op.action === 'move');
+		expect(move?.resolution).toBe('apply');
+
+		applyPlan(recipe, plan, project);
+		expect(existsSync(join(project, 'src/lib/old.ts'))).toBe(false);
+		expect(readFileSync(join(project, 'src/lib/new.ts'), 'utf-8')).toBe('export const x = 1;\n');
+		const tracking = loadTrackingFile(project);
+		expect(tracking.demo.fileChecksums['src/lib/old.ts']).toBeUndefined();
+		expect(tracking.demo.fileChecksums['src/lib/new.ts']).toBe(sha256('export const x = 1;\n'));
+	});
+
+	it('refuses a rename that would lose user content (conflict), and never overwrites an existing target', () => {
+		installBaseline('demo', { '/lib/old.ts': 'generated\n' });
+		writeFileSync(join(project, 'src/lib/old.ts'), 'user edited\n');
+		writeFileSync(join(project, 'src/lib/occupied.ts'), 'already here\n');
+
+		const recipe = makeRecipe({
+			id: 'demo',
+			moves: { '/lib/old.ts': '/lib/occupied.ts' }
+		});
+		const plan = planUpgrade(recipe, project);
+		const move = plan.operations.find((op) => op.action === 'move');
+		// The source is user-modified → the rename is refused first.
+		expect(move?.resolution).toBe('conflict');
+		expect(move?.reason).toMatch(/user content/i);
+		expect(readFileSync(join(project, 'src/lib/old.ts'), 'utf-8')).toBe('user edited\n');
+	});
+
+	it('migrates dependencies (add + version bump) without touching other package.json keys', () => {
+		const recipe = makeRecipe({
+			id: 'demo',
+			dependencies: [
+				{ name: 'mdsvex', range: '^0.12.8' },
+				{ name: 'ws', range: '^8.21.3', dev: true }
+			]
+		});
+		const plan = planUpgrade(recipe, project);
+		expect(plan.operations.filter((op) => op.action === 'dependency').every((op) => op.resolution === 'apply')).toBe(true);
+
+		applyPlan(recipe, plan, project);
+		const pkg = JSON.parse(readFileSync(join(project, 'package.json'), 'utf-8'));
+		expect(pkg.dependencies.mdsvex).toBe('^0.12.8');
+		expect(pkg.devDependencies.ws).toBe('^8.21.3');
+		expect(pkg.dependencies.old).toBe('^1.0.0'); // user deps preserved
+		expect(pkg.scripts.keep).toBe('keep');
+	});
+
+	it('migrates scripts (set, bump, remove) preserving the rest', () => {
+		const recipe = makeRecipe({
+			id: 'demo',
+			scripts: { test: 'vitest run', lint: 'eslint .', legacy: null }
+		});
+		const plan = planUpgrade(recipe, project);
+		applyPlan(recipe, plan, project);
+		const pkg = JSON.parse(readFileSync(join(project, 'package.json'), 'utf-8'));
+		expect(pkg.scripts.test).toBe('vitest run');
+		expect(pkg.scripts.lint).toBe('eslint .');
+		expect(pkg.scripts.legacy).toBeUndefined();
+		expect(pkg.scripts.keep).toBe('keep');
+	});
+
+	it('applies JSON transformations and refuses invalid JSON', () => {
+		const recipe = makeRecipe({
+			id: 'demo',
+			jsonTransforms: [{ file: 'package.json', set: { 'stack.database': 'postgresql', 'deep.nested.key': true } }]
+		});
+		const plan = planUpgrade(recipe, project);
+		const jsonOp = plan.operations.find((op) => op.action === 'json');
+		expect(jsonOp?.resolution).toBe('apply');
+
+		applyPlan(recipe, plan, project);
+		const pkg = JSON.parse(readFileSync(join(project, 'package.json'), 'utf-8'));
+		expect(pkg.stack.database).toBe('postgresql');
+		expect(pkg.deep.nested.key).toBe(true);
+
+		// Invalid JSON → conflict, never a destructive reset (#324 spirit).
+		writeFileSync(join(project, 'broken.json'), '{ not json');
+		const bad = planUpgrade(makeRecipe({ id: 'demo', jsonTransforms: [{ file: 'broken.json', set: { a: 1 } }] }), project);
+		expect(bad.operations[0]?.resolution).toBe('conflict');
+		expect(bad.operations[0]?.reason).toMatch(/not valid JSON/i);
+	});
+});
+
+describe('versioned backups + atomicity (#327)', () => {
+	let project: string;
+
+	beforeEach(() => {
+		project = mkdtempSync(join(tmpdir(), 'sf-backup-'));
+		writeFileSync(
+			join(project, 'package.json'),
+			JSON.stringify({ name: 'app', dependencies: {}, devDependencies: {}, scripts: {} }, null, 2) + '\n'
+		);
+		mkdirSync(join(project, 'src/lib'), { recursive: true });
+	});
+
+	afterEach(() => rmSync(project, { recursive: true, force: true }));
+
+	it('two successive upgrades retain TWO distinct backups, never overwriting the first', () => {
+		writeFileSync(join(project, 'src/lib/a.ts'), 'v1\n');
+		writeFileSync(join(project, TRACKING_FILE), initTrackingJson('demo', '1.0.0', { '/lib/a.ts': 'v1\n' }));
+
+		const recipeV2 = makeRecipe({ id: 'demo', version: '2.0.0', files: { '/lib/a.ts': 'v2\n' } });
+		applyPlan(recipeV2, planUpgrade(recipeV2, project), project, { now: new Date('2026-01-01T10:00:00Z') });
+
+		const recipeV3 = makeRecipe({ id: 'demo', version: '3.0.0', files: { '/lib/a.ts': 'v3\n' } });
+		applyPlan(recipeV3, planUpgrade(recipeV3, project), project, { now: new Date('2026-02-02T10:00:00Z') });
+
+		const backupRoot = join(project, '.svforge-backup', 'demo');
+		const runs = readdirSync(backupRoot).sort();
+		expect(runs).toHaveLength(2);
+		expect(runs[0]).toContain('-2.0.0');
+		expect(runs[1]).toContain('-3.0.0');
+		// The FIRST backup still holds the ORIGINAL user-era content.
+		expect(readFileSync(join(backupRoot, runs[0], 'src/lib/a.ts'), 'utf-8')).toBe('v1\n');
+		expect(readFileSync(join(backupRoot, runs[1], 'src/lib/a.ts'), 'utf-8')).toBe('v2\n');
+	});
+
+	it('same-second upgrades get distinct backup directories (collision-safe)', () => {
+		writeFileSync(join(project, 'src/lib/a.ts'), 'v1\n');
+		writeFileSync(join(project, TRACKING_FILE), initTrackingJson('demo', '1.0.0', { '/lib/a.ts': 'v1\n' }));
+		const sameNow = new Date('2026-01-01T10:00:00Z');
+		const recipeV2 = makeRecipe({ id: 'demo', version: '2.0.0', files: { '/lib/a.ts': 'v2\n' } });
+		applyPlan(recipeV2, planUpgrade(recipeV2, project), project, { now: sameNow });
+		const recipeV3 = makeRecipe({ id: 'demo', version: '3.0.0', files: { '/lib/a.ts': 'v3\n' } });
+		applyPlan(recipeV3, planUpgrade(recipeV3, project), project, { now: sameNow });
+		const runs = readdirSync(join(project, '.svforge-backup', 'demo'));
+		expect(runs).toHaveLength(2);
+	});
+
+	it('a mid-apply failure rolls EVERYTHING back — the project is left unchanged', () => {
+		writeFileSync(join(project, 'src/lib/a.ts'), 'v1\n');
+		writeFileSync(join(project, TRACKING_FILE), initTrackingJson('demo', '1.0.0', { '/lib/a.ts': 'v1\n' }));
+		const recipe = makeRecipe({
+			id: 'demo',
+			files: { '/lib/a.ts': 'v2\n', '/lib/z.ts': 'boom\n' }
+		});
+		const plan = planUpgrade(recipe, project);
+		// Sabotage AFTER planning (a directory where the second write must go
+		// → EISDIR mid-apply).
+		mkdirSync(join(project, 'src/lib/z.ts'));
+		const result = applyPlan(recipe, plan, project);
+
+		expect(result.rolledBack).toBe(true);
+		expect(result.error).toBeTruthy();
+		// a.ts was written BEFORE the failure — it must be back to v1.
+		expect(readFileSync(join(project, 'src/lib/a.ts'), 'utf-8')).toBe('v1\n');
+		// The tracking file was never advanced by a failed apply.
+		expect(loadTrackingFile(project).demo.version).toBe('1.0.0');
+	});
+
+	it('skips nothing silently: skipped operations (profile gating) are never applied', () => {
+		writeFileSync(join(project, 'src/lib/a.ts'), 'v1\n');
+		writeFileSync(join(project, TRACKING_FILE), initTrackingJson('demo', '1.0.0', { '/lib/a.ts': 'v1\n' }));
+		const recipe = makeRecipe({ id: 'demo', files: { '/lib/a.ts': 'v2\n', '/lib/extra.ts': 'extra\n' } });
+		const plan = planUpgrade(recipe, project, {
+			exclusions: [{ manifestPath: '/lib/extra.ts', reason: 'profile not installed' }]
+		});
+		const skipped = plan.operations.find((op) => op.path === 'src/lib/extra.ts');
+		expect(skipped?.resolution).toBe('skipped');
+
+		applyPlan(recipe, plan, project);
+		expect(readFileSync(join(project, 'src/lib/a.ts'), 'utf-8')).toBe('v2\n');
+		expect(existsSync(join(project, 'src/lib/extra.ts'))).toBe(false);
+	});
+});
+
+describe('module recipe factory (#327)', () => {
+	it('defineModuleRecipe defaults to src-only delivery', () => {
+		const recipe = defineModuleRecipe({ id: 'blog', version: '0.0.2', files: { '/lib/utils/posts.ts': 'x' } });
+		expect(recipe.rootPaths).toEqual([]);
+		expect(resolveDestination('/lib/utils/posts.ts', recipe.rootPaths)).toBe('src/lib/utils/posts.ts');
+	});
+});

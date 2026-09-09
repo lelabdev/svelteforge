@@ -1,16 +1,15 @@
 import type { SvApi } from 'sv';
+import { resolveDestination, initTrackingJson } from '@svforge/addon-kit';
 import { scaffoldedAgents } from '../scaffolded-agents';
 import { buildManifest, renderLlmstxt } from '../ai-context';
+import { DASHBOARD_ROOT_PATHS } from '../destinations';
+import { SDFORGE_RECIPE_VERSION } from '../recipe-version';
+import { baseRootFiles } from '../templates';
 
 /**
  * Apply Dashboard mode files via sv.file()
  * Dashboard = base + admin dashboard + auth + DB
  */
-
-// Files that must land at the PROJECT ROOT, not under src/ (#186):
-// Playwright and Vitest discover their config only at the root, and e2e/
-// is the default testDir referenced by playwright.config.ts.
-const ROOT_FILES = new Set(['/playwright.config.ts', '/vitest.config.ts']);
 
 export function applyDashboardMode(
 	sv: SvApi,
@@ -56,20 +55,23 @@ export function applyDashboardMode(
 		return `${JSON.stringify(pkg, null, 2)}\n`;
 	});
 
-	// Write all base files first
+	// Write all base files first — same canonical resolver as the overlay
+	// (#327): base '/vitest.config.ts' lands at the root where the dashboard
+	// overlay then overwrites it with the dashboard version (no stray copy).
 	for (const [path, content] of Object.entries(baseFiles)) {
-		sv.file(`src${path}`, () => content);
+		sv.file(resolveDestination(path, DASHBOARD_ROOT_PATHS), () => content);
 	}
 
-	// Then overlay dashboard-specific files (routes, admin components)
+	// Then overlay dashboard-specific files (routes, admin components).
+	// Destinations come from the ONE canonical resolver shared with the
+	// upgrade engine (#327): test configs + e2e/ at the root (#186), the rest
+	// src-relative.
+	const deliveredFiles: Record<string, string> = {};
 	for (const [path, content] of Object.entries(dashboardFiles)) {
 		const isPlaywrightFile = path === '/playwright.config.ts' || path.startsWith('/e2e/');
 		if (isPlaywrightFile && testing !== 'playwright') continue;
-		// Root-level files (test configs) go to the project root; everything
-		// else is src-relative (#186).
-		const isRoot = ROOT_FILES.has(path) || path.startsWith('/e2e/');
-		const dest = isRoot ? path.slice(1) : `src${path}`;
-		sv.file(dest, () => content);
+		sv.file(resolveDestination(path, DASHBOARD_ROOT_PATHS), () => content);
+		deliveredFiles[path] = content;
 	}
 
 	// Finally, write root-level project files (drizzle.config.ts, .env.example,
@@ -77,6 +79,19 @@ export function applyDashboardMode(
 	for (const [path, content] of Object.entries(rootFiles)) {
 		sv.file(path.slice(1), () => content);
 	}
+
+	// Upgrade baseline (#327): initialize .svforge-versions.json for the
+	// dashboard recipe — the FULL merged delivery (base src + overlay + base
+	// root files + dashboard root files) — so the first upgrade already has a
+	// real SHA-256 baseline (#283 preserved).
+	sv.file('.svforge-versions.json', () =>
+		initTrackingJson(
+			'dashboard',
+			SDFORGE_RECIPE_VERSION,
+			{ ...baseFiles, ...baseRootFiles, ...deliveredFiles, ...rootFiles },
+			DASHBOARD_ROOT_PATHS
+		)
+	);
 
 	// AI-ready: scaffold AGENTS.md at the project root (#203, #347) — the
 	// sole agent convention of a SvelteForge project.

@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { ROOT, baseTemplateFile } from './helpers';
+import { diskSv } from './helpers/fixtures';
 
 const baseRoot = join(ROOT, 'packages/svforge/templates/base');
 
@@ -27,10 +28,26 @@ describe('base Vitest baseline (#235)', () => {
 			expect(Object.keys(baseFiles)).toContain('/vitest.config.ts');
 		});
 
-		it('base mode redirects vitest.config.ts to the project root', () => {
-			const mode = readFileSync(join(ROOT, 'packages/svforge/src/modes/base.ts'), 'utf-8');
-			expect(mode).toMatch(/ROOT_FILES\s*=\s*new Set\(\[['"]\/vitest\.config\.ts['"]\]\)/);
-			expect(mode).toMatch(/path\.slice\(1\)/);
+		it('base mode delivers vitest.config.ts at the project root (canonical resolver, #327)', async () => {
+			// Behavioral: the mode writes '/vitest.config.ts' at the ROOT through
+			// the shared destination resolver — and the upgrade recipe resolves
+			// it to the same place (no install/upgrade drift).
+			const { applyBaseMode } = await import('../packages/svforge/src/modes/base');
+			const { BASE_ROOT_PATHS } = await import('../packages/svforge/src/destinations');
+			const { resolveDestination } = await import('../packages/addon-kit/src/index');
+			const { mkdtempSync, writeFileSync, rmSync } = await import('node:fs');
+			const { tmpdir } = await import('node:os');
+			const dir = mkdtempSync(join(tmpdir(), 'sf-vitest-root-'));
+			try {
+				writeFileSync(join(dir, 'package.json'), JSON.stringify({ name: 'fixture', scripts: {} }));
+				const sv = diskSv(dir);
+				applyBaseMode(sv as never, { '/vitest.config.ts': 'export default {};' }, {});
+				expect(existsSync(join(dir, 'vitest.config.ts'))).toBe(true);
+				expect(existsSync(join(dir, 'src/vitest.config.ts'))).toBe(false);
+				expect(resolveDestination('/vitest.config.ts', BASE_ROOT_PATHS)).toBe('vitest.config.ts');
+			} finally {
+				rmSync(dir, { recursive: true, force: true });
+			}
 		});
 
 		it('defines a runnable test script in the base package template', () => {
