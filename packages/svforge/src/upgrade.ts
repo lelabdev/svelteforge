@@ -204,7 +204,9 @@ export function hasPlaywright(projectRoot: string): boolean {
 		// a symlink planted at `<root>/package.json` must not redirect this
 		// read outside the root during profile detection.
 		const { json: pkg } = readPackageJson(projectRoot);
-		return Boolean(pkg.devDependencies?.['@playwright/test'] ?? pkg.dependencies?.['@playwright/test']);
+		const dev = pkg.devDependencies as Record<string, string> | undefined;
+		const prod = pkg.dependencies as Record<string, string> | undefined;
+		return Boolean(dev?.['@playwright/test'] ?? prod?.['@playwright/test']);
 	} catch {
 		return false;
 	}
