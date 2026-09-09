@@ -13,18 +13,31 @@ import { hashPassword } from 'better-auth/crypto';
  * silently replace the current admin's session. Admin-created users must not
  * hijack the admin's browser session.
  *
- * Instead we reproduce the exact credential contract of Better Auth 1.4.x,
- * verified against the package sources (`api/routes/sign-up.mjs`,
- * `db/internal-adapter.mjs`):
+ * WHY NOT the official admin plugin (`auth.api.createUser`, #319 audit)?
+ * ---------------------------------------------------------------------
+ * Verified against better-auth 1.7.3 sources: the admin plugin's
+ * `/admin/create-user` is session-safe (it creates NO session for the new
+ * user) and reproduces the same credential contract (`linkAccount` with
+ * `providerId: 'credential'`, `accountId: user.id`). BUT adopting it pulls
+ * the whole admin permission model into the scaffold: the plugin schema adds
+ * `role`/`banned`/`banReason`/`banExpires` columns to `user`, permission
+ * checks assume a role system, and the template's admin model is deliberately
+ * "first user = admin" + a `disabled` deactivation flag. Migrating is a
+ * product decision (see docs/better-auth-upgrades.md), not a dependency
+ * upgrade — so the isolated adapter below stays.
+ *
+ * Instead we reproduce the exact credential contract of Better Auth,
+ * RE-VERIFIED against the 1.7.x package sources (`api/routes/sign-up.mjs`):
  *
  *   - `email` is stored LOWERCASED — `findUserByEmail` (used by sign-in)
  *     always looks up `email.toLowerCase()`, so a mixed-case stored email can
  *     never be logged into.
  *   - `providerId` is `'credential'` and `accountId` is the USER id (NOT the
- *     email) — that is what `linkAccount` does in the real sign-up flow.
+ *     email) — that is what `linkAccount` does in the real sign-up flow
+ *     (unchanged between 1.4.21 and 1.7.3).
  *   - the password is hashed with the same scrypt `hashPassword` that
- *     Better Auth's default `password.hash` uses (`better-auth/crypto`),
- *     so `signInEmail` can verify it.
+ *     Better Auth's default `password.hash` uses (`better-auth/crypto`,
+ *     exports unchanged in 1.7.x), so `signInEmail` can verify it.
  *   - `emailVerified` defaults to `false`, exactly like sign-up.
  *
  * The user row and the credential account row are created in ONE transaction:
@@ -32,6 +45,9 @@ import { hashPassword } from 'better-auth/crypto';
  * the two inserts must be atomic.
  *
  * This helper NEVER creates a session — the admin's own session is untouched.
+ * The behavioral contract (created user CAN sign in via the real Better Auth
+ * sign-in endpoint) is proven by admin-users.test.ts, which runs against the
+ * real installed better-auth version in the scaffold gate.
  */
 
 export class DuplicateEmailError extends Error {

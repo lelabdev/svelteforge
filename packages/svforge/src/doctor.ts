@@ -76,8 +76,12 @@ const MODULE_CAPABILITIES: Record<string, Capability> = {
 /**
  * Dependencies that imply the dashboard capability when no manifest exists
  * (matches what the dashboard mode scaffolds: Better Auth + Drizzle).
+ *
+ * `@better-auth/cli` is deliberately NOT in this list — since #319 the
+ * scaffold no longer installs it (its nested @better-auth/core hoists over
+ * the runtime's copy and breaks the SSR build); the generator runs via bunx.
  */
-const DASHBOARD_DEPENDENCIES = ['better-auth', 'drizzle-orm', 'drizzle-kit', '@better-auth/cli'];
+const DASHBOARD_DEPENDENCIES = ['better-auth', 'drizzle-orm', 'drizzle-kit'];
 
 /**
  * S3-specific dependencies that imply the uploads capability when no manifest

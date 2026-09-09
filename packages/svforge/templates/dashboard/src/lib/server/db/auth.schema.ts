@@ -28,7 +28,6 @@ export const session = pgTable(
 			.default(sql`now()`)
 			.notNull(),
 		updatedAt: timestamp('updated_at', { withTimezone: true })
-			.default(sql`now()`)
 			.$onUpdate(() => new Date())
 			.notNull(),
 		ipAddress: text('ip_address'),
@@ -60,7 +59,6 @@ export const account = pgTable(
 			.default(sql`now()`)
 			.notNull(),
 		updatedAt: timestamp('updated_at', { withTimezone: true })
-			.default(sql`now()`)
 			.$onUpdate(() => new Date())
 			.notNull()
 	},

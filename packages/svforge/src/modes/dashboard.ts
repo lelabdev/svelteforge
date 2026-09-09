@@ -23,11 +23,15 @@ export function applyDashboardMode(
 	sv.dependency('drizzle-orm', '^0.45.2');
 	sv.dependency('zod', '^4.3.5'); // schemas.ts — explicit, not transitive via better-auth (#192)
 	sv.dependency('postgres', '^3.4.5'); // PostgreSQL driver (drizzle-orm/postgres-js) (#255)
-	sv.dependency('better-auth', '~1.4.21');
+	// Pinned, never floating (#197). The stack carries security fixes only up
+	// to the pinned minor — #319 migrated 1.4.21 → 1.7.3 to cover
+	// GHSA-g38m-r43w-p2q7 (OAuth auto-link account takeover, fixed 1.6.11).
+	// Upgrades are automated by .github/workflows/better-auth-upgrade.yml
+	// (policy + gate: docs/better-auth-upgrades.md).
+	sv.dependency('better-auth', '~1.7.3');
 
 	// Dashboard-specific dev dependencies
 	sv.devDependency('drizzle-kit', '^0.31.10');
-	sv.devDependency('@better-auth/cli', '~1.4.21');
 	sv.devDependency('@types/node', '^22');
 
 	// Dashboard-specific Vitest baseline (#180)

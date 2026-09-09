@@ -16,10 +16,9 @@
 		"db:generate": "drizzle-kit generate",
 		"db:migrate": "drizzle-kit migrate",
 		"db:studio": "drizzle-kit studio",
-		"auth:schema": "better-auth generate --config src/lib/server/auth.ts --output src/lib/server/db/auth.schema.ts --yes"
+		"auth:schema": "bunx @better-auth/cli@1.4.21 generate --config src/lib/server/auth.ts --output src/lib/server/db/auth.schema.ts --yes"
 	},
 	"devDependencies": {
-		"@better-auth/cli": "~1.4.21",
 		"@eslint/compat": "^2.0.4",
 		"@eslint/js": "^10.0.1",
 		"@fontsource-variable/fira-code": "^5.2.7",
@@ -37,7 +36,7 @@
 		"@tailwindcss/typography": "^0.5.19",
 		"@tailwindcss/vite": "^4.2.2",
 		"@types/node": "^22",
-		"better-auth": "~1.4.21",
+		"better-auth": "~1.7.3",
 		"clsx": "^2.1.1",
 		"drizzle-kit": "^0.31.10",
 		"drizzle-orm": "^0.45.2",

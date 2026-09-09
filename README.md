@@ -250,6 +250,8 @@ Permanent scaffold profiles cover the base/dashboard templates, Playwright, Blog
 
 The publish workflow uses the same scaffold gates before package publication.
 
+The Better Auth stack is pinned (never `latest`) and upgraded automatically — blocking security patches immediately, gate-tested minors/patches weekly, majors via a migration issue. See [docs/better-auth-upgrades.md](docs/better-auth-upgrades.md) (#319).
+
 ## Repository
 
 ```text

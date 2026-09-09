@@ -1,0 +1,363 @@
+import { describe, expect, it } from 'vitest';
+import { execFileSync } from 'node:child_process';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
+const ROOT = join(import.meta.dirname, '..');
+const COMMITTED_PATH = join(ROOT, 'packages/svforge/templates/dashboard/src/lib/server/db/auth.schema.ts');
+
+const { compareSchemas, normalizeRuntimeSchema, parseDrizzleTables }
+	= await import('../scripts/check-auth-schema.mjs');
+
+const committedSource = () => readFileSync(COMMITTED_PATH, 'utf8');
+
+/**
+ * Exact shape of `getSchema({})` on the installed better-auth 1.7 runtime
+ * (probed against better-auth@1.7.3). This is the REFERENCE the gate must
+ * derive from the runtime — not from the lagging @better-auth/cli (#319
+ * review). Note there is no `id` field: the primary key is implicit.
+ */
+function runtimeSchemaFixture() {
+	const fn = () => new Date();
+	return {
+		user: {
+			fields: {
+				name: { type: 'string', required: true, fieldName: 'name', sortable: true },
+				email: { type: 'string', unique: true, required: true, fieldName: 'email', sortable: true },
+				emailVerified: { type: 'boolean', defaultValue: false, required: true, input: false, fieldName: 'emailVerified' },
+				image: { type: 'string', required: false, fieldName: 'image' },
+				createdAt: { type: 'date', defaultValue: fn, required: true, fieldName: 'createdAt' },
+				updatedAt: { type: 'date', defaultValue: fn, onUpdate: fn, required: true, fieldName: 'updatedAt' }
+			},
+			order: 1,
+			indexes: []
+		},
+		session: {
+			fields: {
+				expiresAt: { type: 'date', required: true, fieldName: 'expiresAt' },
+				token: { type: 'string', required: true, fieldName: 'token', unique: true },
+				createdAt: { type: 'date', defaultValue: fn, required: true, fieldName: 'createdAt' },
+				// Real 1.7 runtime: session.updatedAt has onUpdate only — NO
+				// creation default (verified against better-auth@1.7.3 getSchema).
+				updatedAt: { type: 'date', onUpdate: fn, required: true, fieldName: 'updatedAt' },
+				ipAddress: { type: 'string', required: false, fieldName: 'ipAddress' },
+				userAgent: { type: 'string', required: false, fieldName: 'userAgent' },
+				userId: {
+					type: 'string',
+					fieldName: 'userId',
+					references: { model: 'user', field: 'id', onDelete: 'cascade' },
+					required: true,
+					index: true
+				}
+			},
+			order: 2,
+			indexes: []
+		},
+		account: {
+			fields: {
+				accountId: { type: 'string', required: true, fieldName: 'accountId' },
+				providerId: { type: 'string', required: true, fieldName: 'providerId' },
+				userId: {
+					type: 'string',
+					fieldName: 'userId',
+					references: { model: 'user', field: 'id', onDelete: 'cascade' },
+					required: true,
+					index: true
+				},
+				accessToken: { type: 'string', required: false, fieldName: 'accessToken' },
+				refreshToken: { type: 'string', required: false, fieldName: 'refreshToken' },
+				idToken: { type: 'string', required: false, fieldName: 'idToken' },
+				accessTokenExpiresAt: { type: 'date', required: false, fieldName: 'accessTokenExpiresAt' },
+				refreshTokenExpiresAt: { type: 'date', required: false, fieldName: 'refreshTokenExpiresAt' },
+				scope: { type: 'string', required: false, fieldName: 'scope' },
+				password: { type: 'string', required: false, fieldName: 'password' },
+				createdAt: { type: 'date', defaultValue: fn, required: true, fieldName: 'createdAt' },
+				// Real 1.7 runtime: account.updatedAt has onUpdate only — NO
+				// creation default (verified against better-auth@1.7.3 getSchema).
+				updatedAt: { type: 'date', onUpdate: fn, required: true, fieldName: 'updatedAt' }
+			},
+			order: 3,
+			indexes: []
+		},
+		verification: {
+			fields: {
+				identifier: { type: 'string', required: true, fieldName: 'identifier', index: true },
+				value: { type: 'string', required: true, fieldName: 'value' },
+				expiresAt: { type: 'date', required: true, fieldName: 'expiresAt' },
+				createdAt: { type: 'date', defaultValue: fn, required: true, fieldName: 'createdAt' },
+				updatedAt: { type: 'date', defaultValue: fn, onUpdate: fn, required: true, fieldName: 'updatedAt' }
+			},
+			order: 4,
+			indexes: []
+		}
+	};
+}
+
+const ALLOW = { user: ['disabled'] };
+
+describe('better-auth runtime schema ↔ committed schema gate (#319, #319 review)', () => {
+	describe('parseDrizzleTables', () => {
+		it('extracts names, types, nullability, defaults, uniques, PKs and FKs from the committed schema', () => {
+			const tables = parseDrizzleTables(committedSource());
+			expect(Object.keys(tables).sort()).toEqual(['account', 'session', 'user', 'verification']);
+
+			const emailVerified = tables.user.columns.emailVerified;
+			expect(emailVerified).toMatchObject({ column: 'email_verified', drizzleType: 'boolean', notNull: true, hasDefault: true });
+			expect(JSON.parse(emailVerified.defaultLiteral!)).toBe(false);
+
+			expect(tables.user.columns.id).toMatchObject({ column: 'id', drizzleType: 'text', primaryKey: true, notNull: false });
+			expect(tables.user.columns.image).toMatchObject({ column: 'image', notNull: false, hasDefault: false });
+
+			expect(tables.session.columns.token).toMatchObject({ unique: true });
+			expect(tables.session.columns.userId).toMatchObject({
+				references: { table: 'user', property: 'id', onDelete: 'cascade' }
+			});
+			expect(tables.session.indexes).toEqual([['userId']]);
+			expect(tables.account.indexes).toEqual([['userId']]);
+			expect(tables.verification.indexes).toEqual([['identifier']]);
+			expect(tables.user.indexes).toEqual([]);
+		});
+
+		it('accepts the double-quoted style the better-auth CLI emits', () => {
+			const doubleQuoted = committedSource().replaceAll("'", '"');
+			const tables = parseDrizzleTables(doubleQuoted);
+			expect(tables.user.columns.emailVerified.column).toBe('email_verified');
+		});
+	});
+
+	describe('normalizeRuntimeSchema', () => {
+		it('maps getSchema output to comparable column models and injects the implicit primary key', () => {
+			const model = normalizeRuntimeSchema(runtimeSchemaFixture());
+			expect(Object.keys(model).sort()).toEqual(['account', 'session', 'user', 'verification']);
+
+			// Implicit `id` primary key — better-auth never declares it as a field.
+			expect(model.user.fields.id).toMatchObject({ type: 'string', required: true, implicitPrimaryKey: true });
+
+			const emailVerified = model.user.fields.emailVerified;
+			expect(emailVerified).toMatchObject({ type: 'boolean', required: true, hasDefault: true, defaultValue: false });
+			expect(model.user.fields.image).toMatchObject({ required: false, hasDefault: false });
+
+			// Computed (function/date) defaults carry no comparable literal.
+			expect(model.user.fields.createdAt).toMatchObject({ hasDefault: true, defaultIsComputed: true, defaultValue: undefined });
+
+			expect(model.session.fields.userId).toMatchObject({
+				unique: false,
+				indexed: true,
+				references: { model: 'user', field: 'id', onDelete: 'cascade' }
+			});
+		});
+	});
+
+	describe('compareSchemas', () => {
+		it('passes when the committed schema matches the runtime-derived model', () => {
+			const result = compareSchemas(normalizeRuntimeSchema(runtimeSchemaFixture()), committedSource(), ALLOW);
+			expect(result.drift).toEqual([]);
+		});
+
+		it('passes on the real committed template file', () => {
+			// Same assertion, explicit: the template file IS the fixture target.
+			const result = compareSchemas(normalizeRuntimeSchema(runtimeSchemaFixture()), committedSource(), ALLOW);
+			expect(result.drift).toEqual([]);
+		});
+
+		it('reports a column the runtime added as missing from the committed schema', () => {
+			const newer = runtimeSchemaFixture();
+			newer.user.fields.phoneNumber = { type: 'string', required: false, fieldName: 'phoneNumber' };
+			const result = compareSchemas(normalizeRuntimeSchema(newer), committedSource(), ALLOW);
+			expect(result.drift).toEqual([
+				expect.objectContaining({ kind: 'column', table: 'user', column: 'phoneNumber' })
+			]);
+		});
+
+		it('reports a committed column the runtime does not know (allowlist respected)', () => {
+			const model = normalizeRuntimeSchema(runtimeSchemaFixture());
+			const withoutAllow = compareSchemas(model, committedSource(), {});
+			expect(withoutAllow.drift).toEqual([
+				expect.objectContaining({ kind: 'column', table: 'user', column: 'disabled' })
+			]);
+			const withAllow = compareSchemas(model, committedSource(), ALLOW);
+			expect(withAllow.drift).toEqual([]);
+		});
+
+		it('parses app-level columns declared after comment lines', () => {
+			// The template documents `disabled` with an inline comment — the
+			// parser must not lose the column to it.
+			const tables = parseDrizzleTables(committedSource());
+			expect(tables.user.columns.disabled).toBeDefined();
+		});
+
+		it('reports type drift', () => {
+			const drifted = runtimeSchemaFixture();
+			drifted.user.fields.emailVerified.type = 'number';
+			const result = compareSchemas(normalizeRuntimeSchema(drifted), committedSource(), ALLOW);
+			expect(result.drift).toEqual([
+				expect.objectContaining({ kind: 'type', table: 'user', column: 'emailVerified' })
+			]);
+		});
+
+		it('reports nullability drift in both directions', () => {
+			const required = runtimeSchemaFixture();
+			required.user.fields.image.required = true;
+			const optional = runtimeSchemaFixture();
+			optional.user.fields.name.required = false;
+
+			expect(compareSchemas(normalizeRuntimeSchema(required), committedSource(), ALLOW).drift).toEqual([
+				expect.objectContaining({ kind: 'nullability', table: 'user', column: 'image' })
+			]);
+			expect(compareSchemas(normalizeRuntimeSchema(optional), committedSource(), ALLOW).drift).toEqual([
+				expect.objectContaining({ kind: 'nullability', table: 'user', column: 'name' })
+			]);
+		});
+
+		it('reports default drift (missing, unexpected, and value mismatch)', () => {
+			const added = runtimeSchemaFixture();
+			added.user.fields.name.defaultValue = 'anonymous';
+			const removed = runtimeSchemaFixture();
+			delete removed.user.fields.emailVerified.defaultValue;
+			const changed = runtimeSchemaFixture();
+			changed.user.fields.emailVerified.defaultValue = true;
+
+			expect(compareSchemas(normalizeRuntimeSchema(added), committedSource(), ALLOW).drift).toEqual([
+				expect.objectContaining({ kind: 'default', table: 'user', column: 'name' })
+			]);
+			expect(compareSchemas(normalizeRuntimeSchema(removed), committedSource(), ALLOW).drift).toEqual([
+				expect.objectContaining({ kind: 'default', table: 'user', column: 'emailVerified' })
+			]);
+			expect(compareSchemas(normalizeRuntimeSchema(changed), committedSource(), ALLOW).drift).toEqual([
+				expect.objectContaining({ kind: 'default', table: 'user', column: 'emailVerified' })
+			]);
+		});
+
+		it('reports unique drift in both directions', () => {
+			const added = runtimeSchemaFixture();
+			added.user.fields.name.unique = true;
+			const removed = runtimeSchemaFixture();
+			removed.session.fields.token.unique = false;
+
+			expect(compareSchemas(normalizeRuntimeSchema(added), committedSource(), ALLOW).drift).toEqual([
+				expect.objectContaining({ kind: 'unique', table: 'user', column: 'name' })
+			]);
+			expect(compareSchemas(normalizeRuntimeSchema(removed), committedSource(), ALLOW).drift).toEqual([
+				expect.objectContaining({ kind: 'unique', table: 'session', column: 'token' })
+			]);
+		});
+
+		it('reports index drift (runtime index missing from committed, and vice versa)', () => {
+			const added = runtimeSchemaFixture();
+			// `name` has no index evidence in the committed schema (no unique, no
+			// table-level index) — unlike `email`, whose UNIQUE already counts.
+			added.user.fields.name.index = true;
+			const removed = runtimeSchemaFixture();
+			removed.verification.fields.identifier.index = false;
+
+			expect(compareSchemas(normalizeRuntimeSchema(added), committedSource(), ALLOW).drift).toEqual([
+				expect.objectContaining({ kind: 'index', table: 'user', column: 'name' })
+			]);
+			expect(compareSchemas(normalizeRuntimeSchema(removed), committedSource(), ALLOW).drift).toEqual([
+				expect.objectContaining({ kind: 'index', table: 'verification', column: 'identifier' })
+			]);
+		});
+
+		it('reports FK drift: missing reference, wrong target and onDelete drift', () => {
+			const removed = runtimeSchemaFixture();
+			delete removed.session.fields.userId.references;
+			const retargeted = runtimeSchemaFixture();
+			retargeted.account.fields.userId.references = { model: 'user', field: 'email', onDelete: 'cascade' };
+			// The committed file may CHOOSE an onDelete when the runtime leaves it
+			// open — but a declared runtime behavior must match exactly.
+			const changedBehavior = runtimeSchemaFixture();
+			changedBehavior.session.fields.userId.references = { model: 'user', field: 'id', onDelete: 'set-null' };
+
+			expect(compareSchemas(normalizeRuntimeSchema(removed), committedSource(), ALLOW).drift).toEqual([
+				expect.objectContaining({ kind: 'references', table: 'session', column: 'userId' })
+			]);
+			expect(compareSchemas(normalizeRuntimeSchema(retargeted), committedSource(), ALLOW).drift).toEqual([
+				expect.objectContaining({ kind: 'references', table: 'account', column: 'userId' })
+			]);
+			expect(compareSchemas(normalizeRuntimeSchema(changedBehavior), committedSource(), ALLOW).drift).toEqual([
+				expect.objectContaining({ kind: 'references', table: 'session', column: 'userId' })
+			]);
+		});
+
+		it('reports a committed table the runtime does not manage', () => {
+			const extraTable = `${committedSource()}\nexport const widget = pgTable('widget', {\n\tid: text('id').primaryKey()\n});\n`;
+			const result = compareSchemas(normalizeRuntimeSchema(runtimeSchemaFixture()), extraTable, ALLOW);
+			expect(result.drift).toContainEqual(expect.objectContaining({ kind: 'table', table: 'widget' }));
+		});
+	});
+
+	describe('CLI mode (derives the reference from the installed better-auth runtime)', () => {
+		/** A stub better-auth/db whose getSchema returns the given fixture. */
+		function stubProject(schemaJson: string) {
+			const dir = mkdtempSync(join(tmpdir(), 'sf-schema-runtime-'));
+			mkdirSync(join(dir, 'node_modules/better-auth'), { recursive: true });
+			writeFileSync(
+				join(dir, 'node_modules/better-auth/package.json'),
+				JSON.stringify({ name: 'better-auth', version: '0.0.0-stub', type: 'module', exports: { './db': './db.mjs' } })
+			);
+			writeFileSync(
+				join(dir, 'node_modules/better-auth/db.mjs'),
+				`export function getSchema() { return ${schemaJson}; }\n`
+			);
+			return dir;
+		}
+
+		it('exits 0 when the committed schema matches the runtime-derived model', () => {
+			// Functions (computed date defaults) must survive serialization as
+			// REAL functions — the marker is swapped back to JS source below.
+			const serialized = JSON.stringify(runtimeSchemaFixture(), (_k, v) => (typeof v === 'function' ? '__FN__' : v)).replaceAll('"__FN__"', '(function(){ return new Date(); })');
+			const stubDir = stubProject(serialized);
+			try {
+				const out = execFileSync(
+					process.execPath,
+					[join(ROOT, 'scripts/check-auth-schema.mjs'), COMMITTED_PATH, '--project', stubDir],
+					{ encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }
+				);
+				expect(out).toContain('matches');
+			} finally {
+				rmSync(stubDir, { recursive: true, force: true });
+			}
+		});
+
+		it('exits non-zero and reports the drift precisely on a mismatch', () => {
+			const drifted = runtimeSchemaFixture();
+			drifted.user.fields.phoneNumber = { type: 'string', required: false, fieldName: 'phoneNumber' };
+			const stubDir = stubProject(
+				JSON.stringify(drifted, (_k, v) => (typeof v === 'function' ? 0 : v))
+			);
+			try {
+				let exitCode = 0;
+				let output = '';
+				try {
+					output = execFileSync(
+						process.execPath,
+						[join(ROOT, 'scripts/check-auth-schema.mjs'), COMMITTED_PATH, '--project', stubDir],
+						{ encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }
+					);
+				} catch (error: any) {
+					exitCode = error.status ?? 1;
+					output = `${error.stdout ?? ''}${error.stderr ?? ''}`;
+				}
+				expect(exitCode).not.toBe(0);
+				expect(output).toContain('phoneNumber');
+				expect(output).toContain('user');
+			} finally {
+				rmSync(stubDir, { recursive: true, force: true });
+			}
+		});
+
+		it('fails with a usage error without arguments', () => {
+			let exitCode = 0;
+			try {
+				execFileSync(process.execPath, [join(ROOT, 'scripts/check-auth-schema.mjs')], {
+					encoding: 'utf8',
+					stdio: ['ignore', 'pipe', 'pipe']
+				});
+			} catch (error: any) {
+				exitCode = error.status ?? 1;
+			}
+			expect(exitCode).not.toBe(0);
+		});
+	});
+});
