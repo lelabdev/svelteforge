@@ -360,7 +360,11 @@ export interface PlanOptions {
 
 /** Read package.json as data. Throws a readable error when absent/invalid. */
 export function readPackageJson(projectRoot: string): { json: Record<string, unknown>; raw: string } {
-	const raw = readFileSync(join(projectRoot, 'package.json'), 'utf-8');
+	// Containment-checked like every other project read (#386): package.json is
+	// read by name from recipe-adjacent code, so a symlink planted at
+	// `<root>/package.json` must not redirect the read outside the root.
+	const full = safeProjectPath(projectRoot, 'package.json', 'package.json');
+	const raw = readFileSync(full, 'utf-8');
 	try {
 		return { json: JSON.parse(raw) as Record<string, unknown>, raw };
 	} catch (error) {
@@ -996,7 +1000,15 @@ export function applyPlan(recipe: UpgradeRecipe, plan: UpgradePlan, projectRoot:
 					rmSync(full, { force: true });
 					pruneEmptyDirs(projectRoot, dirname(full));
 					const from = operationsSourcePath(plan, entry);
-					if (from) writeFileSync(join(projectRoot, from), entry.moveFrom);
+					if (from) {
+						const fromFull = join(projectRoot, from);
+						// The apply pruned the now-empty source parent dirs (#327):
+						// recreate them FIRST, or this write dies with ENOENT —
+						// swallowed by the best-effort catch below — and the source
+						// file is silently LOST.
+						mkdirSync(dirname(fromFull), { recursive: true });
+						writeFileSync(fromFull, entry.moveFrom);
+					}
 				} else if (entry.existed) {
 					const manifestPath = Object.keys(recipe.files).find((p) => resolveDestination(p, recipe.rootPaths) === entry.dest);
 					// Restore from the SELECTED backup dir — on a same-second

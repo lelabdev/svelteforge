@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { existsSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync, statSync } from 'node:fs';
+import { chmodSync, existsSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync, statSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { tmpdir } from 'node:os';
 import {
@@ -9,6 +9,7 @@ import {
 	isSha256,
 	loadTrackingFile,
 	planUpgrade,
+	readPackageJson,
 	resolveDestination,
 	safeProjectPath,
 	sha256,
@@ -441,6 +442,48 @@ describe('versioned backups + atomicity (#327)', () => {
 		expect(loadTrackingFile(project).demo.version).toBe('2.0.0');
 	});
 
+	it('rollback after a move restores the source — recreating its PRUNED parent dirs (#327)', () => {
+		// Install: the module owns a NESTED file; its baseline proves it is ours.
+		mkdirSync(join(project, 'src/lib/old/nested'), { recursive: true });
+		writeFileSync(join(project, 'src/lib/old/nested/thing.ts'), 'ORIGINAL\n');
+		writeFileSync(join(project, 'src/lib/keeper.ts'), 'kept\n'); // keeps src/lib alive for pruning
+		writeFileSync(
+			join(project, TRACKING_FILE),
+			initTrackingJson('demo', '1.0.0', { '/lib/old/nested/thing.ts': 'ORIGINAL\n' })
+		);
+
+		// The new recipe version RENAMES the file out of its nested directory —
+		// the apply prunes the then-empty `src/lib/old/nested` (and `src/lib/old`).
+		const recipe = makeRecipe({
+			id: 'demo',
+			version: '2.0.0',
+			moves: { '/lib/old/nested/thing.ts': '/lib/new/thing.ts' }
+		});
+		const plan = planUpgrade(recipe, project);
+		expect(plan.operations.find((op) => op.action === 'move')?.resolution).toBe('apply');
+
+		// Force a TRACKING failure: the move applies, THEN the last write — the
+		// tracking file — fails (read-only → EACCES; tests run as non-root
+		// locally and on CI).
+		chmodSync(join(project, TRACKING_FILE), 0o444);
+
+		const result = applyPlan(recipe, plan, project);
+		expect(result.rolledBack).toBe(true);
+		expect(result.error).toBeTruthy();
+
+		// The source MUST be back at its original path with its original
+		// content — the rollback had to RECREATE the pruned `src/lib/old/nested`
+		// first, or this write dies with ENOENT and the file is lost (#327).
+		expect(readFileSync(join(project, 'src/lib/old/nested/thing.ts'), 'utf-8')).toBe('ORIGINAL\n');
+		expect(existsSync(join(project, 'src/lib/old/nested'))).toBe(true);
+		// The move target is gone again, pruned with its now-empty directory.
+		expect(existsSync(join(project, 'src/lib/new/thing.ts'))).toBe(false);
+		expect(existsSync(join(project, 'src/lib/new'))).toBe(false);
+		// The untouched neighbor survived, and tracking was never advanced.
+		expect(readFileSync(join(project, 'src/lib/keeper.ts'), 'utf-8')).toBe('kept\n');
+		expect(loadTrackingFile(project).demo.version).toBe('1.0.0');
+	});
+
 	it('a mid-apply failure rolls EVERYTHING back — the project is left unchanged', () => {
 		writeFileSync(join(project, 'src/lib/a.ts'), 'v1\n');
 		writeFileSync(join(project, TRACKING_FILE), initTrackingJson('demo', '1.0.0', { '/lib/a.ts': 'v1\n' }));
@@ -636,6 +679,26 @@ describe('path containment — every recipe path stays inside the project root (
 		const planB = planUpgrade(recipe, project, { tracking: {} });
 		expect(() => applyPlan(recipe, planB, project)).toThrow(/#386/);
 		expect(readdirSync(join(outside, 'exfil'))).toEqual([]);
+	});
+
+	it('readPackageJson refuses a package.json symlink pointing outside the root — planning never reads it (#386)', () => {
+		mkdirSync(join(outside, 'payload'), { recursive: true });
+		const outsidePkg = join(outside, 'payload', 'package.json');
+		writeFileSync(outsidePkg, JSON.stringify({ name: 'outside-app', dependencies: { exfiltrated: '^9.9.9' } }));
+		// The attacker REPLACES the project's real manifest with the symlink.
+		rmSync(join(project, 'package.json'));
+		symlinkSync(outsidePkg, join(project, 'package.json'));
+
+		// Planning (and the exported reader) refuse — the read is
+		// containment-checked like every other project path.
+		expect(() => readPackageJson(project)).toThrow(/package\.json/);
+		expect(() => readPackageJson(project)).toThrow(/#386/);
+		expect(() => planUpgrade(makeRecipe({ id: 'peeker', files: {} }), project)).toThrow(/#386/);
+
+		// The outside file was never consumed as the project manifest — and it
+		// was left untouched.
+		expect(readFileSync(outsidePkg, 'utf-8')).toContain('outside-app');
+		expect(existsSync(join(outside, 'payload', 'src'))).toBe(false);
 	});
 
 	it('applyPlan fails CLOSED on a poisoned plan — no write, no backup, project untouched', () => {
