@@ -484,6 +484,45 @@ describe('versioned backups + atomicity (#327)', () => {
 		expect(loadTrackingFile(project).demo.version).toBe('1.0.0');
 	});
 
+	it('rollback after a DELETE restores the file — recreating its PRUNED parent dirs (#327)', () => {
+		// Install: the module owns a NESTED file; its baseline proves it is ours.
+		mkdirSync(join(project, 'src/lib/legacy/deep'), { recursive: true });
+		writeFileSync(join(project, 'src/lib/legacy/deep/old.ts'), 'ORIGINAL\n');
+		writeFileSync(join(project, 'src/lib/keeper.ts'), 'kept\n'); // keeps src/lib alive for pruning
+		writeFileSync(
+			join(project, TRACKING_FILE),
+			initTrackingJson('demo', '1.0.0', { '/lib/legacy/deep/old.ts': 'ORIGINAL\n' })
+		);
+
+		// The new recipe version DELETES the nested file — the apply prunes the
+		// then-empty `src/lib/legacy/deep` (and `src/lib/legacy`).
+		const recipe = makeRecipe({
+			id: 'demo',
+			version: '2.0.0',
+			deletions: ['/lib/legacy/deep/old.ts']
+		});
+		const plan = planUpgrade(recipe, project);
+		expect(plan.operations.find((op) => op.action === 'delete')?.resolution).toBe('apply');
+
+		// Force a TRACKING failure: the delete applies, THEN the last write — the
+		// tracking file — fails (read-only → EACCES).
+		chmodSync(join(project, TRACKING_FILE), 0o444);
+
+		const result = applyPlan(recipe, plan, project);
+		expect(result.rolledBack).toBe(true);
+		expect(result.error).toBeTruthy();
+
+		// The deleted file MUST be back at its FULL original path with its
+		// original content — the rollback had to RECREATE the pruned
+		// `src/lib/legacy/deep` first, or this restore dies with ENOENT and the
+		// file is silently lost (same class as the move rollback above).
+		expect(readFileSync(join(project, 'src/lib/legacy/deep/old.ts'), 'utf-8')).toBe('ORIGINAL\n');
+		expect(existsSync(join(project, 'src/lib/legacy/deep'))).toBe(true);
+		// The untouched neighbor survived, and tracking was never advanced.
+		expect(readFileSync(join(project, 'src/lib/keeper.ts'), 'utf-8')).toBe('kept\n');
+		expect(loadTrackingFile(project).demo.version).toBe('1.0.0');
+	});
+
 	it('a mid-apply failure rolls EVERYTHING back — the project is left unchanged', () => {
 		writeFileSync(join(project, 'src/lib/a.ts'), 'v1\n');
 		writeFileSync(join(project, TRACKING_FILE), initTrackingJson('demo', '1.0.0', { '/lib/a.ts': 'v1\n' }));

@@ -1,9 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync, mkdirSync, statSync } from 'node:fs';
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, symlinkSync, writeFileSync, mkdirSync, statSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { tmpdir } from 'node:os';
 import {
 	upgrade,
+	hasPlaywright,
 	doctor,
 	MODULE_RECIPES,
 	BASE_RECIPE,
@@ -196,6 +197,32 @@ describe('svforge upgrade — shipped recipes (#327)', () => {
 		expect(e2eOps.every((op) => op.resolution === 'skipped')).toBe(true);
 		// src files are still planned normally.
 		expect(result.operations.some((op) => op.path.startsWith('src/') && op.resolution === 'apply')).toBe(true);
+	});
+
+	it('profile detection refuses a package.json symlink pointing outside the root (#386)', async () => {
+		// The attacker replaces the project manifest with a link to an outside
+		// package.json that HAS @playwright/test — profile detection must not
+		// follow it: every manifest read goes through the containment guard,
+		// same as the engine's readPackageJson.
+		const outside = mkdtempSync(join(tmpdir(), 'sf-outside-'));
+		const outsidePkg = join(outside, 'package.json');
+		writeFileSync(outsidePkg, JSON.stringify({ name: 'outside-app', devDependencies: { '@playwright/test': '^1.0.0' } }));
+		rmSync(join(project, 'package.json'));
+		symlinkSync(outsidePkg, join(project, 'package.json'));
+
+		// The predicate REFUSES: the linked manifest has @playwright/test, so
+		// reading through the link would yield true — containment yields false.
+		expect(hasPlaywright(project)).toBe(false);
+
+		// End to end, the upgrade refuses outright — the same containment error
+		// planning hits — instead of planning against the outside manifest.
+		await expect(upgrade('dashboard', project, { dryRun: true })).rejects.toThrow(/#386/);
+
+		// The outside manifest was never consumed as the project's — untouched,
+		// and nothing was delivered into the outside directory either.
+		expect(readFileSync(outsidePkg, 'utf-8')).toContain('outside-app');
+		expect(readdirSync(outside)).toEqual(['package.json']);
+		rmSync(outside, { recursive: true, force: true });
 	});
 
 	it('rejects unknown modules with the full registry', async () => {

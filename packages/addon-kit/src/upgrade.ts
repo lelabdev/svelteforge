@@ -1011,6 +1011,12 @@ export function applyPlan(recipe: UpgradeRecipe, plan: UpgradePlan, projectRoot:
 					}
 				} else if (entry.existed) {
 					const manifestPath = Object.keys(recipe.files).find((p) => resolveDestination(p, recipe.rootPaths) === entry.dest);
+					// The apply may have PRUNED this file's parent dirs (a delete of
+					// the last file in a nested directory, or the source half of a
+					// move): recreate them FIRST, or this restore dies with ENOENT —
+					// swallowed by the best-effort catch below — and the file is
+					// silently LOST (same pattern as the move rollback above).
+					mkdirSync(dirname(full), { recursive: true });
 					// Restore from the SELECTED backup dir — on a same-second
 					// collision that is the SUFFIXED directory, never the
 					// unsuffixed backupBase (#327).

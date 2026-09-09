@@ -55,6 +55,7 @@ export type { SvforgeManifest } from './ai-context';
 export {
 	upgrade,
 	printUpgradeResult,
+	hasPlaywright,
 	MODULE_RECIPES,
 	BASE_RECIPE,
 	DASHBOARD_RECIPE,

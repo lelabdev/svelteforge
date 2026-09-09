@@ -22,8 +22,6 @@
  * share the exact same protocol (extraction at prebuild → module-recipes.ts).
  */
 
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import { baseFiles, dashboardFiles, baseRootFiles, dashboardRootFiles } from './templates';
 import { BASE_ROOT_PATHS, DASHBOARD_ROOT_PATHS } from './destinations';
 import { MODULE_RECIPE_DATA } from './module-recipes';
@@ -33,7 +31,8 @@ import type { ChangelogEntry } from './changelog';
 import {
 	applyPlan,
 	loadTrackingFile,
-	planUpgrade
+	planUpgrade,
+	readPackageJson
 } from '@svforge/addon-kit';
 import type {
 	ApplyResult,
@@ -194,9 +193,17 @@ export async function upgrade(
 	return toResult(moduleName, targetVersion, plan, changes, { ...applied, dryRun: false });
 }
 
-function hasPlaywright(projectRoot: string): boolean {
+/**
+ * True when the project actually depends on @playwright/test. Exported for
+ * tests: the read is containment-guarded (#386) — a symlinked manifest must
+ * be REFUSED (false), never followed outside the project root.
+ */
+export function hasPlaywright(projectRoot: string): boolean {
 	try {
-		const pkg = JSON.parse(readFileSync(join(projectRoot, 'package.json'), 'utf-8'));
+		// Containment-checked like every other project manifest read (#386):
+		// a symlink planted at `<root>/package.json` must not redirect this
+		// read outside the root during profile detection.
+		const { json: pkg } = readPackageJson(projectRoot);
 		return Boolean(pkg.devDependencies?.['@playwright/test'] ?? pkg.dependencies?.['@playwright/test']);
 	} catch {
 		return false;
