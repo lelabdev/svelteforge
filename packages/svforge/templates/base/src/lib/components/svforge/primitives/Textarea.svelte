@@ -1,33 +1,49 @@
 <script lang="ts">
 	import { cn } from '$lib/utils/cn';
-	import type { HTMLAttributes } from 'svelte/elements';
+	import type { HTMLTextareaAttributes } from 'svelte/elements';
 
-	interface Props extends HTMLAttributes<HTMLTextAreaElement> {
+	interface Props extends HTMLTextareaAttributes {
 		label?: string;
 		error?: string;
-		placeholder?: string;
-		rows?: number;
-		value?: string;
 		class?: string;
 	}
 
-	let { label, error, class: className, value = $bindable(''), ...rest }: Props = $props();
-	let inputId = $derived(rest.id ?? `textarea-${Math.random().toString(36).slice(2, 9)}`);
+	let {
+		label,
+		error,
+		class: className,
+		id,
+		value = $bindable(''),
+		'aria-describedby': describedBy,
+		...rest
+	}: Props = $props();
+
+	// SSR-stable ids: $props.id() is deterministic across server render and
+	// client hydration (see Input.svelte, #321).
+	const uid = $props.id();
+	const textareaId = $derived(id ?? uid);
+	const errorId = $derived(`${textareaId}-error`);
+	const hasError = $derived(error !== undefined && error !== '');
+	const describedByIds = $derived(
+		hasError ? [describedBy, errorId].filter(Boolean).join(' ') : describedBy
+	);
 </script>
 
 <div class="w-full">
 	{#if label}
-		<label class="label" for={inputId}>
+		<label class="label" for={textareaId}>
 			{label}
 		</label>
 	{/if}
 	<textarea
-		id={inputId}
-		class={cn('textarea', error && 'textarea-error', className)}
-		bind:value
 		{...rest}
+		id={textareaId}
+		class={cn('textarea', className)}
+		aria-invalid={hasError || undefined}
+		aria-describedby={describedByIds}
+		bind:value
 	></textarea>
-	{#if error}
-		<p class="text-error-500 text-sm mt-1">{error}</p>
+	{#if hasError}
+		<p id={errorId} class="text-error-500 mt-1 text-sm">{error}</p>
 	{/if}
 </div>

@@ -175,6 +175,7 @@
 				{ key: 'role', label: m.demo_col_role() },
 				{ key: 'status', label: m.demo_col_status() }
 			]}
+			rowKey="name"
 			rows={[
 				{ name: 'Alice', role: 'Developer', status: 'Active' },
 				{ name: 'Bob', role: 'Designer', status: 'Away' },

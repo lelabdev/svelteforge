@@ -3,3 +3,4 @@
 // that template components call; values are not asserted.
 export const uploads_uploading = () => 'Uploading…';
 export const uploads_failed = () => 'Upload failed';
+export const common_loading = () => 'Loading…';

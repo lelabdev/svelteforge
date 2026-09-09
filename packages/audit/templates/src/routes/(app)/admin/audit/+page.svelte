@@ -11,6 +11,7 @@
 
 	const rows = $derived(
 		entries.map((e) => ({
+			id: e.id,
 			when: new Date(e.createdAt).toLocaleString(),
 			actor: e.actorId ?? 'system',
 			action: e.action,
@@ -44,7 +45,7 @@
 	</form>
 
 	{#if rows.length}
-		<Table {columns} {rows} />
+		<Table {columns} {rows} rowKey="id" />
 
 		<div class="flex gap-4">
 			{#if offset > 0}

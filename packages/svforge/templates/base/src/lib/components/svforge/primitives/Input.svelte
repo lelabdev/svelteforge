@@ -1,19 +1,35 @@
 <script lang="ts">
 	import { cn } from '$lib/utils/cn';
-	import type { HTMLAttributes } from 'svelte/elements';
+	import type { HTMLInputAttributes } from 'svelte/elements';
 
-	interface Props extends HTMLAttributes<HTMLInputElement> {
+	interface Props extends HTMLInputAttributes {
 		label?: string;
 		error?: string;
-		type?: string;
-		placeholder?: string;
-		value?: string;
-		required?: boolean;
-		name?: string;
 		class?: string;
 	}
-	let { label, error, class: className, value = $bindable(''), ...rest }: Props = $props();
-	let inputId = $derived(rest.id ?? `input-${Math.random().toString(36).slice(2, 9)}`);
+
+	let {
+		label,
+		error,
+		class: className,
+		id,
+		value = $bindable(''),
+		'aria-describedby': describedBy,
+		...rest
+	}: Props = $props();
+
+	// SSR-stable ids: $props.id() is deterministic across server render and
+	// client hydration. Math.random() here produced different ids on the
+	// server and client, breaking hydration and label association (#321).
+	const uid = $props.id();
+	const inputId = $derived(id ?? uid);
+	const errorId = $derived(`${inputId}-error`);
+	const hasError = $derived(error !== undefined && error !== '');
+	// The error element is joined to (not replacing) a consumer-provided
+	// aria-describedby.
+	const describedByIds = $derived(
+		hasError ? [describedBy, errorId].filter(Boolean).join(' ') : describedBy
+	);
 </script>
 
 <div class="w-full">
@@ -23,12 +39,14 @@
 		</label>
 	{/if}
 	<input
-		id={inputId}
-		class={cn('input', error && 'input-error', className)}
-		bind:value
 		{...rest}
+		id={inputId}
+		class={cn('input', className)}
+		aria-invalid={hasError || undefined}
+		aria-describedby={describedByIds}
+		bind:value
 	/>
-	{#if error}
-		<p class="text-error-500 text-sm mt-1">{error}</p>
+	{#if hasError}
+		<p id={errorId} class="text-error-500 mt-1 text-sm">{error}</p>
 	{/if}
 </div>
