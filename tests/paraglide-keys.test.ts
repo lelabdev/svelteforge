@@ -71,6 +71,19 @@ describe('Paraglide key freshness (#271)', () => {
 		expect([...enKeys].filter((k) => !frKeys.has(k))).toEqual([]);
 	});
 
+	it('catalog key parity holds for EVERY locale configured in settings.json (#322)', () => {
+		const settings = JSON.parse(
+			readFileSync(join(ROOT, 'packages/svforge/templates/base/root/project.inlang/settings.json'), 'utf-8')
+		) as { locales: string[] };
+		const keySets = settings.locales.map((locale) => {
+			const catalog = JSON.parse(
+				readFileSync(join(ROOT, `packages/svforge/templates/base/root/messages/${locale}.json`), 'utf-8')
+			);
+			return Object.keys(catalog).filter((k) => !k.startsWith('$')).sort().join('|');
+		});
+		expect(new Set(keySets).size).toBe(1);
+	});
+
 	it('dashboard templates contain no hard-coded UI copy (#267)', () => {
 		// Known English UI strings from the pre-#267 dashboard must never come
 		// back as literals in dashboard template sources — copy goes through

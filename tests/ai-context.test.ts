@@ -12,6 +12,7 @@ import {
 } from '../packages/svforge/src/ai-context';
 import { ROOT, tempProject } from './helpers';
 import { createBaseProject, createDashboardProject, diskSv } from './helpers/fixtures';
+import { validateManifestShape } from '../packages/addon-kit/src/json';
 
 /**
  * Tests for #234 — generated AI context (llms.txt + .svforge.json manifest).
@@ -98,6 +99,40 @@ describe('AI context generation (#234)', () => {
 		for (const mod of expected) {
 			expect(MODULE_CAPABILITIES[mod], `${mod} missing capability`).toBeDefined();
 		}
+	});
+
+	it('the manifest exposes the i18n contract: catalog paths + base locale (#322)', () => {
+		const m = buildManifest('base', []);
+		expect(m.i18n).toEqual({
+			adapter: 'paraglide',
+			baseLocale: 'fr',
+			catalogs: 'messages/',
+			settings: 'project.inlang/settings.json'
+		});
+		// One source of truth per concern, exposed as canonical patterns too.
+		expect(m.patterns['i18n messages']).toBe('messages/');
+		expect(m.patterns['Fonts']).toBe('src/routes/layout.css');
+	});
+
+	it('manifest shape validation accepts the i18n block and rejects malformed values (#322)', () => {
+		const good = buildManifest('dashboard', ['email']);
+		expect(validateManifestShape(good, '.svforge.json')).toEqual([]);
+		const bad = { ...good, i18n: { adapter: 'paraglide', baseLocale: 42 } };
+		const problems = validateManifestShape(bad, '.svforge.json');
+		expect(problems.length).toBeGreaterThan(0);
+		expect(problems.join(' ')).toMatch(/i18n\.baseLocale/);
+	});
+
+	it('llms.txt documents the defaults-vs-constraints i18n contract (#322)', () => {
+		const txt = renderLlmstxt(buildManifest('base', []));
+		expect(txt).toContain('## i18n (Paraglide)');
+		expect(txt).toContain('- baseLocale: fr');
+		expect(txt).toContain('never generated src/lib/paraglide');
+		expect(txt).toContain('key parity across every configured locale');
+		expect(txt).toContain('add a locale: create messages/<locale>.json with the full key set');
+		expect(txt).toContain('long-form editorial, business and CMS content does not belong in the catalogs');
+		// fonts: layout.css is the single source of truth for font imports
+		expect(txt).toContain('- Fonts: src/routes/layout.css');
 	});
 
 	it('llms.txt renders the manifest deterministically', () => {

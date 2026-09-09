@@ -22,7 +22,7 @@ SVForge adds the pieces around it:
 
 - a coherent application structure and design-system conventions;
 - Skeleton UI + Tailwind foundations;
-- Paraglide FR/EN from day one;
+- Paraglide i18n from day one (FR/EN initial locales);
 - Vitest and quality gates;
 - a dashboard starter with Better Auth, Drizzle and PostgreSQL;
 - composable modules for common application capabilities;
@@ -177,6 +177,28 @@ The reuse order is explicit:
 For global visual decisions, the same rule applies: use the Skeleton theme and presets first. Do not create a parallel palette/token layer simply to restyle the scaffold.
 
 `svforge check` enforces the important rails: no second UI kit, no duplicated canonical primitives, no arbitrary theme drift, and no accidental structure divergence.
+
+## Defaults vs constraints
+
+The templates ship opinionated defaults so a scaffold renders, builds and type-checks immediately. They are **starting points, not framework constraints** — each one has a single identified source of truth:
+
+| Concern | Scaffolded default | Source of truth (edit here) |
+|---------|--------------------|-----------------------------|
+| Palette / theme | complete Skeleton v5 theme (`svelteForge`) | `src/lib/styles/svelteforge-theme.css` |
+| Fonts | Inter (body), Space Grotesk (headings), Fira Code (code) | `src/routes/layout.css` (`@fontsource-variable/*` imports) |
+| UI copy locales | `fr` (baseLocale) + `en` catalogs | `messages/<locale>.json` + `project.inlang/settings.json` |
+
+**Theme** — the palette, surfaces, radius and typography roles are ordinary Skeleton v5 theme values. Replace them directly in `svelteforge-theme.css`; nothing else in the architecture changes.
+
+**Fonts** — the three `@fontsource-variable/*` imports in `src/routes/layout.css` are the only place fonts are declared (Space Grotesk and Inter are mapped to heading/body roles in the theme; Fira Code is applied to `code`/`pre` because Skeleton has no dedicated code role). Swap an import and its role mapping to change a font, or delete both to drop one.
+
+**i18n (Paraglide)** — `messages/<locale>.json` catalogs are the AI-first, diffable source of truth for static UI copy. Components consume the generated messages; agents and humans edit the JSON, never the generated `src/lib/paraglide/` output. `fr` and `en` are the initial locale set, not the only supported locales:
+
+- **add a locale** (example: Spanish) — create `messages/es.json` with the full key set, then add `"es"` to `locales` in `project.inlang/settings.json`;
+- **remove a locale** — delete its catalog and its `locales` entry;
+- **change the base locale** — edit `baseLocale` in `project.inlang/settings.json`.
+
+Keep key parity across every configured locale (a key exists in all catalogs or none). Modules ship their message keys for the scaffolded locales (`fr`/`en`); when you add a locale, port the installed modules' keys into the new catalog. Static UI copy lives in the catalogs; long-form editorial, business and CMS content (MDsveX posts, database records) belongs in its own storage, not in `messages/`.
 
 ## AI-ready
 

@@ -145,6 +145,21 @@ export function validateManifestShape(value: unknown, filePath: string): string[
 			problems.push(`"${filePath}": patterns must be an object mapping capability names to pattern strings.`);
 		}
 	}
+	if (manifest.i18n !== undefined) {
+		const i18n = manifest.i18n;
+		if (typeof i18n !== 'object' || i18n === null || Array.isArray(i18n)) {
+			problems.push(
+				`"${filePath}": i18n must be an object ({ adapter, baseLocale, catalogs, settings }), got ${Array.isArray(i18n) ? 'an array' : i18n === null ? 'null' : typeof i18n}.`
+			);
+		} else {
+			const block = i18n as Record<string, unknown>;
+			for (const field of ['adapter', 'baseLocale', 'catalogs', 'settings'] as const) {
+				if (block[field] !== undefined && typeof block[field] !== 'string') {
+					problems.push(`"${filePath}": i18n.${field} must be a string when present (got ${typeof block[field]}).`);
+				}
+			}
+		}
+	}
 	if (manifest.moduleCapabilities !== undefined) {
 		const moduleCapabilities = manifest.moduleCapabilities;
 		if (typeof moduleCapabilities !== 'object' || moduleCapabilities === null || Array.isArray(moduleCapabilities)) {

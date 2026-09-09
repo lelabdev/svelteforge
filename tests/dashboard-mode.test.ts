@@ -116,7 +116,8 @@ describe('dashboard testing profiles', () => {
 		const agents = sv.files.get('AGENTS.md') ?? '';
 		expect(agents).toMatch(/Golden references \(#267\)/);
 		expect(agents).toMatch(/\/admin\/users/);
-		expect(agents).toMatch(/messages\/fr\.json/);
+		// #322: parity is defined over every configured locale, not a hard-coded pair.
+		expect(agents).toMatch(/EVERY catalog under .messages\//);
 		expect(agents).toMatch(/never hard-code user-visible text/);
 	});
 });

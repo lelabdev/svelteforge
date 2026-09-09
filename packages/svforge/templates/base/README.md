@@ -51,6 +51,35 @@ src/lib/styles/svelteforge-theme.css
 
 If a consumer project later develops a real repeated design need that Skeleton/Tailwind do not model, it can add a project-specific layer at that point. The generic boilerplate does not pre-invent one.
 
+## Defaults vs constraints
+
+The template is opinionated so the app renders and type-checks immediately after `sv add`. The palette, the three fonts and the FR/EN locale pair are **ready-made defaults, not framework constraints** — each has one identified source of truth:
+
+| Concern | Scaffolded default | Source of truth (edit here) |
+|---------|--------------------|-----------------------------|
+| Palette / theme | complete Skeleton v5 theme (`svelteForge`) | `src/lib/styles/svelteforge-theme.css` |
+| Fonts | Inter (body), Space Grotesk (headings), Fira Code (code) | `src/routes/layout.css` (`@fontsource-variable/*` imports) |
+| UI copy locales | `fr` (baseLocale) + `en` catalogs | `messages/<locale>.json` + `project.inlang/settings.json` |
+
+- **Replace the palette**: edit the theme values in `svelteforge-theme.css` (or import a different Skeleton v5 theme). The architecture — Skeleton + Tailwind + the single CSS entrypoint — does not change.
+- **Change or remove a font**: the `@fontsource-variable/inter`, `@fontsource-variable/space-grotesk` and `@fontsource-variable/fira-code` imports in `src/routes/layout.css` are the only font declarations. Swap an import and its role mapping in the theme (Space Grotesk = headings, Inter = body, Fira Code = `code`/`pre`), or delete both to drop the font.
+- **UI copy (Paraglide)**: `messages/<locale>.json` catalogs are the AI-first, diffable source of truth for static UI copy — edit the JSON, never the generated `src/lib/paraglide/` output. `fr` and `en` are the initial locale set, not the only supported locales. Keep key parity across every configured locale.
+- **Static UI copy vs content**: static UI copy belongs in the catalogs; long-form editorial, business and CMS content (MDsveX posts, database records) belongs in its own storage, not in `messages/`.
+
+### Adding a locale (example: Spanish)
+
+1. create `messages/es.json` with the same key set as `messages/fr.json` (translations included);
+2. add `"es"` to `locales` in `project.inlang/settings.json`:
+
+```json
+{
+  "baseLocale": "fr",
+  "locales": ["fr", "en", "es"]
+}
+```
+
+Removing a locale is the reverse (delete the catalog + the `locales` entry). Changing the base locale is a one-line edit of `baseLocale` in the same file.
+
 ## SEO and theme customization
 
 - **Base URL**: pass your deployed absolute URL to `generateSitemap()` (for example, `https://example.com`). `Seo` resolves relative `url` and `image` props against the current page URL.
@@ -60,6 +89,7 @@ If a consumer project later develops a real repeated design need that Skeleton/T
 ## Next Steps
 
 - **Modify the theme**: edit `src/lib/styles/svelteforge-theme.css`
+- **Change fonts or locales**: see “Defaults vs constraints” above
 - **Add a route**: create `src/routes/about/+page.svelte`
 - **Add richer UI**: use components from `@skeletonlabs/skeleton-svelte` directly before creating a project-local primitive
 - **Remove demo**: delete `/demo-ui` route and Navbar links
