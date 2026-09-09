@@ -959,11 +959,18 @@ export function applyPlan(recipe: UpgradeRecipe, plan: UpgradePlan, projectRoot:
 				const fromFull = safeProjectPath(projectRoot, op.from, 'applied move source');
 				const toFull = safeProjectPath(projectRoot, op.to, 'applied move target');
 				const content = readFileSync(fromFull, 'utf-8');
+				// Journal BEFORE mutating (#327 atomic-or-unchanged): a move has
+				// THREE fallible writes (mkdir + write on the target, rm on the
+				// source). Journaling after them would leave a mid-move failure
+				// with NO undo entry — the new target stays behind and the project
+				// is half-moved. Both undo halves are safe no-ops when nothing (or
+				// only part) was written: rmSync(force) on an absent target, and
+				// rewriting identical content over an intact source.
+				journal.push({ dest: op.to, existed: false, moveFrom: content });
 				mkdirSync(dirname(toFull), { recursive: true });
 				writeFileSync(toFull, content);
 				rmSync(fromFull, { force: true });
 				pruneEmptyDirs(projectRoot, dirname(fromFull));
-				journal.push({ dest: op.to, existed: false, moveFrom: content });
 				return;
 			}
 			if (op.action === 'delete') {

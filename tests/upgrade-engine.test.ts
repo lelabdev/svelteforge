@@ -484,6 +484,49 @@ describe('versioned backups + atomicity (#327)', () => {
 		expect(loadTrackingFile(project).demo.version).toBe('1.0.0');
 	});
 
+	it('mid-move failure leaves the project unchanged — the move journals BEFORE mutating (#327)', () => {
+		// Install: the module owns a file NESTED in its own directory — that dir
+		// can be made read-only WITHOUT blocking writes elsewhere in the project.
+		mkdirSync(join(project, 'src/lib/old'), { recursive: true });
+		writeFileSync(join(project, 'src/lib/old/thing.ts'), 'ORIGINAL\n');
+		writeFileSync(
+			join(project, TRACKING_FILE),
+			initTrackingJson('demo', '1.0.0', { '/lib/old/thing.ts': 'ORIGINAL\n' })
+		);
+
+		// The new recipe version MOVES the file. The apply sequence is: write
+		// the target, then rm the source. Make the rm FAIL mid-move — clearing
+		// the source dir's write bit makes rmSync die with EACCES (tests run as
+		// non-root locally and on CI) AFTER the target was already written.
+		const recipe = makeRecipe({
+			id: 'demo',
+			version: '2.0.0',
+			moves: { '/lib/old/thing.ts': '/lib/new/thing.ts' }
+		});
+		const plan = planUpgrade(recipe, project);
+		expect(plan.operations.find((op) => op.action === 'move')?.resolution).toBe('apply');
+		chmodSync(join(project, 'src/lib/old'), 0o555);
+
+		const result = applyPlan(recipe, plan, project);
+		expect(result.rolledBack).toBe(true);
+		expect(result.error).toBeTruthy();
+
+		// Restore perms FIRST so afterEach can clean the temp project up even
+		// if an assertion below fails.
+		chmodSync(join(project, 'src/lib/old'), 0o755);
+
+		// ATOMIC-OR-UNCHANGED: the half-applied move must leave NO trace.
+		// The new target is gone again, pruned with its now-empty directory.
+		expect(existsSync(join(project, 'src/lib/new/thing.ts'))).toBe(false);
+		expect(existsSync(join(project, 'src/lib/new'))).toBe(false);
+		// The source is intact at its original path with its original content
+		// (the failed rm never touched it; the rollback must not lose it).
+		expect(existsSync(join(project, 'src/lib/old/thing.ts'))).toBe(true);
+		expect(readFileSync(join(project, 'src/lib/old/thing.ts'), 'utf-8')).toBe('ORIGINAL\n');
+		// Tracking was never advanced by the failed apply.
+		expect(loadTrackingFile(project).demo.version).toBe('1.0.0');
+	});
+
 	it('rollback after a DELETE restores the file — recreating its PRUNED parent dirs (#327)', () => {
 		// Install: the module owns a NESTED file; its baseline proves it is ours.
 		mkdirSync(join(project, 'src/lib/legacy/deep'), { recursive: true });
