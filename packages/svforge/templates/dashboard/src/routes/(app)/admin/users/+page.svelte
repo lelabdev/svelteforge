@@ -29,11 +29,8 @@
 	let formEmail = $state('');
 	let formPassword = $state('');
 
-	// Table slot receives rows as Record<string, unknown> — recover the row type.
-	function asUser(row: Record<string, unknown>): UserRow {
-		return row as unknown as UserRow;
-	}
-
+	// The Table primitive is generic (#321): the cell snippet receives rows
+	// already typed as UserRow — no cast-recovery needed.
 	// Columns are re-derived so Paraglide labels stay reactive to the locale.
 	let columns = $derived([
 		{ key: 'name', label: m.users_name() },
@@ -165,41 +162,38 @@
 	<Input placeholder={m.users_search_placeholder()} bind:value={search} />
 
 	<!-- CRUD data table: SvelteForge Table primitive (golden reference) -->
-	<Table {columns} rows={filtered}>
+	<Table {columns} rows={filtered} rowKey="id">
 		{#snippet children({ row, col })}
 			{#if col.key === 'name'}
-				{@const user = asUser(row)}
 				<div class="flex items-center gap-3">
-					<AvatarInitial name={user.name} size="sm" />
+					<AvatarInitial name={row.name} size="sm" />
 					<div>
-						<p class="font-medium">{user.name}</p>
-						<p class="text-xs text-surface-500 sm:hidden">{user.email}</p>
+						<p class="font-medium">{row.name}</p>
+						<p class="text-xs text-surface-500 sm:hidden">{row.email}</p>
 					</div>
 				</div>
 			{:else if col.key === 'status'}
-				{@const user = asUser(row)}
-				{#if user.disabled}
+				{#if row.disabled}
 					<Badge color="warning">{m.users_disabled()}</Badge>
 				{:else}
 					<!-- toggleVerify is a real form action too (#295): hidden inputs carry
 					     the id and the current state, use:enhance handles the result. -->
 					<form method="POST" action="?/toggleVerify" use:enhance={submitEnhance}>
-						<input type="hidden" name="id" value={user.id} />
-						<input type="hidden" name="verified" value={String(user.emailVerified)} />
-						<button type="submit" class="inline-flex" aria-label={user.emailVerified ? m.users_pending() : m.users_verified()}>
-							<Badge color={user.emailVerified ? 'success' : 'warning'}>
-								{user.emailVerified ? m.users_verified() : m.users_pending()}
+						<input type="hidden" name="id" value={row.id} />
+						<input type="hidden" name="verified" value={String(row.emailVerified)} />
+						<button type="submit" class="inline-flex" aria-label={row.emailVerified ? m.users_pending() : m.users_verified()}>
+							<Badge color={row.emailVerified ? 'success' : 'warning'}>
+								{row.emailVerified ? m.users_verified() : m.users_pending()}
 							</Badge>
 						</button>
 					</form>
 				{/if}
 			{:else if col.key === 'actions'}
-				{@const user = asUser(row)}
 				<div class="flex items-center justify-end gap-1">
-					<button class="btn p-2 preset-tonal-surface" onclick={() => openEdit(user)} aria-label={m.users_edit()}>
+					<button class="btn p-2 preset-tonal-surface" onclick={() => openEdit(row)} aria-label={m.users_edit()}>
 						<Pencil size={16} />
 					</button>
-					<button class="btn p-2 preset-tonal-warning" onclick={() => openStatus(user)} disabled={user.id === currentUserId} aria-label={user.disabled ? m.users_reactivate() : m.users_deactivate()}>
+					<button class="btn p-2 preset-tonal-warning" onclick={() => openStatus(row)} disabled={row.id === currentUserId} aria-label={row.disabled ? m.users_reactivate() : m.users_deactivate()}>
 						<Power size={16} />
 					</button>
 				</div>

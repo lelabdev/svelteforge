@@ -1,30 +1,61 @@
 <script lang="ts">
 	import { cn } from '$lib/utils/cn';
-	import type { HTMLAttributes } from 'svelte/elements';
+	import type { HTMLSelectAttributes } from 'svelte/elements';
 
-	interface Props extends HTMLAttributes<HTMLSelectElement> {
+	interface Option {
+		value: string;
+		label: string;
+	}
+
+	interface Props extends HTMLSelectAttributes {
 		label?: string;
 		error?: string;
-		options: { value: string; label: string }[];
-		value?: string;
+		options: Option[];
 		class?: string;
 	}
 
-	let { label, error, options, class: className, value = $bindable(''), ...rest }: Props = $props();
+	let {
+		label,
+		error,
+		options,
+		class: className,
+		id,
+		value = $bindable(''),
+		'aria-describedby': describedBy,
+		...rest
+	}: Props = $props();
+
+	// SSR-stable ids: $props.id() is deterministic across server render and
+	// client hydration (see Input.svelte, #321). The select ALWAYS carries a
+	// real id, so the label `for` targets it even when the consumer passes none.
+	const uid = $props.id();
+	const selectId = $derived(id ?? uid);
+	const errorId = $derived(`${selectId}-error`);
+	const hasError = $derived(error !== undefined && error !== '');
+	const describedByIds = $derived(
+		hasError ? [describedBy, errorId].filter(Boolean).join(' ') : describedBy
+	);
 </script>
 
 <div class="w-full">
 	{#if label}
-		<label class="label" for={rest.id}>
+		<label class="label" for={selectId}>
 			{label}
 		</label>
 	{/if}
-	<select class={cn('select', error && 'select-error', className)} bind:value {...rest}>
-		{#each options as opt}
-			<option value={opt.value}>{opt.label}</option>
+	<select
+		{...rest}
+		id={selectId}
+		class={cn('select', className)}
+		aria-invalid={hasError || undefined}
+		aria-describedby={describedByIds}
+		bind:value
+	>
+		{#each options as option (option.value)}
+			<option value={option.value}>{option.label}</option>
 		{/each}
 	</select>
-	{#if error}
-		<p class="text-error-500 text-sm mt-1">{error}</p>
+	{#if hasError}
+		<p id={errorId} class="text-error-500 mt-1 text-sm">{error}</p>
 	{/if}
 </div>

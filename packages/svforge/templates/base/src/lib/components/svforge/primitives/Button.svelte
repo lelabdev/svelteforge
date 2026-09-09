@@ -1,36 +1,8 @@
 <script lang="ts">
 	import { cn } from '$lib/utils/cn';
-	import type { Snippet } from 'svelte';
-	import type { HTMLAttributes } from 'svelte/elements';
-
-	type Variant = 'filled' | 'outlined' | 'tonal' | 'ghost';
-	type Color = 'primary' | 'secondary' | 'tertiary' | 'success' | 'warning' | 'error' | 'surface';
-	type Size = 'sm' | 'md' | 'lg';
-
-	interface Props extends HTMLAttributes<HTMLButtonElement> {
-		variant?: Variant;
-		color?: Color;
-		size?: Size;
-		href?: string;
-		loading?: boolean;
-		disabled?: boolean;
-		type?: 'button' | 'submit' | 'reset';
-		class?: string;
-		children: Snippet;
-	}
-
-	let {
-		variant = 'filled',
-		color = 'primary',
-		size = 'md',
-		href,
-		loading = false,
-		disabled = false,
-		type = 'button',
-		class: className = '',
-		children,
-		...rest
-	}: Props = $props();
+	import * as m from '$lib/paraglide/messages.js';
+	import type { HTMLAnchorAttributes, HTMLButtonAttributes } from 'svelte/elements';
+	import type { ButtonOrAnchorProps } from './types';
 
 	const presets = {
 		filled: {
@@ -71,32 +43,112 @@
 		}
 	} as const;
 
-	let sizeClass = $derived(
-		size === 'sm' ? 'btn-sm' : size === 'lg' ? 'btn-lg' : 'btn-md'
-	);
+	let {
+		variant = 'filled',
+		color = 'primary',
+		size = 'md',
+		href,
+		loading = false,
+		disabled = false,
+		loadingLabel = m.common_loading(),
+		type,
+		class: className = '',
+		children,
+		...rest
+	}: ButtonOrAnchorProps = $props();
 
-	let presetClass = $derived(
-		presets[variant]?.[color] ?? ''
-	);
+	// `href` is the authoritative discriminant: a NON-EMPTY string renders the
+	// anchor, anything else the button. The old `href && !disabled && !loading`
+	// check was dishonest — it silently demoted disabled/loading links (and
+	// `href=""`) to `<button>`s, contradicting the href discriminant (#321).
+	const isAnchor = $derived(href !== undefined && href !== '');
+	const inactive = $derived(disabled || loading);
 
-	let classes = $derived(cn('btn', presetClass, sizeClass, className));
+	// Branch rest props never cross over (#321): the anchor spread explicitly
+	// omits EVERY button-only attribute (name, form*, value, popovertarget*,
+	// command*) — props smuggled in by consumers bypassing the type checker
+	// never reach the <a>; the button spread strips anchor-only props (target,
+	// rel, download…) symmetrically.
+	const anchorRest = $derived.by(() => {
+		const {
+			type: _type,
+			name: _name,
+			form: _form,
+			formaction: _formaction,
+			formenctype: _formenctype,
+			formmethod: _formmethod,
+			formnovalidate: _formnovalidate,
+			formtarget: _formtarget,
+			value: _value,
+			popovertarget: _popovertarget,
+			popovertargetaction: _popovertargetaction,
+			popover: _popover,
+			command: _command,
+			commandfor: _commandfor,
+			...attrs
+		} = rest as HTMLButtonAttributes & HTMLAnchorAttributes;
+		return attrs;
+	});
+	const buttonRest = $derived.by(() => {
+		const {
+			target: _target,
+			rel: _rel,
+			download: _download,
+			hreflang: _hreflang,
+			media: _media,
+			ping: _ping,
+			referrerpolicy: _referrerpolicy,
+			...attrs
+		} = rest as HTMLButtonAttributes & HTMLAnchorAttributes;
+		return attrs;
+	});
+
+	const sizeClass = $derived(size === 'sm' ? 'btn-sm' : size === 'lg' ? 'btn-lg' : 'btn-md');
+	const presetClass = $derived(presets[variant]?.[color] ?? '');
+	const classes = $derived(cn('btn', presetClass, sizeClass, className));
+	// Anchors lack a native disabled presentation: reduced styling + pointer
+	// events off stand in for it, aria-disabled announces it to AT.
+	const anchorClasses = $derived(cn(classes, inactive && 'pointer-events-none opacity-50'));
 </script>
 
-{#if href}
-	<a {href} class={classes}>
+{#snippet spinner()}
+	<span
+		aria-hidden="true"
+		class="mr-2 inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"
+	></span>
+	<span class="sr-only">{loadingLabel}</span>
+{/snippet}
+
+{#if isAnchor}
+	<!-- Anchor branch: a link styled as a button stays a link even when
+	     visually disabled — aria-disabled + reduced styling, never a native
+	     disabled attribute (invalid on <a>) and never a <button> fallback. -->
+	<!-- Consumer attributes spread FIRST; href/class and the computed
+	     aria-disabled / aria-busy land LAST so component state stays
+	     authoritative — a consumer `aria-disabled="false"` cannot mask a
+	     disabled/loading state (#321). -->
+	<a
+		{...anchorRest}
+		{href}
+		class={anchorClasses}
+		aria-disabled={inactive || undefined}
+		aria-busy={loading || undefined}
+	>
 		{#if loading}
-			<span
-				class="mr-2 inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"
-			></span>
+			{@render spinner()}
 		{/if}
 		{@render children()}
 	</a>
 {:else}
-	<button class={classes} disabled={disabled || loading} type={type} {...rest} aria-busy={loading}>
+	<button
+		class={classes}
+		type={type ?? 'button'}
+		disabled={disabled || loading}
+		aria-busy={loading || undefined}
+		{...buttonRest}
+	>
 		{#if loading}
-			<span
-				class="mr-2 inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"
-			></span>
+			{@render spinner()}
 		{/if}
 		{@render children()}
 	</button>

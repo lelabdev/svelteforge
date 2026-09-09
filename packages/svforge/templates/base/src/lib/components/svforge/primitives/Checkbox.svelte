@@ -1,18 +1,19 @@
 <script lang="ts">
 	import { cn } from '$lib/utils/cn';
-	import type { HTMLAttributes } from 'svelte/elements';
+	import type { HTMLInputAttributes } from 'svelte/elements';
 
-	interface Props extends HTMLAttributes<HTMLInputElement> {
+	interface Props extends HTMLInputAttributes {
 		label?: string;
 		checked?: boolean;
+		/** Custom classes go on the checkbox control, not the wrapping label (#321). */
 		class?: string;
 	}
 
 	let { label, class: className, checked = $bindable(false), ...rest }: Props = $props();
 </script>
 
-<label class={cn('flex items-center gap-2 cursor-pointer', className)}>
-	<input type="checkbox" class="checkbox" bind:checked {...rest} />
+<label class="flex cursor-pointer items-center gap-2">
+	<input type="checkbox" {...rest} class={cn('checkbox', className)} bind:checked />
 	{#if label}
 		<span>{label}</span>
 	{/if}
