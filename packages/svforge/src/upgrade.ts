@@ -45,7 +45,7 @@ import type {
 // Re-export the shared protocol types so consumers import upgrade concerns
 // from one place.
 export type { ApplyResult, PlannedOperation, UpgradePlan, UpgradeRecipe } from '@svforge/addon-kit';
-export { planUpgrade, applyPlan, sha256, resolveDestination, TRACKING_FILE } from '@svforge/addon-kit';
+export { planUpgrade, applyPlan, sha256, resolveDestination, assertSafeRelativePath, safeProjectPath, TRACKING_FILE } from '@svforge/addon-kit';
 
 /** A single file in an upgrade result (stable, human-oriented view). */
 export interface UpgradeFile {

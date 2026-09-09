@@ -31,11 +31,12 @@ import {
 	mkdirSync,
 	readFileSync,
 	readdirSync,
+	realpathSync,
 	rmSync,
 	statSync,
 	writeFileSync
 } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 
 // ── Checksums ────────────────────────────────────────────────────────────
 
@@ -53,18 +54,98 @@ export function isSha256(value: unknown): value is string {
 
 const SRC_PREFIX = 'src/';
 
+// ── Path containment guard (#386) ────────────────────────────────────────
+
+/**
+ * Lexical containment check for a PROJECT-RELATIVE path derived from recipe
+ * data (#386): it must be a non-empty string, never absolute, and never
+ * contain a `..` traversal segment. Fails closed with a readable error
+ * naming the offending path.
+ */
+export function assertSafeRelativePath(relativePath: string, what = 'path'): void {
+	if (typeof relativePath !== 'string' || relativePath.trim() === '') {
+		throw new Error(
+			`Invalid ${what}: expected a non-empty project-relative path, got ${JSON.stringify(relativePath)} (#386).`
+		);
+	}
+	if (isAbsolute(relativePath)) {
+		throw new Error(
+			`Invalid ${what}: "${relativePath}" is an absolute path — recipe paths must stay inside the project root (#386).`
+		);
+	}
+	if (relativePath.split(/[\\/]/).includes('..')) {
+		throw new Error(
+			`Invalid ${what}: "${relativePath}" contains a ".." traversal segment — recipe paths must stay inside the project root (#386).`
+		);
+	}
+}
+
+/** True when `rel` (a path relative to some base) stays inside that base. */
+function staysInside(rel: string): boolean {
+	return rel !== '' && rel !== '..' && !rel.startsWith(`..${sep}`) && !isAbsolute(rel);
+}
+
+/**
+ * Full containment check before ANY filesystem effect — read, write, backup,
+ * move or delete (#386):
+ *
+ *   1. lexical rules (see assertSafeRelativePath),
+ *   2. the resolved target must stay INSIDE the project root,
+ *   3. symlinks: the target itself, or its nearest existing ancestor (for
+ *      files about to be created), must resolve inside the REAL root — a
+ *      symlinked directory pointing outside is refused.
+ *
+ * Fails closed: any uncertainty is an error, before any partial write.
+ *
+ * @returns the resolved absolute path, guaranteed to stay inside the root.
+ */
+export function safeProjectPath(projectRoot: string, relativePath: string, what = 'path'): string {
+	assertSafeRelativePath(relativePath, what);
+	const root = resolve(projectRoot);
+	const full = resolve(root, relativePath);
+	if (!staysInside(relative(root, full))) {
+		throw new Error(
+			`Invalid ${what}: "${relativePath}" resolves to "${full}", outside the project root "${root}" (#386).`
+		);
+	}
+	let existing = full;
+	while (existing !== root && !existsSync(existing)) existing = dirname(existing);
+	try {
+		const realTarget = realpathSync(existing);
+		const realRoot = realpathSync(root);
+		// '' here means the existing ancestor IS the root — valid. Only a
+		// resolution OUTSIDE the real root is refused.
+		const relReal = relative(realRoot, realTarget);
+		if (relReal !== '' && !staysInside(relReal)) {
+			throw new Error(
+				`Invalid ${what}: "${relativePath}" resolves through a symlink to "${realTarget}", outside the project root (#386).`
+			);
+		}
+	} catch (error) {
+		if (error instanceof Error && error.message.includes('#386')) throw error;
+		throw new Error(`Invalid ${what}: cannot verify containment of "${relativePath}" — refusing (#386).`, {
+			cause: error
+		});
+	}
+	return full;
+}
+
 /**
  * Resolve a manifest path ("/lib/ui/Button.svelte") to its project-relative
  * destination. A path is delivered at the PROJECT ROOT when it matches a
  * `rootPaths` entry exactly, or when an entry ending with "/" is a directory
  * prefix of it (e.g. "/e2e/" covers "/e2e/auth.test.ts"). Everything else is
  * src-relative (#187/#235/#239 delivery model).
+ *
+ * The result is lexically contained (#386): no absolute path and no `..`
+ * segment can leave the project root through a manifest path.
  */
 export function resolveDestination(manifestPath: string, rootPaths: readonly string[] = []): string {
 	if (!manifestPath.startsWith('/')) {
 		throw new Error(`Manifest paths must start with "/" — got "${manifestPath}".`);
 	}
 	const stripped = manifestPath.slice(1);
+	assertSafeRelativePath(stripped, `manifest path "${manifestPath}"`);
 	const isRoot = rootPaths.some((entry) => {
 		const clean = entry.startsWith('/') ? entry.slice(1) : entry;
 		return clean.endsWith('/') ? stripped.startsWith(clean) : clean === stripped;
@@ -346,7 +427,7 @@ export function planUpgrade(recipe: UpgradeRecipe, projectRoot: string, options:
 			operations.push({ action: 'add', path: dest, resolution: 'skipped', reason: excludeReason });
 			continue;
 		}
-		const full = join(projectRoot, dest);
+		const full = safeProjectPath(projectRoot, dest, `recipe "${recipe.id}" file`);
 		if (!existsSync(full)) {
 			operations.push({
 				action: 'add',
@@ -399,7 +480,7 @@ export function planUpgrade(recipe: UpgradeRecipe, projectRoot: string, options:
 	for (const manifestPath of recipe.deletions ?? []) {
 		const dest = resolveDestination(manifestPath, recipe.rootPaths);
 		claim(dest, 'deletion');
-		const full = join(projectRoot, dest);
+		const full = safeProjectPath(projectRoot, dest, `recipe "${recipe.id}" deletion`);
 		if (!existsSync(full)) {
 			operations.push({ action: 'delete', path: dest, resolution: 'unchanged', reason: 'Already absent.' });
 			continue;
@@ -432,8 +513,8 @@ export function planUpgrade(recipe: UpgradeRecipe, projectRoot: string, options:
 		const to = resolveDestination(toManifest, recipe.rootPaths);
 		claim(from, 'move source');
 		claim(to, 'move target');
-		const fromFull = join(projectRoot, from);
-		const toFull = join(projectRoot, to);
+		const fromFull = safeProjectPath(projectRoot, from, `recipe "${recipe.id}" move source`);
+		const toFull = safeProjectPath(projectRoot, to, `recipe "${recipe.id}" move target`);
 		if (!existsSync(fromFull)) {
 			operations.push({ action: 'move', path: to, from, to, resolution: 'unchanged', reason: 'Source already absent (renamed or removed earlier).' });
 			continue;
@@ -532,7 +613,7 @@ export function planUpgrade(recipe: UpgradeRecipe, projectRoot: string, options:
 
 	// ── json transformation ──
 	for (const transform of recipe.jsonTransforms ?? []) {
-		const full = join(projectRoot, transform.file);
+		const full = safeProjectPath(projectRoot, transform.file, `recipe "${recipe.id}" JSON transformation target`);
 		const keys = Object.keys(transform.set);
 		if (!existsSync(full)) {
 			operations.push({
@@ -659,6 +740,16 @@ export function applyPlan(recipe: UpgradeRecipe, plan: UpgradePlan, projectRoot:
 	}
 
 	const applicable = plan.operations.filter((op) => op.resolution === 'apply');
+
+	// ── Fail closed BEFORE any filesystem effect (#386) ──
+	// A plan is plain data: even a hand-built/poisoned plan cannot direct a
+	// write, backup or deletion outside the project root. Every path of every
+	// applicable operation is validated before the first backup is taken.
+	for (const op of applicable) {
+		safeProjectPath(projectRoot, op.path, `planned ${op.action}`);
+		if (op.action === 'move' && op.from) safeProjectPath(projectRoot, op.from, 'planned move source');
+	}
+
 	const journal: JournalEntry[] = [];
 	const now = options.now ?? new Date();
 	const backupBase = join(projectRoot, BACKUP_ROOT, recipe.id, `${stamp(now)}-${plan.toVersion}`);
@@ -681,7 +772,7 @@ export function applyPlan(recipe: UpgradeRecipe, plan: UpgradePlan, projectRoot:
 	const backupOf = (dest: string, backupRootDir: string): string => {
 		const backupPath = join(backupRootDir, dest);
 		mkdirSync(dirname(backupPath), { recursive: true });
-		copyFileSync(join(projectRoot, dest), backupPath);
+		copyFileSync(safeProjectPath(projectRoot, dest, 'backup source'), backupPath);
 		return backupPath;
 	};
 
@@ -700,7 +791,7 @@ export function applyPlan(recipe: UpgradeRecipe, plan: UpgradePlan, projectRoot:
 				delete checksums[op.from];
 				// The moved content is what landed on disk (a pure rename carries
 				// the source content, which is not in recipe.files).
-				const movedFull = join(projectRoot, op.to);
+				const movedFull = safeProjectPath(projectRoot, op.to, 'move tracking');
 				if (existsSync(movedFull)) checksums[op.to] = sha256(readFileSync(movedFull, 'utf-8'));
 			}
 		}
@@ -732,7 +823,7 @@ export function applyPlan(recipe: UpgradeRecipe, plan: UpgradePlan, projectRoot:
 			if (op.action === 'add' || op.action === 'modify') {
 				const manifestPath = Object.keys(recipe.files).find((p) => resolveDestination(p, recipe.rootPaths) === op.path);
 				if (!manifestPath) throw new Error(`Apply lost the recipe content for "${op.path}".`);
-				const full = join(projectRoot, op.path);
+				const full = safeProjectPath(projectRoot, op.path, `applied ${op.action}`);
 				const existed = existsSync(full);
 				if (!existed) mkdirSync(dirname(full), { recursive: true });
 				writeFileSync(full, recipe.files[manifestPath]);
@@ -740,7 +831,7 @@ export function applyPlan(recipe: UpgradeRecipe, plan: UpgradePlan, projectRoot:
 				return;
 			}
 			if (op.action === 'json' || op.action === 'dependency' || op.action === 'script') {
-				const full = join(projectRoot, op.path);
+				const full = safeProjectPath(projectRoot, op.path, `applied ${op.action}`);
 				const existed = existsSync(full);
 				let json: Record<string, unknown>;
 				try {
@@ -775,8 +866,8 @@ export function applyPlan(recipe: UpgradeRecipe, plan: UpgradePlan, projectRoot:
 				return;
 			}
 			if (op.action === 'move' && op.from && op.to) {
-				const fromFull = join(projectRoot, op.from);
-				const toFull = join(projectRoot, op.to);
+				const fromFull = safeProjectPath(projectRoot, op.from, 'applied move source');
+				const toFull = safeProjectPath(projectRoot, op.to, 'applied move target');
 				const content = readFileSync(fromFull, 'utf-8');
 				mkdirSync(dirname(toFull), { recursive: true });
 				writeFileSync(toFull, content);
@@ -786,7 +877,7 @@ export function applyPlan(recipe: UpgradeRecipe, plan: UpgradePlan, projectRoot:
 				return;
 			}
 			if (op.action === 'delete') {
-				rmSync(join(projectRoot, op.path), { force: true });
+				rmSync(safeProjectPath(projectRoot, op.path, 'applied deletion'), { force: true });
 				pruneEmptyDirs(projectRoot, dirname(join(projectRoot, op.path)));
 				journal.push({ dest: op.path, existed: true });
 				return;
@@ -807,7 +898,7 @@ export function applyPlan(recipe: UpgradeRecipe, plan: UpgradePlan, projectRoot:
 		// ── Rollback: undo every completed write, newest first ──
 		for (let i = journal.length - 1; i >= 0; i--) {
 			const entry = journal[i];
-			const full = join(projectRoot, entry.dest);
+			const full = safeProjectPath(projectRoot, entry.dest, 'rollback');
 			try {
 				if (entry.moveFrom !== undefined) {
 					// A move wrote `to` and deleted `from` — reverse both halves.

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { existsSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync, statSync } from 'node:fs';
-import { join } from 'node:path';
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync, statSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import { tmpdir } from 'node:os';
 import {
 	applyPlan,
@@ -435,5 +435,126 @@ describe('module recipe factory (#327)', () => {
 		const recipe = defineModuleRecipe({ id: 'blog', version: '0.0.2', files: { '/lib/utils/posts.ts': 'x' } });
 		expect(recipe.rootPaths).toEqual([]);
 		expect(resolveDestination('/lib/utils/posts.ts', recipe.rootPaths)).toBe('src/lib/utils/posts.ts');
+	});
+});
+
+describe('path containment — every recipe path stays inside the project root (#386)', () => {
+	let project: string;
+	/** Sibling of the project — an attacker-placed target OUTSIDE the root. */
+	let outside: string;
+
+	beforeEach(() => {
+		project = mkdtempSync(join(tmpdir(), 'sf-guard-'));
+		outside = mkdtempSync(join(tmpdir(), 'sf-guard-outside-'));
+		writeFileSync(
+			join(project, 'package.json'),
+			JSON.stringify({ name: 'app', dependencies: {}, devDependencies: {}, scripts: {} }, null, 2) + '\n'
+		);
+	});
+
+	afterEach(() => {
+		rmSync(project, { recursive: true, force: true });
+		rmSync(outside, { recursive: true, force: true });
+	});
+
+	it('resolveDestination rejects ".." traversal segments and absolute escapes', () => {
+		expect(() => resolveDestination('/../../evil.txt')).toThrow(/#386/);
+		expect(() => resolveDestination('/lib/../../../evil.txt')).toThrow(/#386/);
+		expect(() => resolveDestination('/lib/../..\\evil.txt')).toThrow(/#386/);
+	});
+
+	it('planUpgrade rejects a traversal manifest path with a readable error — nothing is read or written', () => {
+		const recipe = makeRecipe({ id: 'escapee', files: { '/../../evil.txt': 'pwned\n' } });
+		expect(() => planUpgrade(recipe, project)).toThrow(/evil\.txt/);
+		expect(() => planUpgrade(recipe, project)).toThrow(/#386/);
+		// Nothing landed next to the project either.
+		expect(existsSync(join(dirname(project), 'evil.txt'))).toBe(false);
+		expect(existsSync(join(project, 'src'))).toBe(false);
+	});
+
+	it('planUpgrade rejects traversal in a move target and a deletion', () => {
+		expect(() =>
+			planUpgrade(makeRecipe({ id: 'mover', files: {}, moves: { '/lib/old.ts': '/../escape.ts' } }), project)
+		).toThrow(/escape\.ts/);
+		expect(() =>
+			planUpgrade(makeRecipe({ id: 'deleter', files: {}, deletions: ['/../../victim.txt'] }), project)
+		).toThrow(/victim\.txt/);
+	});
+
+	it('planUpgrade rejects absolute and traversal jsonTransform targets', () => {
+		expect(() =>
+			planUpgrade(
+				makeRecipe({ id: 'jsonabs', files: {}, jsonTransforms: [{ file: '/etc/passwd', set: { x: 1 } }] }),
+				project
+			)
+		).toThrow(/\/etc\/passwd/);
+		expect(() =>
+			planUpgrade(
+				makeRecipe({ id: 'jsonrel', files: {}, jsonTransforms: [{ file: '../../../escaped.json', set: { x: 1 } }] }),
+				project
+			)
+		).toThrow(/escaped\.json/);
+	});
+
+	it('planUpgrade rejects a symlinked directory pointing outside the root', () => {
+		mkdirSync(join(outside, 'payload'), { recursive: true });
+		symlinkSync(join(outside, 'payload'), join(project, 'link'), 'dir');
+		const recipe = makeRecipe({
+			id: 'linker',
+			files: { '/link/evil.txt': 'pwned\n' },
+			rootPaths: ['/link/']
+		});
+		expect(() => planUpgrade(recipe, project)).toThrow(/#386/);
+		expect(existsSync(join(outside, 'payload', 'evil.txt'))).toBe(false);
+	});
+
+	it('applyPlan fails CLOSED on a poisoned plan — no write, no backup, project untouched', () => {
+		// A hand-built plan (not produced by planUpgrade) tries to escape.
+		const recipe = makeRecipe({ id: 'poisoner', files: {} });
+		const plan = planUpgrade(makeRecipe({ id: 'poisoner', files: { '/lib/ok.ts': 'ok\n' } }), project);
+		const poisoned = {
+			...plan,
+			operations: [
+				{ action: 'add' as const, path: '../../poisoned.txt', resolution: 'apply' as const, reason: 'x' },
+				...plan.operations
+			]
+		};
+		let message = '';
+		try {
+			applyPlan(recipe, poisoned, project);
+		} catch (error) {
+			message = (error as Error).message;
+		}
+		expect(message).toMatch(/#386/);
+		expect(message).toContain('poisoned.txt');
+		// Nothing was written — not the file, not a backup directory.
+		expect(existsSync(join(dirname(project), 'poisoned.txt'))).toBe(false);
+		expect(existsSync(join(project, '.svforge-backup'))).toBe(false);
+		expect(existsSync(join(project, 'src/lib/ok.ts'))).toBe(false);
+	});
+
+	it('valid nested paths still work end-to-end — deep src files, root delivery, jsonTransform', () => {
+		const recipe = makeRecipe({
+			id: 'legit',
+			version: '2.0.0',
+			files: {
+				'/lib/deep/nested/module.ts': 'export const deep = true;\n',
+				'/e2e/smoke.test.ts': 'import { test } from "vitest";\n'
+			},
+			rootPaths: ['/e2e/'],
+			jsonTransforms: [{ file: 'package.json', set: { name: 'renamed-app' } }]
+		});
+		const plan = planUpgrade(recipe, project);
+		expect(plan.summary.conflicts).toBe(0);
+		const result = applyPlan(recipe, plan, project);
+		expect(result.rolledBack).toBe(false);
+		expect(readFileSync(join(project, 'src/lib/deep/nested/module.ts'), 'utf-8')).toContain('deep = true');
+		expect(readFileSync(join(project, 'e2e/smoke.test.ts'), 'utf-8')).toContain('vitest');
+		expect(JSON.parse(readFileSync(join(project, 'package.json'), 'utf-8')).name).toBe('renamed-app');
+		// The backup stayed inside the project.
+		if (result.backupDir) {
+			expect(result.backupDir.startsWith('.svforge-backup/')).toBe(true);
+			expect(existsSync(join(project, result.backupDir, 'package.json'))).toBe(true);
+		}
 	});
 });
