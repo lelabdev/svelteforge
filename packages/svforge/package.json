@@ -23,7 +23,8 @@
 	},
 	"files": [
 		"dist/",
-		"bin/"
+		"bin/",
+		"docs/"
 	],
 	"keywords": [
 		"sv-add",

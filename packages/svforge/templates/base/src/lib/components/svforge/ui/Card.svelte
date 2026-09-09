@@ -21,7 +21,10 @@
 		outlined: 'card ring-1 ring-surface-200-800'
 	};
 
-	let classes = $derived(cn(variantClasses[variant], 'rounded-container p-4', className));
+	// #317: the Skeleton `card` utility owns the container radius
+	// (border-radius: var(--radius-container)) — never reapply rounded-*.
+	// `p-4` stays: `card` applies no padding (Tailwind owns local spacing).
+	let classes = $derived(cn(variantClasses[variant], 'p-4', className));
 </script>
 
 <div class={classes} {...rest}>
