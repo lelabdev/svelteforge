@@ -1,6 +1,9 @@
 import { db } from '$lib/server/db';
 import { auditLogs } from './schema';
-import { desc, eq, and } from 'drizzle-orm';
+import { desc, eq, and, lt } from 'drizzle-orm';
+import { env } from '$env/dynamic/private';
+import { retentionCutoff } from './retention';
+import { redactMetadata, resolvePiiMode } from './pii';
 
 /**
  * SvelteForge audit trail (#232) — append-only business action logging.
@@ -41,6 +44,12 @@ export interface AuditFilters extends AuditListOptions {
 export const audit = {
 	/** Append an audit entry. Never updates/deletes existing rows. */
 	async record(input: AuditEntryInput): Promise<typeof auditLogs.$inferSelect> {
+		// PII policy (#332): AUDIT_PII_MODE=redact strips PII metadata keys and
+		// nulls the PII columns before insert. Default is 'keep' — see pii.ts.
+		const mode = resolvePiiMode(env.AUDIT_PII_MODE);
+		const metadata = mode === 'redact' && input.metadata ? redactMetadata(input.metadata).clean : (input.metadata ?? {});
+		const ipAddress = mode === 'redact' ? null : (input.ipAddress ?? null);
+		const userAgent = mode === 'redact' ? null : (input.userAgent ?? null);
 		const [row] = await db
 			.insert(auditLogs)
 			.values({
@@ -48,13 +57,27 @@ export const audit = {
 				action: input.action,
 				entityType: input.entityType,
 				entityId: input.entityId ?? null,
-				metadata: input.metadata ?? {},
-				ipAddress: input.ipAddress ?? null,
-				userAgent: input.userAgent ?? null,
+				metadata,
+				ipAddress,
+				userAgent,
 				createdAt: new Date()
 			})
 			.returning();
 		return row;
+	},
+
+	/**
+	 * The ONLY sanctioned delete path (#332): delete rows older than the
+	 * retention period. Sources the period from AUDIT_RETENTION_DAYS unless an
+	 * explicit `days` is passed. Without a retention policy this is a no-op —
+	 * the log is kept forever. With append-only.sql applied, purging requires
+	 * the documented maintenance window (see append-only.sql).
+	 */
+	async purgeExpired(options: { days?: number; now?: Date } = {}): Promise<{ purged: boolean; deleted: number }> {
+		const cutoff = options.days !== undefined ? retentionCutoff(String(options.days), options.now) : retentionCutoff(env.AUDIT_RETENTION_DAYS, options.now);
+		if (cutoff === null) return { purged: false, deleted: 0 };
+		const deleted = await db.delete(auditLogs).where(lt(auditLogs.createdAt, cutoff)).returning({ id: auditLogs.id });
+		return { purged: true, deleted: deleted.length };
 	},
 
 	/** Full history for one entity (newest first). */

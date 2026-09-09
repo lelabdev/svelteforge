@@ -11,7 +11,31 @@ npx sv add @svforge/jobs
 ```
 
 Requires the **dashboard** template (auth + Drizzle). The runner starts
-automatically in `hooks.server.ts`.
+automatically in `hooks.server.ts` (see the deployment profiles below for
+multi-process setups).
+
+## Deployment profiles (#332)
+
+| Profile | Jobs | Setup |
+|---|---|---|
+| `node-long-lived` (default) | ✅ in-process | nothing to do — the runner starts in `hooks.server.ts` |
+| `separate-worker` | ✅ on the worker only | same codebase deployed twice (recipe below) |
+| `serverless` | ❌ | functions are killed between requests — use `separate-worker` |
+| `edge` | ❌ | no long-lived process, no raw TCP — use `separate-worker` |
+
+### The separate-worker recipe (#328)
+
+One codebase, two deployments, one Postgres:
+
+1. **Worker deployment** (long-lived Node container, adapter-node):
+   `JOBS_WORKER=worker` — starts the runner; only here are handlers executed.
+2. **Web replicas** (however many, even serverless): `JOBS_WORKER=web` — the
+   runner never starts; requests just `enqueue` and return.
+3. Point both at the same `DATABASE_URL`. The queue IS the database table —
+   no extra broker needed.
+
+Exactly one worker polls the queue in v1 (single-process polling, no row
+locking): scale the worker vertically or shard by job type, not by replicas.
 
 ## Define a handler
 

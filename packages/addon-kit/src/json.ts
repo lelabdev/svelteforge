@@ -21,6 +21,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { MODULE_CONTRACTS } from './capabilities';
+import { MODULE_PROFILES, DEPLOYMENT_PROFILES, type DeploymentProfile } from './deployment';
 
 /** Error raised for an invalid JSON file: path + diagnostic + remediation. */
 export class JsonGuardError extends Error {
@@ -104,6 +105,8 @@ export function validateMessageCatalog(value: unknown, filePath: string): string
 export interface ManifestModuleCapabilities {
 	provides?: string[];
 	requires?: string[];
+	/** Deployment profiles the module runs / does not run on (#332). */
+	profiles?: { supported?: string[]; unsupported?: string[] };
 }
 
 /**
@@ -160,6 +163,23 @@ export function validateManifestShape(value: unknown, filePath: string): string[
 			}
 		}
 	}
+	if (manifest.deployment !== undefined) {
+		const deployment = manifest.deployment;
+		if (typeof deployment !== 'object' || deployment === null || Array.isArray(deployment)) {
+			problems.push(
+				`"${filePath}": deployment must be an object ({ profile }), got ${Array.isArray(deployment) ? 'an array' : typeof deployment}.`
+			);
+		} else {
+			const block = deployment as Record<string, unknown>;
+			if (block.profile === undefined) {
+				problems.push(`"${filePath}": deployment.profile is required — one of ${DEPLOYMENT_PROFILES.join(', ')}.`);
+			} else if (typeof block.profile !== 'string' || !DEPLOYMENT_PROFILES.includes(block.profile as DeploymentProfile)) {
+				problems.push(
+					`"${filePath}": deployment.profile must be one of ${DEPLOYMENT_PROFILES.join(', ')}, got ${JSON.stringify(block.profile)}.`
+				);
+			}
+		}
+	}
 	if (manifest.moduleCapabilities !== undefined) {
 		const moduleCapabilities = manifest.moduleCapabilities;
 		if (typeof moduleCapabilities !== 'object' || moduleCapabilities === null || Array.isArray(moduleCapabilities)) {
@@ -187,10 +207,26 @@ export function validateManifestShape(value: unknown, filePath: string): string[
 					);
 					continue;
 				}
-				if (block.provides === undefined && block.requires === undefined) {
+				if (block.provides === undefined && block.requires === undefined && block.profiles === undefined) {
 					problems.push(
-						`"${filePath}": moduleCapabilities["${id}"] is an empty capability block ({}) — declare at least provides or requires as arrays of capability-token strings.`
+						`"${filePath}": moduleCapabilities["${id}"] is an empty capability block ({}) — declare at least provides, requires or profiles.`
 					);
+				}
+				if (block.profiles !== undefined) {
+					const profiles = block.profiles;
+					const shapeValid =
+						typeof profiles === 'object' &&
+						profiles !== null &&
+						!Array.isArray(profiles) &&
+						(profiles.supported === undefined ||
+							(Array.isArray(profiles.supported) && profiles.supported.every((p) => typeof p === 'string'))) &&
+						(profiles.unsupported === undefined ||
+							(Array.isArray(profiles.unsupported) && profiles.unsupported.every((p) => typeof p === 'string')));
+					if (!shapeValid) {
+						problems.push(
+							`"${filePath}": moduleCapabilities["${id}"].profiles must be an object { supported?: string[], unsupported?: string[] } when present.`
+						);
+					}
 				}
 			}
 		}
@@ -309,9 +345,11 @@ export function planManifestEnrichContent(existing: string | undefined, enrichme
 	if (contract) {
 		const moduleCapabilities =
 			(manifest.moduleCapabilities as Record<string, ManifestModuleCapabilities> | undefined) ?? {};
+		const profiles = MODULE_PROFILES[enrichment.moduleId];
 		moduleCapabilities[enrichment.moduleId] = {
 			provides: [...contract.provides],
-			requires: [...contract.requires]
+			requires: [...contract.requires],
+			...(profiles ? { profiles: { supported: [...profiles.supported], unsupported: [...profiles.unsupported] } } : {})
 		};
 		manifest.moduleCapabilities = moduleCapabilities;
 		const capabilities = (manifest.capabilities as string[] | undefined) ?? [];

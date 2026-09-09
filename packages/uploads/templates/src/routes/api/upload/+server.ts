@@ -3,6 +3,7 @@ import { createPresignedPost } from '@aws-sdk/s3-presigned-post';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { getS3 } from '$lib/server/s3';
 import { MAX_FILE_SIZE, MAX_POST_BODY_SIZE } from '$lib/uploads/post-form';
+import { parseUserQuotaBytes, quotaExceededMessage, USER_QUOTA_ENV_VAR } from '$lib/uploads/quota';
 import { env } from '$env/dynamic/private';
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
@@ -71,6 +72,16 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	}
 	if (size > MAX_FILE_SIZE) {
 		return json({ error: `File exceeds maximum size of ${MAX_FILE_SIZE} bytes` }, { status: 413 });
+	}
+
+	// Per-user quota gate (#332): the POST policy enforces the size of one
+	// REQUEST at storage level; this gate adds an application-level per-user
+	// cap. Replace $lib/uploads/quota with real accounting for a per-user
+	// TOTAL (see README — "When size must be truly enforced").
+	const userQuota = parseUserQuotaBytes(env[USER_QUOTA_ENV_VAR]);
+	if (userQuota !== null) {
+		const exceeded = quotaExceededMessage(userQuota, size);
+		if (exceeded) return json({ error: exceeded }, { status: 413 });
 	}
 
 	const key = `uploads/${crypto.randomUUID()}-${sanitizeFilename(filename)}`;

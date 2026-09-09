@@ -274,6 +274,10 @@ The publish workflow uses the same scaffold gates before package publication.
 
 The Better Auth stack is pinned (never `latest`) and upgraded automatically — blocking security patches immediately, gate-tested minors/patches weekly, majors via a migration issue. See [docs/better-auth-upgrades.md](docs/better-auth-upgrades.md) (#319).
 
+## Deployment profiles
+
+Every module declares where it runs — long-lived Node, serverless, edge, or a separate worker — and every scaffolded project declares its target in `.svforge.json` (`deployment.profile`). Agents read it from `.svforge.json` / `llms.txt`; `npx svforge doctor` warns when an installed module cannot run on the declared target. Minimal validated examples: [docs/deploy/](docs/deploy/) (#332).
+
 ## Repository
 
 ```text

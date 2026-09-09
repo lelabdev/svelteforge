@@ -48,6 +48,7 @@ export default defineAddon({
 	nextSteps: ({ cwd }) => {
 		const steps = [
 			'@svforge/realtime installed!',
+			'Deployment profile (#332): realtime needs runtime.websocket — node-long-lived (in-process attach) or separate-worker (dedicated WS server via listen()). It does NOT run on serverless/edge.',
 			'Wire the hub: in src/hooks.server.ts, attach the WS server on startup',
 			'  or run `realtime.listen(PORT)` (see README)',
 			'Publish: import { realtime } from "$lib/server/realtime";',

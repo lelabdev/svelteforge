@@ -1,7 +1,14 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { MODULE_CONTRACTS, CAPABILITIES } from '../packages/addon-kit/src/index';
+import {
+	MODULE_CONTRACTS,
+	CAPABILITIES,
+	DEPLOYMENT_PROFILES,
+	DEPLOYMENT_PROFILE_INFO,
+	DEFAULT_PROFILE,
+	MODULE_PROFILES
+} from '../packages/addon-kit/src/index';
 
 const ROOT = process.cwd();
 const manifest = JSON.parse(
@@ -76,6 +83,27 @@ describe('module metadata contract (#257, capabilities #323)', () => {
 			for (const moduleId of [...(preset.modules ?? []), ...(preset.optional ?? [])]) {
 				expect(manifest.modules).toHaveProperty(moduleId);
 			}
+		}
+	});
+
+	it('delivers the deployment profiles exactly as @svforge/addon-kit defines them (#332)', () => {
+		expect(manifest.deployment.defaultProfile).toBe(DEFAULT_PROFILE);
+		expect(Object.keys(manifest.deployment.profiles).sort()).toEqual([...DEPLOYMENT_PROFILES].sort());
+		for (const profile of DEPLOYMENT_PROFILES) {
+			const delivered = manifest.deployment.profiles[profile];
+			const expected = DEPLOYMENT_PROFILE_INFO[profile];
+			expect(delivered.title).toBe(expected.title);
+			expect(delivered.description).toBe(expected.description);
+			expect(delivered.appLifecycle).toBe(expected.appLifecycle);
+			expect(delivered.runtime).toEqual(expected.runtime);
+		}
+		// The per-module matrix mirrors MODULE_PROFILES exactly.
+		expect(Object.keys(manifest.deployment.modules).sort()).toEqual(Object.keys(MODULE_PROFILES).sort());
+		for (const [id, entry] of Object.entries(MODULE_PROFILES)) {
+			const delivered = manifest.deployment.modules[id];
+			expect(delivered.supported).toEqual(entry.supported);
+			expect(delivered.unsupported).toEqual(entry.unsupported);
+			expect(delivered.notes).toEqual(entry.notes);
 		}
 	});
 });

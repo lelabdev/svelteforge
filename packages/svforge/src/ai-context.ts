@@ -12,7 +12,17 @@
  * `svforge context` regenerates deterministically.
  */
 
-import { JsonGuardError, parseJsonFile, planManifestEnrichContent, validateManifestShape, TEMPLATE_PROVIDES } from '@svforge/addon-kit';
+import {
+	JsonGuardError,
+	parseJsonFile,
+	planManifestEnrichContent,
+	validateManifestShape,
+	TEMPLATE_PROVIDES,
+	DEPLOYMENT_PROFILE_INFO,
+	DEFAULT_PROFILE,
+	MODULE_PROFILES,
+	type DeploymentProfile
+} from '@svforge/addon-kit';
 import { MODULES } from './module-composition';
 
 export interface SvforgeManifest {
@@ -38,7 +48,22 @@ export interface SvforgeManifest {
 	capabilities: string[];
 	patterns: Record<string, string>;
 	/** Capability contracts of the installed modules (#323). */
-	moduleCapabilities?: Record<string, { provides: string[]; requires: string[] }>;
+	moduleCapabilities?: Record<
+		string,
+		{
+			provides: string[];
+			requires: string[];
+			/** Where the module runs (#332) — supported/unsupported deployment profiles. */
+			profiles?: { supported: string[]; unsupported: string[] };
+		}
+	>;
+	/**
+	 * Declared deployment profile (#332). The scaffold default is
+	 * node-long-lived; the application declares its real target in
+	 * `deployment.profile` so agents and `svforge doctor` can check installed
+	 * modules against it.
+	 */
+	deployment?: { profile: DeploymentProfile };
 	/**
 	 * i18n contract (#322): where the message catalogs live and which locale is
 	 * the base. Values mirror the SCAFFOLD DEFAULT; the live configuration is
@@ -93,8 +118,12 @@ export const MODULE_CAPABILITIES: Record<string, { capability: string; pattern?:
 	chat: { capability: 'chat', pattern: 'src/lib/server/chat/', note: 'Conversations + messages + read-state, membership-enforced' }
 };
 
-/** Build the manifest for a given template + installed modules. */
-export function buildManifest(template: 'base' | 'dashboard', modules: string[]): SvforgeManifest {
+/** Build the manifest for a given template + installed modules + declared deployment profile (#332). */
+export function buildManifest(
+	template: 'base' | 'dashboard',
+	modules: string[],
+	profile: DeploymentProfile = DEFAULT_PROFILE
+): SvforgeManifest {
 	// Canonical capability tokens (#323): the template grants come from the
 	// shared vocabulary — no legacy ad-hoc labels.
 	const capabilities: string[] = [...TEMPLATE_PROVIDES[template]];
@@ -115,12 +144,19 @@ export function buildManifest(template: 'base' | 'dashboard', modules: string[])
 		}
 	}
 	// Capability contracts (#323): expose each installed module's capability
-	// tokens so AI agents can read the project's real capability graph.
-	const moduleCapabilities: SvforgeManifest['moduleCapabilities'] = {};
+	// tokens so AI agents can read the project's real capability graph — plus
+	// the module ⇄ deployment matrix (#332) so the same graph answers "can this
+	// module run on the target deployment?".
+	const moduleCapabilities: NonNullable<SvforgeManifest['moduleCapabilities']> = {};
 	for (const mod of modules) {
 		const contract = MODULES[mod];
 		if (!contract) continue;
-		moduleCapabilities[mod] = { provides: [...contract.provides], requires: [...contract.requires] };
+		const profiles = MODULE_PROFILES[mod];
+		moduleCapabilities[mod] = {
+			provides: [...contract.provides],
+			requires: [...contract.requires],
+			...(profiles ? { profiles: { supported: [...profiles.supported], unsupported: [...profiles.unsupported] } } : {})
+		};
 	}
 	return {
 		schema: 1,
@@ -136,6 +172,7 @@ export function buildManifest(template: 'base' | 'dashboard', modules: string[])
 		capabilities: [...new Set(capabilities)],
 		patterns,
 		moduleCapabilities,
+		deployment: { profile },
 		// Scaffold default (#322) — mirrors templates/base/root/project.inlang/
 		// settings.json (baseLocale fr). The generated project's settings file
 		// is the live source of truth once the application evolves.
@@ -158,6 +195,30 @@ export function renderLlmstxt(manifest: SvforgeManifest): string {
 	lines.push('Stack: SvelteKit + Skeleton UI v5 + Tailwind v4 + Paraglide i18n + Vitest');
 	if (manifest.stack?.auth) lines.push(`Auth: ${manifest.stack.auth}  •  ORM: ${manifest.stack.orm}`);
 	if (manifest.stack?.database) lines.push(`Database: ${manifest.stack.database}`);
+	lines.push('');
+	// Deployment contract (#332): the declared profile + the installed
+	// modules' supported/unsupported profiles — an agent reads this BEFORE
+	// proposing a deployment architecture.
+	const profile = manifest.deployment?.profile ?? DEFAULT_PROFILE;
+	const profileInfo = DEPLOYMENT_PROFILE_INFO[profile];
+	lines.push('## Deployment');
+	lines.push(`- profile: ${profile} — ${profileInfo.title}: ${profileInfo.description}`);
+	lines.push(`- declared in .svforge.json (deployment.profile); when the target changes, update it and re-run \`svforge context\``);
+	lines.push(
+		`- runtime placement: background worker = ${profileInfo.runtime['runtime.longLivedWorker']}, websocket = ${profileInfo.runtime['runtime.websocket']} (app lifecycle: ${profileInfo.appLifecycle})`
+	);
+	for (const note of profileInfo.notes) lines.push(`- note: ${note}`);
+	const constrainedModules = Object.keys(manifest.moduleCapabilities ?? {}).filter((id) => (MODULE_PROFILES[id]?.unsupported.length ?? 0) > 0);
+	if (constrainedModules.length > 0) {
+		lines.push('- module constraints:');
+		for (const id of constrainedModules) {
+			const entry = MODULE_PROFILES[id]!;
+			lines.push(`  - ${id}: runs on ${entry.supported.join(', ')}; NOT on ${entry.unsupported.join(', ')}`);
+			const conflictNote = entry.notes[profile];
+			if (conflictNote) lines.push(`    - CONFLICT with the declared profile: ${conflictNote}`);
+		}
+	}
+	lines.push('- before proposing a deployment architecture, check this section and .svforge.json moduleCapabilities[*].profiles');
 	lines.push('');
 	lines.push('## Capabilities installed');
 	for (const cap of manifest.capabilities) lines.push(`- ${cap}`);
@@ -221,7 +282,7 @@ export function renderLlmstxt(manifest: SvforgeManifest): string {
 
 /** Merge module contributions into an existing manifest (idempotent). */
 export function mergeManifest(existing: SvforgeManifest, template: 'base' | 'dashboard', modules: string[]): SvforgeManifest {
-	const merged = buildManifest(template, [...new Set([...existing.modules, ...modules])]);
+	const merged = buildManifest(template, [...new Set([...existing.modules, ...modules])], existing.deployment?.profile ?? DEFAULT_PROFILE);
 	return merged;
 }
 
@@ -290,8 +351,9 @@ export function regenerateLlmstxt(manifestContent: string): string {
 		);
 	}
 	const manifest = parsed.value as SvforgeManifest;
-	// Rebuild from the template + installed modules so capabilities/patterns
-	// always reflect the real state (module enrich only adds its id).
-	const rebuilt = buildManifest(manifest.template ?? 'base', manifest.modules ?? []);
+	// Rebuild from the template + installed modules (+ the DECLARED deployment
+	// profile — never reset a user declaration to the default) so
+	// capabilities/patterns always reflect the real state.
+	const rebuilt = buildManifest(manifest.template ?? 'base', manifest.modules ?? [], manifest.deployment?.profile ?? DEFAULT_PROFILE);
 	return renderLlmstxt(rebuilt);
 }

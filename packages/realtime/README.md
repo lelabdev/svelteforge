@@ -143,6 +143,69 @@ type RealtimeEvent<T = unknown> = { channel: string; event: string; payload: T }
 - `ws` — WebSocket server
 - `@types/ws` (dev)
 
+## Deployment profiles & adapter compatibility (#332)
+
+Realtime requires a runtime that can hold a WebSocket server open. Check the
+profile BEFORE choosing a host — the capability is declared in `.svforge.json`
+(`deployment.profile`) and enforced as a warning by `npx svforge doctor`.
+
+| Profile | Realtime | How |
+|---|---|---|
+| `node-long-lived` (default) | ✅ in-process | `realtime.attach(server)` on an adapter-node custom server, behind a reverse proxy that forwards the `Upgrade` header |
+| `separate-worker` | ✅ on the worker only | run `realtime.listen(PORT)` on a dedicated long-lived Node/WS deployment (the **separate-WS-server option**); web replicas never touch WebSockets |
+| `serverless` | ❌ | function instances are killed after each request — no WS server survives; use the separate-worker profile |
+| `edge` | ❌ | no WebSocket server and no Node net stack |
+
+Precisely, by SvelteKit adapter:
+
+- **adapter-node** — compatible (option A): boot an HTTP server yourself and
+  `attach()` the hub, or use option B on a second deployment.
+- **adapter-auto / adapter-vercel (functions)** — NOT compatible: functions
+  cannot hold WS connections. Deploy the hub as a separate WS server (option B
+  on a VPS/container) and point the client at its URL.
+- **adapter-cloudflare / edge runtimes** — NOT compatible: `ws` needs Node's
+  net stack (Durable Objects are the platform-native alternative, outside
+  SVForge scope).
+- **adapter-static** — no server at all; same separate-WS-server option.
+
+### The separate-WS-server option (profile `separate-worker`)
+
+1. Deploy the SAME codebase twice: web (serverless) + WS worker (long-lived
+   Node container running `realtime.listen(PORT)`).
+2. Point the client at the worker: `createRealtimeClient('wss://ws.example.dev/api/realtime')`.
+3. Publish from the web app. v1 keeps a single hub per process — the web app
+   cannot `publish()` into another process's memory. Bridge the two
+   deployments with a shared backend (e.g. Postgres `LISTEN/NOTIFY` polled by
+   the worker, or HTTP calls from the app to a small publish endpoint on the
+   worker) — wire it in `$lib/server/realtime/index.ts`.
+
+## Runtime limits (#332)
+
+Always ON — an internet-exposed endpoint needs hard bounds. All are tunable
+via `createRealtimeHub({ ... })`:
+
+| Option | Default | Behavior when exceeded |
+|---|---|---|
+| `maxFrameBytes` | 64 KiB | socket closed with `1009` (message too big) |
+| `maxChannelsPerClient` | 32 | `{ type: 'error', channel, error: 'channel-limit' }`, channel not joined |
+| `maxFramesPerSecond` | 60 | frame dropped, `{ type: 'error', error: 'rate-limited' }`, connection kept |
+| `maxPendingAuthorizations` | 8 | `{ type: 'error', channel, error: 'too-many-pending' }` |
+| `authorizeTimeoutMs` | 5000 | authorization unresolved → subscription refused (`unauthorized`) |
+
+### Asynchronous authorization — defined behavior
+
+`authorize` may be async. While a subscription is pending:
+
+- a **duplicate subscribe for the same channel is ignored** (one authorization
+  call, one ack — no double-add);
+- pending authorizations count toward `maxPendingAuthorizations`;
+- the channel cap is **re-checked after** authorization resolves (racing
+  subscribes cannot exceed `maxChannelsPerClient`);
+- if the socket **closes mid-authorization**, the result is discarded: no
+  send, no state change, no crash;
+- a **throwing** authorize refuses the subscription (`unauthorized`) and never
+  crashes the hub.
+
 ## Limits (v1)
 
 - Single hub per process — no horizontal scaling of connections in v1 (one

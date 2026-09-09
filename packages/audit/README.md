@@ -41,6 +41,52 @@ await audit.byActor(userId, { limit: 50 });    // actions by one actor
 await audit.list({ action: 'punch.corrected', entityType: 'punch', limit: 50, offset: 0 });
 ```
 
+## Retention (#332)
+
+Default: **keep forever**. The only sanctioned delete path is
+`audit.purgeExpired()`:
+
+```ts
+import { audit } from '$lib/server/audit';
+
+// Period from AUDIT_RETENTION_DAYS (no-op when unset):
+await audit.purgeExpired();
+// Explicit period (days):
+await audit.purgeExpired({ days: 365 });
+```
+
+Run it from a scheduled job (e.g. the jobs module) or a cron hitting an
+admin-only endpoint. With `append-only.sql` applied (below), purging requires
+the documented maintenance window — plan the two together.
+
+## PII classification & redaction (#332)
+
+Two columns are personal data under GDPR — collect them only when the feature
+genuinely needs them:
+
+- `ipAddress`, `userAgent`
+
+Free-form `metadata` is where PII leaks in practice. Set
+`AUDIT_PII_MODE=redact` to make `audit.record()` strip PII-classified keys
+(email, phone, names, addresses, tokens, card/IBAN…) before insert and null
+the PII columns. The classification lives in `$lib/server/audit/pii.ts` —
+adjust the patterns to your jurisdiction, keep the contract. Default mode is
+`keep` (collect as provided).
+
+## Append-only integrity (#332)
+
+The application API has no update/delete path — but nothing stops another
+database client. For a DB-level guarantee, apply the shipped trigger once per
+environment:
+
+```bash
+psql "$DATABASE_URL" -f src/lib/server/audit/append-only.sql
+```
+
+Every `UPDATE`/`DELETE` on `audit_logs` then fails at the database level.
+Purges run through the explicit maintenance window documented in the same
+file (disable trigger → purge → re-enable).
+
 ## Admin view
 
 `/admin/audit` — filter by action/entity, paginated, admin-only (same guard as
@@ -71,10 +117,11 @@ the application level.
 
 ## Limits (v1)
 
-- Append-only at the application level only — there is no retention policy /
-  pruning in v1. Add a cleanup job when volume grows.
+- Retention is opt-in (`AUDIT_RETENTION_DAYS` / `purgeExpired`); without it
+  the log grows forever.
 - `metadata` is a JSONB free-form map: keep it small and non-sensitive (see
-  confidentiality above).
+  the PII policy above). Redaction is key-pattern-based, not content-aware —
+  deeply nested PII inside a non-flagged key is not detected.
 - List endpoint is a simple page-based read; no search/indexing in v1.
 
 ## License

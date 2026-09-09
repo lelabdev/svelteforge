@@ -4,8 +4,10 @@ import { jobsApi } from './index';
  * Job runner (#231) — processes queued jobs on an interval.
  *
  * v1 guarantees: at-least-once (handlers must be idempotent), bounded retries,
- * single-process polling. For multi-process deployments, only one instance
- * should run the runner (e.g. a dedicated worker), or extend with a row lock.
+ * single-process polling. For multi-process deployments use the
+ * `separate-worker` profile (#328/#332): exactly one worker deployment runs
+ * the runner (JOBS_WORKER=worker or unset); web replicas set JOBS_WORKER=web
+ * and never start it. See the module README for the deployment recipe.
  */
 
 let timer: ReturnType<typeof setInterval> | null = null;

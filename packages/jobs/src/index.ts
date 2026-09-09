@@ -38,14 +38,17 @@ export default defineAddon({
 			return `import { jobs } from '$lib/server/jobs/schema';\n${content}\nexport { jobs };\n`;
 		});
 
-		// Start the runner in the SvelteKit server hooks.
+		// Start the runner in the SvelteKit server hooks — guarded by the
+		// deployment profile (#332/#328): JOBS_WORKER=web keeps web replicas
+		// runner-free in a separate-worker deployment; unset or =worker runs it
+		// here (the default single long-lived Node process keeps working).
 		sv.file('src/hooks.server.ts', (content) => {
-			if (!content || content.includes('startJobRunner')) return content;
-			return `import { startJobRunner } from '$lib/server/jobs/runner';\n${content}`;
+			if (!content || content.includes('JOBS_WORKER')) return content;
+			return `import { env } from '$env/dynamic/private';\n${content}`;
 		});
 		sv.file('src/hooks.server.ts', (content) => {
 			if (!content || content.includes('startJobRunner()')) return content;
-			return `${content}\nstartJobRunner();\n`;
+			return `${content}\n// #332/#328 — separate-worker profile: JOBS_WORKER=web on web replicas\n// (runner on the dedicated worker); unset or =worker runs the runner here.\nif (env.JOBS_WORKER !== 'web') startJobRunner();\n`;
 		});
 
 		// AI context (#234): planned in memory first (#324) — an invalid
@@ -58,6 +61,7 @@ export default defineAddon({
 	nextSteps: ({ cwd }) => {
 		const steps = [
 			'@svforge/jobs installed!',
+			'Deployment profile (#332): the runner needs a long-lived process. node-long-lived runs it in-process; on serverless use the separate-worker profile (JOBS_WORKER=worker on the worker, JOBS_WORKER=web on web replicas). It never runs on edge.',
 			'Define a handler: import { define } from "$lib/server/jobs";',
 			'  define("payroll.export", async (payload, ctx) => { await ctx.progress(10); ... return { fileId }; });',
 			'Enqueue: await jobs.enqueue("payroll.export", { organizationId });',

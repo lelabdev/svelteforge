@@ -27,6 +27,13 @@
 
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import {
+	DEPLOYMENT_PROFILES,
+	DEFAULT_PROFILE,
+	DEPLOYMENT_PROFILE_INFO,
+	profileConflicts,
+	type DeploymentProfile
+} from '@svforge/addon-kit';
 
 export interface DiagnosticResult {
 	/** Module or area being checked. */
@@ -52,6 +59,10 @@ interface InstalledState {
 	template: 'base' | 'dashboard' | null;
 	modules: string[];
 	capabilities: Capability[];
+	/** Declared deployment profile (#332): value, undefined when undeclared. */
+	deployment?: DeploymentProfile;
+	/** Raw declared profile when malformed (#332) — echoed in the diagnostic. */
+	deploymentInvalid?: string;
 }
 
 /**
@@ -112,6 +123,12 @@ export async function doctor(projectRoot: string = process.cwd()): Promise<Docto
 
 	// 3. Determine the INSTALLED capabilities (manifest, else deps)
 	const state = readInstalledState(projectRoot, results);
+
+	// 3b. Deployment-profile compatibility (#332): warn ONLY when an installed
+	// module cannot run on the DECLARED profile.
+	results.push(checkDeploymentProfile(state));
+	const dbRuntime = checkDatabaseRuntime(state);
+	if (dbRuntime) results.push(dbRuntime);
 
 	// 4. Check only the env vars the installed capabilities require
 	results.push(...checkEnvVars(projectRoot, state.capabilities));
@@ -192,7 +209,9 @@ function readInstalledState(root: string, results: DiagnosticResult[]): Installe
 				source: 'manifest',
 				template: manifest.template,
 				modules: manifest.modules,
-				capabilities: [...capabilities]
+				capabilities: [...capabilities],
+				deployment: manifest.deployment,
+				deploymentInvalid: manifest.deploymentInvalid
 			};
 		}
 		// Invalid manifest: the error diagnostic was already emitted by
@@ -220,6 +239,10 @@ function readInstalledState(root: string, results: DiagnosticResult[]): Installe
 interface ParsedManifest {
 	template: 'base' | 'dashboard';
 	modules: string[];
+	/** Declared deployment profile (#332): value, undefined when absent. */
+	deployment?: DeploymentProfile;
+	/** Raw declared profile when malformed (#332). */
+	deploymentInvalid?: string;
 }
 
 /** Parse and validate .svforge.json. Emits a clear error diagnostic when invalid. */
@@ -246,7 +269,21 @@ function parseManifest(manifestPath: string, results: DiagnosticResult[]): Parse
 			return invalid('every entry in "modules" must be a string');
 		}
 		// Unknown string module ids and unknown top-level fields stay accepted.
-		return { template, modules: record.modules as string[] };
+		let deployment: DeploymentProfile | undefined;
+		let deploymentInvalid: string | undefined;
+		const rawDeployment = (record as Record<string, unknown>).deployment;
+		if (rawDeployment !== undefined) {
+			const profile =
+				typeof rawDeployment === 'object' && rawDeployment !== null && !Array.isArray(rawDeployment)
+					? (rawDeployment as Record<string, unknown>).profile
+					: undefined;
+			if (typeof profile === 'string' && DEPLOYMENT_PROFILES.includes(profile as DeploymentProfile)) {
+				deployment = profile as DeploymentProfile;
+			} else {
+				deploymentInvalid = typeof profile === 'string' ? profile : JSON.stringify(rawDeployment);
+			}
+		}
+		return { template, modules: record.modules as string[], deployment, deploymentInvalid };
 	} catch (error) {
 		return invalid(error instanceof Error ? error.message : 'invalid JSON');
 	}
@@ -270,6 +307,69 @@ function readDependencies(root: string): Record<string, string> | null {
 	} catch {
 		return null;
 	}
+}
+
+// ── Deployment-profile compatibility (#332) ─────────────────────────
+
+/**
+ * Check the DECLARED deployment profile against the installed modules
+ * (#332). Warns ONLY on incompatibility: modules the matrix marks
+ * unsupported on the declared profile. Without a declaration the doctor
+ * reports the assumed default and how to make it explicit — never a
+ * warning, because there is nothing declared to contradict.
+ */
+function checkDeploymentProfile(state: InstalledState): DiagnosticResult {
+	if (state.deploymentInvalid !== undefined) {
+		return {
+			module: 'deployment',
+			status: 'warn',
+			message: `.svforge.json declares an invalid deployment.profile (${state.deploymentInvalid}) — valid profiles: ${DEPLOYMENT_PROFILES.join(', ')}. Fix the field so agents and this doctor can check installed modules against your real target.`
+		};
+	}
+	if (state.deployment === undefined) {
+		return {
+			module: 'deployment',
+			status: 'ok',
+			message: `No deployment profile declared in .svforge.json — agents assume "${DEFAULT_PROFILE}" (the scaffold default). Declare "deployment": { "profile": ... } (one of ${DEPLOYMENT_PROFILES.join(', ')}) to make module ⇄ target compatibility explicit.`
+		};
+	}
+	const profile = state.deployment;
+	const info = DEPLOYMENT_PROFILE_INFO[profile];
+	const conflicts = profileConflicts(profile, state.modules);
+	if (conflicts.length > 0) {
+		return {
+			module: 'deployment',
+			status: 'warn',
+			message: `Installed modules incompatible with the declared "${profile}" profile (${info.title}): ${conflicts.map((c) => c.reason).join(' | ')} Switch the profile, move the module to a compatible one (e.g. the separate-worker profile), or remove the module.`
+		};
+	}
+	return {
+		module: 'deployment',
+		status: 'ok',
+		message: `Deployment profile "${profile}" (${info.title}) — all installed modules are compatible.`
+	};
+}
+
+/**
+ * Ephemeral profiles change the RIGHT PostgreSQL client configuration
+ * (#332): remind (ok-level, never a warning) when the dashboard DB is
+ * installed and the profile is serverless/edge.
+ */
+function checkDatabaseRuntime(state: InstalledState): DiagnosticResult | null {
+	// node-long-lived is the only profile where the default pool applies; the
+	// three ephemeral-app profiles want DATABASE_RUNTIME=serverless on the web
+	// side (separate-worker keeps the long-lived pool on the worker itself).
+	if (state.deployment === undefined || state.deployment === 'node-long-lived') {
+		return { module: 'database-runtime', status: 'ok', message: 'Long-lived process assumed — the default PostgreSQL pool configuration applies.' };
+	}
+	if (!state.capabilities.includes('dashboard')) {
+		return { module: 'database-runtime', status: 'ok', message: 'No dashboard DB installed — the runtime lifecycle does not change any client configuration.' };
+	}
+	return {
+		module: 'database-runtime',
+		status: 'ok',
+		message: `The "${state.deployment}" profile is ephemeral — set DATABASE_RUNTIME=serverless so src/lib/server/db uses the single-connection, pooler-safe client on the web side (see docs/deploy/${state.deployment}.md).`
+	};
 }
 
 // ── Environment checks (capability-derived) ─────────────────────────

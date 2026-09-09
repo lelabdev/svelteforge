@@ -59,6 +59,228 @@
       ]
     }
   },
+  "deployment": {
+    "$comment": "Deployment profiles (#332). The declared profile lives in the project .svforge.json (deployment.profile, default node-long-lived); npx svforge doctor warns when an installed module is incompatible with it. This block mirrors @svforge/addon-kit (DEPLOYMENT_PROFILE_INFO + MODULE_PROFILES).",
+    "defaultProfile": "node-long-lived",
+    "profiles": {
+      "node-long-lived": {
+        "title": "Long-lived Node server",
+        "description": "an always-on Node process: background timers and WebSocket servers live in the same process as the app",
+        "examples": [
+          "adapter-node on a VPS or container",
+          "Coolify / Docker Compose",
+          "systemd service behind a reverse proxy"
+        ],
+        "appLifecycle": "long-lived",
+        "runtime": {
+          "runtime.longLivedWorker": "in-process",
+          "runtime.websocket": "in-process"
+        },
+        "notes": []
+      },
+      "serverless": {
+        "title": "Serverless functions",
+        "description": "short-lived, request-scoped functions: no background timer survives the request and no WebSocket server can be held open",
+        "examples": [
+          "Vercel functions",
+          "Netlify functions",
+          "AWS Lambda"
+        ],
+        "appLifecycle": "ephemeral",
+        "runtime": {
+          "runtime.longLivedWorker": "unsupported",
+          "runtime.websocket": "unsupported"
+        },
+        "notes": [
+          "use a connection pooler (Neon, Supabase pooler, PgBouncer) and set DATABASE_RUNTIME=serverless so src/lib/server/db uses the serverless-safe client"
+        ]
+      },
+      "edge": {
+        "title": "Edge runtime",
+        "description": "edge isolates (V8 workers): no long-lived process, no WebSocket server, and no raw TCP sockets — Node drivers do not run there",
+        "examples": [
+          "Cloudflare Workers/Pages",
+          "Deno Deploy",
+          "Vercel Edge"
+        ],
+        "appLifecycle": "ephemeral",
+        "runtime": {
+          "runtime.longLivedWorker": "unsupported",
+          "runtime.websocket": "unsupported"
+        },
+        "notes": [
+          "postgres.js opens raw TCP sockets: the SVForge database stack needs an HTTP-driver replacement SVForge does not provide"
+        ]
+      },
+      "separate-worker": {
+        "title": "Serverless app + long-lived worker",
+        "description": "the web app runs serverless while background jobs and the WebSocket server run on a dedicated long-lived Node deployment of the SAME codebase",
+        "examples": [
+          "Vercel app + worker container running the same image",
+          "serverless app + one adapter-node worker (JOBS_WORKER=worker)"
+        ],
+        "appLifecycle": "ephemeral",
+        "runtime": {
+          "runtime.longLivedWorker": "separate",
+          "runtime.websocket": "separate"
+        },
+        "notes": [
+          "only the worker deployment runs the job runner / WS server; web replicas set JOBS_WORKER=web so they never start one"
+        ]
+      }
+    },
+    "modules": {
+      "ui_toast": {
+        "supported": [
+          "node-long-lived",
+          "serverless",
+          "edge",
+          "separate-worker"
+        ],
+        "unsupported": [],
+        "notes": {}
+      },
+      "dnd": {
+        "supported": [
+          "node-long-lived",
+          "serverless",
+          "edge",
+          "separate-worker"
+        ],
+        "unsupported": [],
+        "notes": {}
+      },
+      "tiptap": {
+        "supported": [
+          "node-long-lived",
+          "serverless",
+          "edge",
+          "separate-worker"
+        ],
+        "unsupported": [],
+        "notes": {}
+      },
+      "graph": {
+        "supported": [
+          "node-long-lived",
+          "serverless",
+          "edge",
+          "separate-worker"
+        ],
+        "unsupported": [],
+        "notes": {}
+      },
+      "blog": {
+        "supported": [
+          "node-long-lived",
+          "serverless",
+          "edge",
+          "separate-worker"
+        ],
+        "unsupported": [],
+        "notes": {}
+      },
+      "email": {
+        "supported": [
+          "node-long-lived",
+          "serverless",
+          "edge",
+          "separate-worker"
+        ],
+        "unsupported": [],
+        "notes": {}
+      },
+      "oauth": {
+        "supported": [
+          "node-long-lived",
+          "serverless",
+          "edge",
+          "separate-worker"
+        ],
+        "unsupported": [],
+        "notes": {}
+      },
+      "uploads": {
+        "supported": [
+          "node-long-lived",
+          "serverless",
+          "edge",
+          "separate-worker"
+        ],
+        "unsupported": [],
+        "notes": {}
+      },
+      "audit": {
+        "supported": [
+          "node-long-lived",
+          "serverless",
+          "separate-worker"
+        ],
+        "unsupported": [
+          "edge"
+        ],
+        "notes": {
+          "edge": "postgres.js opens raw TCP sockets, which edge isolates do not allow — run the app on Node (long-lived or serverless) or replace the DB driver with an HTTP-driver implementation"
+        }
+      },
+      "notifications": {
+        "supported": [
+          "node-long-lived",
+          "serverless",
+          "separate-worker"
+        ],
+        "unsupported": [
+          "edge"
+        ],
+        "notes": {
+          "edge": "postgres.js opens raw TCP sockets, which edge isolates do not allow — run the app on Node (long-lived or serverless) or replace the DB driver with an HTTP-driver implementation"
+        }
+      },
+      "chat": {
+        "supported": [
+          "node-long-lived",
+          "serverless",
+          "separate-worker"
+        ],
+        "unsupported": [
+          "edge"
+        ],
+        "notes": {
+          "edge": "postgres.js opens raw TCP sockets, which edge isolates do not allow — run the app on Node (long-lived or serverless) or replace the DB driver with an HTTP-driver implementation"
+        }
+      },
+      "jobs": {
+        "supported": [
+          "node-long-lived",
+          "separate-worker"
+        ],
+        "unsupported": [
+          "serverless",
+          "edge"
+        ],
+        "notes": {
+          "serverless": "the in-process runner is killed between requests — use the separate-worker profile: a dedicated long-lived worker deployment (JOBS_WORKER=worker) polls the queue while web replicas set JOBS_WORKER=web",
+          "edge": "no long-lived process and no raw TCP sockets — run the worker on Node (separate-worker profile)",
+          "separate-worker": "the runner lives ONLY on the dedicated worker deployment (JOBS_WORKER=worker); web replicas set JOBS_WORKER=web and merely enqueue"
+        }
+      },
+      "realtime": {
+        "supported": [
+          "node-long-lived",
+          "separate-worker"
+        ],
+        "unsupported": [
+          "serverless",
+          "edge"
+        ],
+        "notes": {
+          "serverless": "function instances cannot hold WebSocket servers open — use the separate-worker profile: hub.listen(PORT) on a dedicated long-lived Node/WS server, with the app publishing through a shared backend (e.g. Postgres LISTEN/NOTIFY) or HTTP calls to that server",
+          "edge": "no WebSocket server and no Node net stack — run the WS server on Node (separate-worker profile)",
+          "separate-worker": "run the WS server on the dedicated worker deployment via hub.listen(PORT) — SvelteKit serverless adapters never expose the underlying HTTP server"
+        }
+      }
+    }
+  },
   "modules": {
     "ui_toast": {
       "id": "ui_toast",
