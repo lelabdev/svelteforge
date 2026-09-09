@@ -32,7 +32,7 @@
 		<!-- Desktop links -->
 		<div class="hidden items-center gap-4 md:flex">
 			{#each links as link (link.href)}
-				<a href={link.href} class="transition-colors hover:text-primary-500">
+				<a href={link.href} class="anchor">
 					{link.label}
 				</a>
 			{/each}
@@ -57,7 +57,7 @@
 	{#if mobileOpen}
 		<div class="flex flex-col gap-3 border-t border-surface-200-800 px-4 py-3 md:hidden">
 			{#each links as link (link.href)}
-				<a href={link.href} class="transition-colors hover:text-primary-500" onclick={() => (mobileOpen = false)}>
+				<a href={link.href} class="anchor" onclick={() => (mobileOpen = false)}>
 					{link.label}
 				</a>
 			{/each}

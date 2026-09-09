@@ -26,7 +26,7 @@
 
 		<Card variant="elevated">
 			<div class="mb-6 text-center">
-				<h1 class="text-2xl font-bold">{m.login_welcome_back()}</h1>
+				<h1 class="h1">{m.login_welcome_back()}</h1>
 				<p class="mt-1 text-surface-500">{m.login_signin_hint()}</p>
 			</div>
 

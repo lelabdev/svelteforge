@@ -1,6 +1,7 @@
 import type { SvApi } from 'sv';
 import { scaffoldedAgents } from '../scaffolded-agents';
 import { buildManifest, renderLlmstxt } from '../ai-context';
+import { scaffoldedLocalDocs } from '../local-docs';
 
 // Files that must land at the PROJECT ROOT, not under src/ (#235):
 // Vitest discovers its config only at the project root.
@@ -120,6 +121,12 @@ export function applyBaseMode(
 	// AI-ready: scaffold AGENTS.md at the project root (#203, #347) — the
 	// sole agent convention of a SvelteForge project.
 	sv.file('AGENTS.md', () => scaffoldedAgents('base'));
+
+	// #317: ship the cached Skeleton/Svelte LLM references so agents search
+	// local, version-matched docs before changing Skeleton UI/theme.
+	for (const [doc, content] of Object.entries(scaffoldedLocalDocs())) {
+		sv.file(doc, () => content);
+	}
 
 	// AI context (#234): machine-readable manifest + llms.txt, derived from
 	// the real scaffold state. The dashboard mode overrides with its template.

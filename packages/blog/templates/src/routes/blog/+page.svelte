@@ -16,7 +16,7 @@ let { data } = $props();
 <p class="text-surface-500 mb-4">{post.excerpt}</p>
 <div class="flex gap-2">
 {#each post.tags as tag}
-<Badge size="sm" variant="tonal">{tag}</Badge>
+<Badge variant="tonal">{tag}</Badge>
 {/each}
 </div>
 <p class="text-sm text-surface-400 mt-4">{new Date(post.date).toLocaleDateString()}</p>

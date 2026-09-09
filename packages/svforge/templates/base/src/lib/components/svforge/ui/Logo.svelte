@@ -29,7 +29,9 @@
 	}
 
 	.logo {
-		font-family: 'Space Grotesk Variable', sans-serif;
+		/* #317: the brand font comes from the theme (--typo-heading--font-family
+		   = Space Grotesk), not a second hard-coded copy of the family. */
+		font-family: var(--typo-heading--font-family, 'Space Grotesk Variable', sans-serif);
 		color: transparent;
 		background: linear-gradient(
 			45deg,
