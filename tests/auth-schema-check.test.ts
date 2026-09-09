@@ -7,8 +7,41 @@ import { join } from 'node:path';
 const ROOT = join(import.meta.dirname, '..');
 const COMMITTED_PATH = join(ROOT, 'packages/svforge/templates/dashboard/src/lib/server/db/auth.schema.ts');
 
-const { compareSchemas, normalizeRuntimeSchema, parseDrizzleTables }
-	= await import('../scripts/check-auth-schema.mjs');
+type RuntimeField = {
+	type: string;
+	required?: boolean;
+	unique?: boolean;
+	hasDefault?: boolean;
+	defaultValue?: unknown;
+	defaultIsComputed?: boolean;
+	fieldName?: string;
+	references?: { model: string; field: string; onDelete: string };
+	implicitPrimaryKey?: boolean;
+	[k: string]: unknown;
+};
+type RuntimeModelTable = { fields: Record<string, RuntimeField>; [k: string]: unknown };
+const schemaModule = (await import('../scripts/check-auth-schema.mjs')) as {
+	parseDrizzleTables: (source: string) => Record<string, {
+		columns: Record<string, {
+			column: string;
+			drizzleType: string;
+			primaryKey?: boolean;
+			notNull?: boolean;
+			hasDefault?: boolean;
+			defaultLiteral?: string;
+			unique?: boolean;
+			references?: { table: string; property: string; onDelete: string };
+		}>;
+		indexes: string[][];
+	}>;
+	normalizeRuntimeSchema: (schema: Record<string, unknown>) => Record<string, RuntimeModelTable>;
+	compareSchemas: (
+		runtimeModel: Record<string, RuntimeModelTable>,
+		committedSource: string,
+		allowlist: Record<string, string[]>
+	) => { drift: Array<{ kind: string; table: string; column?: string }> };
+};
+const { compareSchemas, normalizeRuntimeSchema, parseDrizzleTables } = schemaModule;
 
 const committedSource = () => readFileSync(COMMITTED_PATH, 'utf8');
 
@@ -18,7 +51,7 @@ const committedSource = () => readFileSync(COMMITTED_PATH, 'utf8');
  * derive from the runtime — not from the lagging @better-auth/cli (#319
  * review). Note there is no `id` field: the primary key is implicit.
  */
-function runtimeSchemaFixture() {
+function runtimeSchemaFixture(): Record<string, { fields: Record<string, RuntimeField>; order?: number; indexes?: unknown[] }> & Record<string, unknown> {
 	const fn = () => new Date();
 	return {
 		user: {
@@ -172,7 +205,7 @@ describe('better-auth runtime schema ↔ committed schema gate (#319, #319 revie
 
 		it('reports a committed column the runtime does not know (allowlist respected)', () => {
 			const model = normalizeRuntimeSchema(runtimeSchemaFixture());
-			const withoutAllow = compareSchemas(model, committedSource(), {});
+			const withoutAllow = compareSchemas(model, committedSource(), {} as Record<string, string[]>);
 			expect(withoutAllow.drift).toEqual([
 				expect.objectContaining({ kind: 'column', table: 'user', column: 'disabled' })
 			]);
