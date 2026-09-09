@@ -153,7 +153,8 @@ export function safeProjectPath(projectRoot: string, relativePath: string, what 
 			} catch (linkError) {
 				if (st.isSymbolicLink() && (linkError as NodeJS.ErrnoException).code === 'ENOENT') {
 					throw new Error(
-						`Invalid ${what}: "${relativePath}" crosses a DANGLING symlink ("${current}") whose target does not exist — containment cannot be verified, refusing (#386).`
+						`Invalid ${what}: "${relativePath}" crosses a DANGLING symlink ("${current}") whose target does not exist — containment cannot be verified, refusing (#386).`,
+						{ cause: linkError }
 					);
 				}
 				throw linkError;
