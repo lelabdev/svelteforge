@@ -71,6 +71,7 @@
 	// rel, download…) symmetrically.
 	const anchorRest = $derived.by(() => {
 		const {
+			onclick: _onclick, // never spread raw — wrapped by handleAnchorClick (#321)
 			type: _type,
 			name: _name,
 			form: _form,
@@ -103,6 +104,21 @@
 		return attrs;
 	});
 
+	// Activation gate (#321): a disabled/loading anchor stays focusable (the
+	// aria-disabled pattern) but must be INERT. `pointer-events-none` blocks
+	// the mouse, yet Enter on a focused anchor still dispatches a click event
+	// and would navigate. Gating the activation (click, whether from mouse or
+	// keyboard) covers both paths: inactive → preventDefault() blocks the
+	// navigation and the consumer handler is skipped; active → call through.
+	const handleAnchorClick: HTMLAnchorAttributes['onclick'] = (event) => {
+		if (inactive) {
+			event.preventDefault();
+			return;
+		}
+		const consumer = (rest as HTMLAnchorAttributes).onclick;
+		consumer?.(event);
+	};
+
 	const sizeClass = $derived(size === 'sm' ? 'btn-sm' : size === 'lg' ? 'btn-lg' : 'btn-md');
 	const presetClass = $derived(presets[variant]?.[color] ?? '');
 	const classes = $derived(cn('btn', presetClass, sizeClass, className));
@@ -126,13 +142,16 @@
 	<!-- Consumer attributes spread FIRST; href/class and the computed
 	     aria-disabled / aria-busy land LAST so component state stays
 	     authoritative — a consumer `aria-disabled="false"` cannot mask a
-	     disabled/loading state (#321). -->
+	     disabled/loading state (#321). The consumer onclick is gated through
+	     handleAnchorClick: a disabled/loading anchor blocks activation
+	     (preventDefault) instead of navigating on Enter/click (#321). -->
 	<a
 		{...anchorRest}
 		{href}
 		class={anchorClasses}
 		aria-disabled={inactive || undefined}
 		aria-busy={loading || undefined}
+		onclick={handleAnchorClick}
 	>
 		{#if loading}
 			{@render spinner()}
@@ -140,12 +159,16 @@
 		{@render children()}
 	</a>
 {:else}
+	<!-- Same pattern as the anchor branch: consumer rest props spread
+	     FIRST, the component's computed state (type/disabled/aria-busy)
+	     lands LAST — a consumer `aria-busy="false"` cannot mask loading
+	     (#321). -->
 	<button
+		{...buttonRest}
 		class={classes}
 		type={type ?? 'button'}
 		disabled={disabled || loading}
 		aria-busy={loading || undefined}
-		{...buttonRest}
 	>
 		{#if loading}
 			{@render spinner()}

@@ -207,3 +207,55 @@ describe('Button — button|anchor union (#321)', () => {
 		expect(anchor.className).not.toContain('opacity-50');
 	});
 });
+
+describe('Button — inactive anchor activation gate + button state authority (#321 blockers)', () => {
+	/**
+	 * Enter on a focused anchor dispatches a click event — `pointer-events-none`
+	 * hides the anchor from the mouse but NOT from the keyboard. Dispatching the
+	 * same synthetic activation click asserts the gate for both input paths.
+	 */
+	const activate = (el: Element) => {
+		const event = new MouseEvent('click', { bubbles: true, cancelable: true });
+		const preventDefault = vi.spyOn(event, 'preventDefault');
+		el.dispatchEvent(event);
+		return { preventDefault };
+	};
+
+	it('disabled anchor blocks activation: click (mouse or Enter) is prevented, consumer onClick skipped', () => {
+		const onclick = vi.fn();
+		const { getByRole } = button({ href: '/demo-ui', disabled: true, onclick });
+		const anchor = getByRole('link', { name: 'Save' });
+		// Anchor stays focusable (aria-disabled pattern)…
+		expect(anchor).toHaveAttribute('aria-disabled', 'true');
+		// …but activation must not navigate and must not reach the consumer.
+		const { preventDefault } = activate(anchor);
+		expect(preventDefault).toHaveBeenCalled();
+		expect(onclick).not.toHaveBeenCalled();
+	});
+
+	it('loading anchor blocks activation too: click is prevented, consumer onClick skipped', () => {
+		const onclick = vi.fn();
+		const { getByRole } = button({ href: '/demo-ui', loading: true, onclick });
+		const anchor = getByRole('link', { name: /Loading… Save/ });
+		const { preventDefault } = activate(anchor);
+		expect(preventDefault).toHaveBeenCalled();
+		expect(onclick).not.toHaveBeenCalled();
+	});
+
+	it('active anchor is untouched: click is not prevented and consumer onClick fires', () => {
+		const onclick = vi.fn();
+		const { getByRole } = button({ href: '/demo-ui', onclick });
+		const anchor = getByRole('link', { name: 'Save' });
+		const { preventDefault } = activate(anchor);
+		expect(preventDefault).not.toHaveBeenCalled();
+		expect(onclick).toHaveBeenCalledTimes(1);
+	});
+
+	it('button branch: component state wins — consumer aria-busy="false" cannot mask loading', () => {
+		// Consumer rest props spread FIRST, the computed aria-busy lands LAST —
+		// component loading state stays authoritative on the <button> too (#321).
+		const { getByRole } = button({ loading: true, 'aria-busy': 'false' });
+		const el = getByRole('button', { name: /Loading… Save/ });
+		expect(el).toHaveAttribute('aria-busy', 'true');
+	});
+});
