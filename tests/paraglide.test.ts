@@ -6,38 +6,49 @@ const ROOT = process.cwd();
 const BASE_ROOT = join(ROOT, 'packages/svforge/templates/base/root');
 
 /**
- * Tests for #239 — Paraglide FR/EN is a structural foundation of the base
- * template. Both catalogs must exist and stay in sync, and the files must be
- * embedded by the prebuild (delivered to the project root).
+ * Tests for #239 — Paraglide is a structural foundation of the base template.
+ * Catalogs must exist and stay in sync, and the files must be embedded by the
+ * prebuild (delivered to the project root).
+ *
+ * #322 — defaults vs constraints: the locale list is read from the ACTUAL
+ * configuration (project.inlang/settings.json), never hard-coded. Key parity
+ * must hold across EVERY configured locale, whatever the languages are; the
+ * scaffolded fr/en defaults are documented by a dedicated test.
  */
-describe('Paraglide FR/EN baseline (#239)', () => {
-	describe('catalogs exist and are in sync', () => {
-		const fr = JSON.parse(readFileSync(join(BASE_ROOT, 'messages/fr.json'), 'utf-8'));
-		const en = JSON.parse(readFileSync(join(BASE_ROOT, 'messages/en.json'), 'utf-8'));
+describe('Paraglide baseline (#239, #322)', () => {
+	const settings = JSON.parse(
+		readFileSync(join(BASE_ROOT, 'project.inlang/settings.json'), 'utf-8')
+	) as { baseLocale: string; locales: string[] };
 
-		it('has both fr and en catalogs', () => {
-			expect(fr).toBeDefined();
-			expect(en).toBeDefined();
+	const readCatalog = (locale: string): Record<string, unknown> =>
+		JSON.parse(readFileSync(join(BASE_ROOT, `messages/${locale}.json`), 'utf-8'));
+
+	const messageKeys = (catalog: Record<string, unknown>): string[] =>
+		Object.keys(catalog).filter((k) => !k.startsWith('$')).sort();
+
+	describe('catalogs exist and are in sync', () => {
+		it('every configured locale has a catalog at messages/<locale>.json', () => {
+			expect(settings.locales.length).toBeGreaterThan(0);
+			for (const locale of settings.locales) {
+				expect(readCatalog(locale), `messages/${locale}.json`).toBeDefined();
+			}
 		});
 
-		it('every FR key has an EN counterpart (and vice versa)', () => {
-			const frKeys = Object.keys(fr).filter((k) => !k.startsWith('$'));
-			const enKeys = Object.keys(en).filter((k) => !k.startsWith('$'));
-			expect(frKeys.sort()).toEqual(enKeys.sort());
+		it('key parity holds across EVERY configured locale (derived from settings.json)', () => {
+			const reference = JSON.stringify(messageKeys(readCatalog(settings.locales[0])));
+			for (const locale of settings.locales) {
+				expect(JSON.stringify(messageKeys(readCatalog(locale))), `locale "${locale}" key parity`).toBe(reference);
+			}
 		});
 
 		it('uses semantic key names, not render-bound ones', () => {
-			const frKeys = Object.keys(fr).filter((k) => !k.startsWith('$'));
-			for (const key of frKeys) {
+			for (const key of messageKeys(readCatalog(settings.baseLocale))) {
 				expect(key).toMatch(/^[a-z]+_[a-z_]+$/); // common_save, nav_home…
 				expect(key).not.toMatch(/button_text|_button$|big_title/);
 			}
 		});
 
-		it('baseLocale is fr', () => {
-			const settings = JSON.parse(
-				readFileSync(join(BASE_ROOT, 'project.inlang/settings.json'), 'utf-8')
-			);
+		it('scaffold ships fr (baseLocale) + en as INITIAL locales — a default, not a constraint', () => {
 			expect(settings.baseLocale).toBe('fr');
 			expect(settings.locales).toEqual(['fr', 'en']);
 		});

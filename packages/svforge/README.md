@@ -2,7 +2,7 @@
 
 **sv community addon** — production-ready foundations for SvelteKit projects.
 
-SVForge starts from a normal SvelteKit app and adds the pieces you would otherwise rebuild on every project: a coherent application structure and design-system conventions, Skeleton UI v5 + Tailwind CSS v4, Paraglide FR/EN, Vitest quality gates, and an optional admin dashboard with Better Auth + Drizzle ORM + PostgreSQL. It **does not replace SvelteKit** — the generated source belongs to your project, there is no opaque runtime to depend on after scaffolding.
+SVForge starts from a normal SvelteKit app and adds the pieces you would otherwise rebuild on every project: a coherent application structure and design-system conventions, Skeleton UI v5 + Tailwind CSS v4, Paraglide i18n (FR/EN initial locales), Vitest quality gates, and an optional admin dashboard with Better Auth + Drizzle ORM + PostgreSQL. It **does not replace SvelteKit** — the generated source belongs to your project, there is no opaque runtime to depend on after scaffolding.
 
 **Not a component library. Not a shadcn clone.** SVForge gives you the essentials — buttons, inputs, selects, cards, badges, theme, SEO, layouts — so you start fast and own everything. For richer components (dialog, tabs, tooltip, date-picker…), use the official [`@skeletonlabs/skeleton-svelte`](https://skeleton.dev) components directly.
 
@@ -68,6 +68,14 @@ Everything in Base, plus:
 - **Zod validation** — type-safe schemas on all server actions
 - **Setup script** — `bash scripts/setup.sh` (generates secret, inits DB)
 - **Pre-configured** — drizzle.config.ts, .env.example, tsconfig
+
+## Defaults vs constraints
+
+The scaffolded palette, fonts and locales are **ready-made defaults, not framework constraints** — each has one identified source of truth in the generated project:
+
+- **Theme**: the complete Skeleton v5 palette/theme in `src/lib/styles/svelteforge-theme.css` is SVForge's default theme. Replace its values (or point the import at another Skeleton v5 theme) without changing the architecture.
+- **Fonts**: Inter, Space Grotesk and Fira Code are declared only by the `@fontsource-variable/*` imports in `src/routes/layout.css` and mapped to roles (body/headings/code) by the theme. Change or remove them there.
+- **Locales**: `messages/<locale>.json` catalogs are the AI-first source of truth for static UI copy — edit the JSON, never the generated `src/lib/paraglide/` output. `fr` (baseLocale) and `en` are the initial locales, not a limit: add or remove a locale via `messages/*.json` + `project.inlang/settings.json` (one catalog + one `locales` entry per locale), and change `baseLocale` in the same settings file. Keep key parity across every configured locale; modules ship their message keys for the scaffolded locales (fr/en) — port them into any locale you add. Static UI copy stays in the catalogs — long-form editorial, business and CMS content belongs elsewhere (MDsveX, database).
 
 ## Module Addons
 

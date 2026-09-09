@@ -39,6 +39,18 @@ export interface SvforgeManifest {
 	patterns: Record<string, string>;
 	/** Capability contracts of the installed modules (#323). */
 	moduleCapabilities?: Record<string, { provides: string[]; requires: string[] }>;
+	/**
+	 * i18n contract (#322): where the message catalogs live and which locale is
+	 * the base. Values mirror the SCAFFOLD DEFAULT; the live configuration is
+	 * the generated project's project.inlang/settings.json + messages/*.json —
+	 * both are defaults an application may change, not framework constraints.
+	 */
+	i18n?: {
+		adapter: 'paraglide';
+		baseLocale: string;
+		catalogs: string;
+		settings: string;
+	};
 	generatedBy: string;
 }
 
@@ -52,6 +64,7 @@ const BASE_PATTERNS: Record<string, string> = {
 	'UI components': 'src/lib/components/svforge/',
 	'Skeleton theme': 'src/lib/styles/svelteforge-theme.css',
 	'Global CSS entrypoint': 'src/routes/layout.css',
+	'Fonts': 'src/routes/layout.css',
 	'i18n messages': 'messages/',
 	'SEO': 'src/lib/components/svforge/ui/Seo.svelte'
 };
@@ -123,6 +136,15 @@ export function buildManifest(template: 'base' | 'dashboard', modules: string[])
 		capabilities: [...new Set(capabilities)],
 		patterns,
 		moduleCapabilities,
+		// Scaffold default (#322) — mirrors templates/base/root/project.inlang/
+		// settings.json (baseLocale fr). The generated project's settings file
+		// is the live source of truth once the application evolves.
+		i18n: {
+			adapter: 'paraglide',
+			baseLocale: 'fr',
+			catalogs: 'messages/',
+			settings: 'project.inlang/settings.json'
+		},
 		generatedBy: 'svforge'
 	};
 }
@@ -133,7 +155,7 @@ export function renderLlmstxt(manifest: SvforgeManifest): string {
 	lines.push('# SvelteForge project');
 	lines.push('');
 	lines.push(`Template: ${manifest.template}`);
-	lines.push('Stack: SvelteKit + Skeleton UI v5 + Tailwind v4 + Paraglide FR/EN + Vitest');
+	lines.push('Stack: SvelteKit + Skeleton UI v5 + Tailwind v4 + Paraglide i18n + Vitest');
 	if (manifest.stack?.auth) lines.push(`Auth: ${manifest.stack.auth}  •  ORM: ${manifest.stack.orm}`);
 	if (manifest.stack?.database) lines.push(`Database: ${manifest.stack.database}`);
 	lines.push('');
@@ -160,7 +182,18 @@ export function renderLlmstxt(manifest: SvforgeManifest): string {
 	lines.push('## CSS architecture');
 	lines.push('- src/routes/layout.css is the single global CSS entrypoint; keep it as framework/tooling wiring');
 	lines.push('- src/lib/styles/svelteforge-theme.css is the complete Skeleton v5 theme and visual source of truth');
+	lines.push('- fonts are @fontsource-variable/* imports in src/routes/layout.css (Inter body, Space Grotesk headings, Fira Code code); swap or remove them there');
 	lines.push('- no generic tokens.css/index.css layer is scaffolded; use standard Tailwind utilities for local layout/spacing');
+	lines.push('');
+	// i18n contract (#322): defaults vs constraints — catalogs are the AI-first
+	// source of truth, locales are initial values the application may change.
+	const i18n = manifest.i18n ?? { adapter: 'paraglide', baseLocale: 'fr', catalogs: 'messages/', settings: 'project.inlang/settings.json' };
+	lines.push('## i18n (Paraglide)');
+	lines.push(`- message catalogs ${i18n.catalogs}<locale>.json are the source of truth for static UI copy — edit catalogs, never generated src/lib/paraglide`);
+	lines.push(`- baseLocale: ${i18n.baseLocale} (scaffold default); locales are configured in ${i18n.settings}`);
+	lines.push(`- the scaffolded locales (${i18n.baseLocale}/en at scaffold time) are initial defaults, not a limit — add a locale: create messages/<locale>.json with the full key set, then register it in ${i18n.settings}`);
+	lines.push('- keep key parity across every configured locale; modules ship their keys for the scaffolded locales — port them into any locale you add');
+	lines.push('- long-form editorial, business and CMS content does not belong in the catalogs');
 	lines.push('');
 	lines.push('## Rules for AI agents');
 	lines.push('MUST:');
@@ -168,7 +201,7 @@ export function renderLlmstxt(manifest: SvforgeManifest): string {
 	lines.push('- use Skeleton/Skeleton Svelte for rich UI (dialog, tabs, tooltip…)');
 	lines.push('- change the Skeleton theme/presets first for global visual decisions that Skeleton supports');
 	lines.push('- use standard Tailwind utilities for local structure, whitespace and responsive layout');
-	lines.push('- use Paraglide messages (fr + en) for user-facing copy');
+	lines.push('- use Paraglide messages for user-facing copy and keep key parity across every configured locale');
 	lines.push('- follow the canonical patterns above');
 	lines.push('MUST NOT:');
 	lines.push('- install a second ORM, auth provider or UI kit without explicit requirement');

@@ -40,6 +40,32 @@ describe('AGENTS.md as the sole agent convention (#347)', () => {
 		expect(scaffoldedAgents('dashboard')).toContain('Golden references');
 	});
 
+	it('carries the i18n contract: catalogs are the source of truth, generated code is off-limits (#322)', () => {
+		const canonical = scaffoldedAgents('base');
+		expect(canonical).toMatch(/## i18n \(Paraglide/);
+		// Edit the JSON catalogs, NEVER the generated Paraglide output.
+		expect(canonical).toMatch(/NEVER[\s\S]{0,80}generated/);
+		expect(canonical).toMatch(/NEVER edit generated .src\/lib\/paraglide\//);
+		// Locales are defaults, configured in the inlang settings file.
+		expect(canonical).toMatch(/project\.inlang\/settings\.json/);
+		expect(canonical).toMatch(/initial locales/i);
+		// Parity is defined over EVERY configured locale, not a hard-coded pair.
+		expect(canonical).toMatch(/every locale configured in .project\.inlang\/settings\.json./);
+		expect(canonical).toMatch(/key parity/i);
+		// Content boundary: static UI copy in catalogs, long-form content elsewhere.
+		expect(canonical).toMatch(/does NOT belong in .messages\//);
+		// How to extend: add a locale / change the base locale.
+		expect(canonical).toMatch(/Adding a locale/);
+	});
+
+	it('names one source of truth per concern: theme, fonts, locales (#322)', () => {
+		const canonical = scaffoldedAgents('base');
+		expect(canonical).toMatch(/one source of truth per concern/);
+		expect(canonical).toContain('src/lib/styles/svelteforge-theme.css');
+		expect(canonical).toMatch(/@fontsource-variable\/\*. imports in .src\/routes\/layout\.css./);
+		expect(canonical).toMatch(/messages\/\*\.json. \+ .project\.inlang\/settings\.json./);
+	});
+
 	it('scaffolds AGENTS.md and no other instruction file', () => {
 		const sv = fakeSv();
 		applyBaseMode(asSvApi(sv), { '/lib/base.ts': 'base' });

@@ -162,22 +162,40 @@ bun run check    # svelte-check
 bun run test     # vitest (dashboard: baseline auth/admin tests)
 \`\`\`
 
-## i18n (Paraglide FR/EN — #239)
+## Theme, fonts, locales — one source of truth per concern (#322)
 
-This project ships **Paraglide** (compiler-first i18n) with **fr** (baseLocale) and **en**.
+The scaffold ships opinionated defaults so the app renders immediately. They are
+**defaults, not constraints** — each has exactly one identified source of truth:
+
+- **Theme** (palettes, surfaces, brand, typography roles): \`src/lib/styles/svelteforge-theme.css\` — edit it to replace the palette; the architecture does not change.
+- **Fonts**: \`@fontsource-variable/*\` imports in \`src/routes/layout.css\` (Inter body, Space Grotesk headings, Fira Code for \`code\`/\`pre\`). Swap or remove a font there and adjust its role mapping in the theme.
+- **Locales / UI copy**: \`messages/*.json\` + \`project.inlang/settings.json\` (see i18n below).
+
+## i18n (Paraglide — #239, #322)
+
+This project ships **Paraglide** (compiler-first i18n). The scaffold starts with
+**fr** (baseLocale) and **en** — SVForge's initial locales, NOT a system limit.
+Locales live in \`project.inlang/settings.json\`; copy lives in \`messages/<locale>.json\`.
 
 MUST:
 - use Paraglide for static user-facing UI copy: \`import * as m from '$lib/paraglide/messages.js'\`
-- add/update BOTH \`messages/fr.json\` and \`messages/en.json\` for every UI copy change
-- reuse existing message keys when semantics are identical (\`common_save\`, \`common_cancel\`…)
+- edit the JSON catalogs in \`messages/\` — NEVER edit generated \`src/lib/paraglide/\` (regenerated at build/dev time)
+- add/update EVERY catalog in \`messages/\` — every locale configured in \`project.inlang/settings.json\` — for each UI copy change; key parity across all configured locales is required
+- reuse existing message keys when semantics are identical (\`common_save\`, \`common_cancel…\`)
 - use domain-oriented message names (\`users_create\`, not \`blue_button_text\`)
 
 MUST NOT:
 - hardcode static user-facing copy in Svelte components without a justified exception
 - create another i18n/message abstraction
-- update only one locale — a feature is not done until both fr and en exist
+- update only some locales — a feature is not done until every configured locale has the key
 
-Editorial content (blog/MDsveX, CMS/DB) does NOT belong in the catalogs.
+Extending locales (a default change, not an architecture change):
+- **Adding a locale**: create \`messages/<locale>.json\` with the full key set, then add the locale to \`locales\` in \`project.inlang/settings.json\`.
+- **Removing a locale**: delete its catalog and its \`locales\` entry.
+- **Changing the base locale**: edit \`baseLocale\` in \`project.inlang/settings.json\`.
+
+Static UI copy belongs in the catalogs. Long-form editorial, business and CMS
+content (blog/MDsveX, database) does NOT belong in \`messages/\`.
 
 ## LLM resources (offline knowledge is likely stale)
 
@@ -207,7 +225,7 @@ The admin screens are canonical examples agents should copy:
 - **\`/admin\`** — stats cards (\`Card variant="elevated"\`) + recent list with \`Badge\` status.
 - **\`/admin/settings\`** — form with client-side validation + \`Feedback\`.
 - **\`AdminLayout\`** — sidebar/mobile drawer with \`aria-expanded\`, \`aria-current\`, labelled navigation.
-- **All UI copy is i18n via Paraglide**: import \`* as m from '$lib/paraglide/messages.js'\` and call \`m.key()\` — never hard-code user-visible text. Keys live in \`messages/fr.json\` + \`messages/en.json\` (keep parity).
+- **All UI copy is i18n via Paraglide**: import \`* as m from '$lib/paraglide/messages.js'\` and call \`m.key()\` — never hard-code user-visible text. Keys live in EVERY catalog under \`messages/\` (keep parity across all locales configured in \`project.inlang/settings.json\`).
 `;
 
 export function scaffoldedAgents(template: 'base' | 'dashboard'): string {

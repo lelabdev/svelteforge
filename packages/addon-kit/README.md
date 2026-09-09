@@ -37,7 +37,7 @@ stay byte-for-byte identical.
 |---|---|---|
 | `ui.skeleton` | Skeleton v5 design system + theme wiring | `@skeletonlabs/skeleton` dependency |
 | `ui.svforge` | SVForge base UI kit (primitives/ui + utils) | `src/lib/components/svforge/` present |
-| `i18n.messages` | Paraglide FR/EN message catalogs | paraglide dependency + `messages/*.json` |
+| `i18n.messages` | Paraglide message catalogs (FR/EN initial locales) | paraglide dependency + `messages/*.json` |
 | `auth.currentUser` | Authenticated user in `locals.user` | `better-auth` dependency |
 | `auth.admin` | Admin role helpers (`$lib/server/admin`) | `src/lib/server/admin.*` present |
 | `database.drizzle.postgres` | Drizzle ORM + PostgreSQL driver | `drizzle-orm` + `postgres`/`pg` dependencies |

@@ -7,7 +7,7 @@ Production-ready foundations for normal SvelteKit projects. SvelteForge is a `sv
 - SvelteKit + Svelte 5
 - Skeleton UI v5 + Skeleton Svelte
 - Tailwind CSS v4
-- Paraglide FR/EN
+- Paraglide i18n (scaffolded with FR/EN)
 - Vitest
 - Dashboard option: Better Auth + Drizzle + PostgreSQL
 
@@ -21,7 +21,7 @@ A lightweight application foundation with:
 - complete Skeleton v5 theme
 - dark/light mode
 - SEO + sitemap helpers
-- Paraglide FR/EN
+- Paraglide i18n (FR/EN initial catalogs)
 - Vitest baseline
 - generated agent/project context
 
@@ -68,6 +68,14 @@ src/lib/styles/svelteforge-theme.css
 ```
 
 `src/lib/styles/svelteforge-theme.css` owns Skeleton-supported global visual decisions: palettes, surfaces, brand, root backgrounds, typography, radius/shapes, borders, rings and outlines.
+
+Fonts are declared only by the `@fontsource-variable/*` imports in `src/routes/layout.css` (Inter body, Space Grotesk headings, Fira Code for code); swap or remove them there and adjust the role mapping in the theme.
+
+## i18n (Paraglide)
+
+- `messages/<locale>.json` catalogs are the source of truth for static UI copy — edit the catalogs, never the generated `src/lib/paraglide` output.
+- Scaffolded locales: fr (baseLocale) + en — initial defaults, not a limit. Add/remove a locale or change `baseLocale` in `project.inlang/settings.json` (+ one catalog per locale in `messages/`).
+- Keep key parity across every configured locale. Long-form editorial, business and CMS content stays out of the catalogs.
 
 There is intentionally no generic `tokens.css` or `index.css` style barrel in the scaffold. For local structure and whitespace, use standard Tailwind utilities such as `p-4`, `gap-6`, `space-y-8`, `max-w-7xl` and responsive variants.
 

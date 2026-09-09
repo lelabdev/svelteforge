@@ -36,8 +36,9 @@ building new UI in this dashboard or in SvelteForge projects:
   labelled navigation.
 
 All user-visible copy is i18n via Paraglide (`m.key()` from
-`$lib/paraglide/messages.js`), keys in `messages/fr.json` + `messages/en.json`
-(strict parity — see `tests/paraglide-keys.test.ts`).
+`$lib/paraglide/messages.js`), keys in every catalog under `messages/`
+(scaffolded with `fr.json` + `en.json` — keep strict parity across every
+locale configured in `project.inlang/settings.json`; see `tests/paraglide.test.ts`).
 
 - **Dashboard** at `/admin` — stats (total users, active sessions, new this week)
 - **User management** at `/admin/users` — CRUD, email verification toggle, search
