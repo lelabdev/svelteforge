@@ -31,8 +31,8 @@ export function applyBaseMode(
 	hooks: HookMode = 'none'
 ): void {
 	// Baseline Vitest (#235): deliver the runnable test baseline. The
-	// devDependency + script mirror the template package.json (vitest ^3.1.1).
-	sv.devDependency('vitest', '^3.1.1');
+	// devDependency + script mirror the template package.json (vitest ^5.0.0).
+	sv.devDependency('vitest', '^5.0.0');
 
 	// Node types (#271): the Paraglide server runtime (generated
 	// src/lib/paraglide/server.js) imports async_hooks — svelte-check fails
