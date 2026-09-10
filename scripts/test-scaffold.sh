@@ -615,9 +615,7 @@ if [ "$TEMPLATE" = "dashboard" ]; then
 	# #312 — the harness leaves the DEDICATED test database EMPTY: remove the
 	# rows the smoke flow created (run-scoped marker) and assert that no test
 	# data of any kind remains behind.
-	SF_MARKER="%@sf-test.example"
-	bun -e 'const { default: postgres } = await import("postgres"); const sql = postgres(process.env.TEST_DATABASE_URL, { max: 1 }); await sql.unsafe(`DELETE FROM "user" WHERE email LIKE ${process.env.SF_MARKER} OR email = ${process.env.SF_ATTACKER}`); const rows = await sql`SELECT count(*)::int AS n FROM "user"`; if (rows[0].n !== 0) { console.error("leftover users:", rows[0].n); await sql.end(); process.exit(1); } await sql.end();' \
-		SF_MARKER="$SF_MARKER" SF_ATTACKER='attacker@example.com' \
+	SF_MARKER='%@sf-test.example' SF_ATTACKER='attacker@example.com' bun -e 'const { default: postgres } = await import("postgres"); const sql = postgres(process.env.TEST_DATABASE_URL, { max: 1 }); await sql`DELETE FROM "user" WHERE email LIKE ${process.env.SF_MARKER} OR email = ${process.env.SF_ATTACKER}`; const rows = await sql`SELECT count(*)::int AS n FROM "user"`; if (rows[0].n !== 0) { console.error("leftover users:", rows[0].n); await sql.end(); process.exit(1); } await sql.end();' \
 		|| { echo "❌ test data left behind in the dedicated test database (#312)"; exit 1; }
 fi
 
