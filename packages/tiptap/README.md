@@ -8,6 +8,10 @@ Rich text editor for SVForge projects. Powered by Tiptap with a built-in toolbar
 npx sv add @svforge/tiptap
 ```
 
+## Deployment profile
+
+Supported: `long-lived-node`, `serverless`, `edge`, `separate-worker`. Unsupported: none; the editor runs in the browser.
+
 ## Usage
 
 ### Editor (editable)

@@ -1,16 +1,16 @@
 # Graph Report - svelteForge  (2026-09-10)
 
 ## Corpus Check
-- 322 files · ~387,757 words
+- 376 files · ~460,863 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 2441 nodes · 2720 edges · 276 communities (118 shown, 110 thin omitted)
-- Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 5 edges (avg confidence: 0.85)
+- 2883 nodes · 3593 edges · 300 communities (142 shown, 102 thin omitted)
+- Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 7 edges (avg confidence: 0.85)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `85cada8f`
+- Built from commit: `07fe7cab`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -42,20 +42,20 @@
 - SVForge
 - $lib/utils/cn
 - AGENTS.md — SvelteForge
-- upgrade.ts
-- base.ts
+- svforge/src/index.ts
+- upgrade-behavioral.test.ts
 - helpers.ts
 - scripts
-- svforge/src/index.ts
+- svforge/src/templates.ts
 - ai-context.ts
-- path
+- primitives/types.ts
 - @svforge/realtime
-- generateTemplatesFile
+- prebuild-utils.ts
 - devDependencies
 - chat/index.ts
 - compilerOptions
 - SVForge
-- audit.mjs
+- better-auth-audit.mjs
 - properties
 - users/+page.svelte
 - auth.schema.ts
@@ -64,11 +64,11 @@
 - @svforge/audit
 - jobs/index.ts
 - @svforge/notifications
-- prebuild-utils.ts
+- skeleton-markup.test.ts
 - users/+page.server.ts
 - $app/state
 - devDependencies
-- changelog
+- Table.svelte
 - @svforge/jobs
 - createRealtimeClient
 - scripts
@@ -89,35 +89,36 @@
 - PRD — SvelteForge Monorepo
 - @svforge/uploads
 - Security Policy
+- required
 - properties
 - base/src/lib/components/svforge/ui/index.ts
 - schemas.ts
-- check-generated.mjs
+- manifest-freshness.test.ts
 - gen-modules-table.mjs
 - npm-consumer-smoke.mjs
 - admin-feedback.test.ts
 - bun.ts
-- audit/src/index.ts
+- planCatalogMerges
 - audit/index.ts
-- blog/src/index.ts
-- chat/src/index.ts
+- addon-kit/src/index.ts
+- addon-kit/src/upgrade.ts
 - @svforge/graph
 - Versioning Strategy
-- What You Get
-- tiptap/src/index.ts
-- uploads/src/index.ts
-- blog-transport-compose.test.ts
+- SvelteForge Base Template
+- addon-kit/package.json
+- check-auth-schema.mjs
+- addon-json-guard.test.ts
 - @svforge/dnd
-- dnd/src/index.ts
-- graph/src/index.ts
-- notifications/src/index.ts
+- structural-duplication.ts
+- capabilities.ts
+- node:fs
 - notifications/index.ts
-- oauth/src/index.ts
+- Button.svelte
 - @svforge/ui_toast
-- ui_toast/src/index.ts
-- upload/+server.ts
+- better-auth-upgrade.mjs
+- upload/upload-security.test.ts
 - canary-issue.mjs
-- dashboard-mode.test.ts
+- scripts
 - file-upload-contract.test.ts
 - svforge@1.2.0 — 2026-09-06
 - @svforge/graph@0.0.1 — 2026-09-06
@@ -134,12 +135,12 @@
 - @svforge/dnd@0.0.2 — 2026-09-06
 - @svforge/email@0.0.1 — 2026-09-06
 - localDependencies
-- email/src/index.ts
-- jobs/src/index.ts
-- realtime/src/index.ts
+- package.json
+- Better Auth upgrades — policy & automation (#319)
+- post-form.ts
 - base/package.json
 - blog-mdsvex.test.ts
-- check-generated.test.ts
+- @svforge/addon-kit@0.0.1 — 2026-09-06
 - email-security.test.ts
 - ghost-classes.test.ts
 - paraglide-keys.test.ts
@@ -168,15 +169,15 @@
 - a11y-reactivity.test.ts
 - admin-delete.test.ts
 - build-config.test.ts
-- module-metadata.test.ts
+- module-composition.ts
 - theme-v5.test.ts
 - Changelog
-- drizzle-kit
+- @svforge/addon-kit
 - @fontsource-variable/manrope
-- chat/scripts/prebuild.ts
-- graph/scripts/prebuild.ts
-- jobs/scripts/prebuild.ts
-- oauth/scripts/prebuild.ts
+- skeleton-inventory.ts
+- followSystemTheme
+- dashboard/package.json
+- tsconfig.test-d.json
 - svforge/src/app.d.ts
 - eslint
 - @eslint/compat
@@ -204,16 +205,14 @@
 - vite
 - vitest
 - base/src/app.d.ts
-- drizzle-orm
 - eslint
 - @eslint/compat
-- eslint-config-prettier
 - @eslint/js
-- eslint-plugin-svelte
+- environment.ts
 - @fontsource-variable/fira-code
 - @fontsource-variable/inter
-- @fontsource-variable/space-grotesk
-- globals
+- svelte-shims.d.ts
+- Experimental structural duplication detector
 - phosphor-svelte
 - postgres
 - prettier
@@ -230,48 +229,65 @@
 - tailwindcss
 - @tailwindcss/forms
 - @tailwindcss/typography
-- @tailwindcss/vite
 - @types/node
 - typescript
 - vite
 - setup.sh
+- dashboard/src/hooks.server.ts
 - client/auth.ts
-- server/auth.ts
+- admin-users.test.ts
 - types.ts
 - setup/+page.server.ts
 - test-scaffold.sh
 - deterministic-manifest.test.ts
 - scaffold-paths.test.ts
 - security-policy.test.ts
+- primitives-ssr.test.ts
+- eslint
+- eslint-plugin-svelte
+- globals
+- @skeletonlabs/skeleton
+- @skeletonlabs/skeleton-svelte
+- @testing-library/jest-dom
+- @testing-library/svelte
+- @types/jsdom
+- @types/ws
+- typescript
+- typescript-eslint
+- vitest
+- ws
+- clsx
+- @sveltejs/vite-plugin-svelte
+- typescript-eslint
 
 ## God Nodes (most connected - your core abstractions)
 1. `path` - 20 edges
-2. `compilerOptions` - 17 edges
-3. `SVForge` - 16 edges
-4. `generateTemplatesFile()` - 15 edges
-5. `Changelog` - 15 edges
-6. `scripts` - 14 edges
-7. `ROOT` - 12 edges
-8. `@svforge/realtime` - 12 edges
-9. `checkDesignSystem()` - 11 edges
-10. `scripts` - 11 edges
+2. `compilerOptions` - 18 edges
+3. `planAddonContext()` - 17 edges
+4. `SVForge` - 17 edges
+5. `checkModuleCapabilities()` - 16 edges
+6. `Changelog` - 16 edges
+7. `applyPlan()` - 15 edges
+8. `checkDesignSystem()` - 15 edges
+9. `applyBaseMode()` - 15 edges
+10. `applyDashboardMode()` - 15 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `buildAddonComponents()` --calls--> `readDirRecursively()`  [EXTRACTED]
   packages/svforge/scripts/generate-skeleton-inventory.ts → scripts/prebuild-utils.ts
+- `installBaseline()` --calls--> `resolveDestination()`  [EXTRACTED]
+  tests/upgrade-engine.test.ts → packages/addon-kit/src/upgrade.ts
+- `installBaseline()` --calls--> `initTrackingJson()`  [EXTRACTED]
+  tests/upgrade-engine.test.ts → packages/addon-kit/src/upgrade.ts
 - `scaffoldDashboard()` --calls--> `applyBaseMode()`  [EXTRACTED]
   tests/bun-run-check.test.ts → packages/svforge/src/modes/base.ts
-- `scaffoldDashboard()` --calls--> `applyDashboardMode()`  [EXTRACTED]
-  tests/bun-run-check.test.ts → packages/svforge/src/modes/dashboard.ts
-- `applyBaseMode()` --calls--> `buildManifest()`  [EXTRACTED]
-  packages/svforge/src/modes/base.ts → packages/svforge/src/ai-context.ts
-- `applyDashboardMode()` --calls--> `buildManifest()`  [EXTRACTED]
-  packages/svforge/src/modes/dashboard.ts → packages/svforge/src/ai-context.ts
+- `scaffoldFiles()` --calls--> `applyBaseMode()`  [EXTRACTED]
+  tests/eslint-design-system.test.ts → packages/svforge/src/modes/base.ts
 
 ## Import Cycles
 - None detected.
 
-## Communities (276 total, 110 thin omitted)
+## Communities (300 total, 102 thin omitted)
 
 ### Community 0 - "en.json"
 Cohesion: 0.01
@@ -282,24 +298,24 @@ Cohesion: 0.01
 Nodes (170): admin_active_sessions, admin_dashboard, admin_manage_users, admin_pending, admin_recent_users, admin_this_week, admin_title, admin_total_users (+162 more)
 
 ### Community 2 - "design-system.ts"
-Cohesion: 0.05
-Nodes (40): ADDON_COMPONENTS, ARBITRARY_SPACING_NAMESPACES, AVOID_PATTERNS, AvoidPattern, AvoidPatternSpec, CatalogEntry, checkArbitraryTokens(), checkAvoidPatterns() (+32 more)
+Cohesion: 0.09
+Nodes (31): ARBITRARY_SPACING_NAMESPACES, AvoidPattern, AvoidPatternSpec, CatalogEntry, checkAvoidPatterns(), checkClassString(), checkDesignSystem(), checkSvelteMarkup() (+23 more)
 
 ### Community 3 - "devDependencies"
-Cohesion: 0.04
-Nodes (44): jsdom, devDependencies, eslint, @eslint/js, globals, jsdom, @skeletonlabs/skeleton, @skeletonlabs/skeleton-svelte (+36 more)
+Cohesion: 0.15
+Nodes (13): jsdom, devDependencies, @eslint/js, jsdom, sv, svelte, @sveltejs/vite-plugin-svelte, @types/bun (+5 more)
 
 ### Community 4 - "svforge/package.json"
 Cohesion: 0.05
-Nodes (42): author, bin, svforge, bugs, description, devDependencies, sv, tsdown (+34 more)
+Nodes (44): author, bin, svforge, bugs, description, devDependencies, sv, @svforge/addon-kit (+36 more)
 
 ### Community 5 - "email/package.json"
 Cohesion: 0.05
-Nodes (37): author, description, devDependencies, sv, tsdown, typescript, exports, files (+29 more)
+Nodes (39): author, description, devDependencies, sv, @svforge/addon-kit, tsdown, typescript, exports (+31 more)
 
 ### Community 6 - "graph/package.json"
 Cohesion: 0.05
-Nodes (38): author, description, devDependencies, sv, tsdown, typescript, exports, files (+30 more)
+Nodes (40): author, description, devDependencies, sv, @svforge/addon-kit, tsdown, typescript, exports (+32 more)
 
 ### Community 7 - "release-plan.mjs"
 Cohesion: 0.09
@@ -307,58 +323,58 @@ Nodes (33): compareVersions(), entriesBetween(), FIELD_HEADINGS, parseAttributes
 
 ### Community 8 - "dnd/package.json"
 Cohesion: 0.05
-Nodes (37): author, description, devDependencies, sv, tsdown, typescript, exports, files (+29 more)
+Nodes (39): author, description, devDependencies, sv, @svforge/addon-kit, tsdown, typescript, exports (+31 more)
 
 ### Community 9 - "oauth/package.json"
 Cohesion: 0.05
-Nodes (37): author, description, devDependencies, sv, tsdown, typescript, exports, files (+29 more)
+Nodes (39): author, description, devDependencies, sv, @svforge/addon-kit, tsdown, typescript, exports (+31 more)
 
 ### Community 10 - "tiptap/package.json"
 Cohesion: 0.05
-Nodes (37): author, description, devDependencies, sv, tsdown, typescript, exports, files (+29 more)
+Nodes (39): author, description, devDependencies, sv, @svforge/addon-kit, tsdown, typescript, exports (+31 more)
 
 ### Community 11 - "uploads/package.json"
 Cohesion: 0.05
-Nodes (37): author, description, devDependencies, sv, tsdown, typescript, exports, files (+29 more)
+Nodes (39): author, description, devDependencies, sv, @svforge/addon-kit, tsdown, typescript, exports (+31 more)
 
 ### Community 12 - "ui_toast/package.json"
-Cohesion: 0.06
-Nodes (36): author, description, devDependencies, sv, tsdown, typescript, exports, files (+28 more)
+Cohesion: 0.05
+Nodes (38): author, description, devDependencies, sv, @svforge/addon-kit, tsdown, typescript, exports (+30 more)
 
 ### Community 13 - "blog/package.json"
-Cohesion: 0.06
-Nodes (35): author, description, devDependencies, sv, tsdown, typescript, exports, files (+27 more)
+Cohesion: 0.05
+Nodes (37): author, description, devDependencies, sv, @svforge/addon-kit, tsdown, typescript, exports (+29 more)
 
 ### Community 14 - "jobs/package.json"
-Cohesion: 0.06
-Nodes (35): author, description, devDependencies, sv, tsdown, typescript, exports, files (+27 more)
+Cohesion: 0.05
+Nodes (37): author, description, devDependencies, sv, @svforge/addon-kit, tsdown, typescript, exports (+29 more)
 
 ### Community 15 - "audit/package.json"
 Cohesion: 0.06
-Nodes (34): author, description, devDependencies, sv, tsdown, typescript, exports, files (+26 more)
+Nodes (36): author, description, devDependencies, sv, @svforge/addon-kit, tsdown, typescript, exports (+28 more)
 
 ### Community 16 - "chat/package.json"
 Cohesion: 0.06
-Nodes (34): author, description, devDependencies, sv, tsdown, typescript, exports, files (+26 more)
+Nodes (36): author, description, devDependencies, sv, @svforge/addon-kit, tsdown, typescript, exports (+28 more)
 
 ### Community 17 - "notifications/package.json"
 Cohesion: 0.06
-Nodes (34): author, description, devDependencies, sv, tsdown, typescript, exports, files (+26 more)
+Nodes (36): author, description, devDependencies, sv, @svforge/addon-kit, tsdown, typescript, exports (+28 more)
 
 ### Community 18 - "realtime/package.json"
 Cohesion: 0.06
-Nodes (34): author, description, devDependencies, sv, tsdown, typescript, exports, files (+26 more)
+Nodes (36): author, description, devDependencies, sv, @svforge/addon-kit, tsdown, typescript, exports (+28 more)
 
 ### Community 19 - "svforge-check.mjs"
-Cohesion: 0.07
-Nodes (30): ADDON_COMPONENTS, allDeps, allowedDirs, AVOID_PATTERNS, catalogPath, catalogPaths, catalogWrappers, classViolations() (+22 more)
+Cohesion: 0.09
+Nodes (28): gitignorePath, plugin, rule, ADDON_COMPONENTS, AVOID_PATTERNS, checkDesignSystem(), classViolations(), collectCatalogExempts() (+20 more)
 
 ### Community 20 - "compilerOptions"
-Cohesion: 0.07
-Nodes (29): bun, DOM, ES2023, **/node_modules/**, packages/*/scripts/**/*.ts, packages/*/src/**/*.ts, scripts/*.ts, **/templates/** (+21 more)
+Cohesion: 0.06
+Nodes (34): bun, DOM, ES2023, **/node_modules/**, ./packages/addon-kit/src/index.ts, packages/*/scripts/**/*.ts, packages/*/src/**/*.ts, ./packages/svforge/src/index.ts (+26 more)
 
 ### Community 21 - "render-tiptap.ts"
-Cohesion: 0.12
+Cohesion: 0.13
 Nodes (13): applyMarks(), clampHeadingLevel(), escapeHtml(), renderNode(), renderTiptap(), SAFE_PROTOCOLS, sanitizeHref(), sanitizeLanguage() (+5 more)
 
 ### Community 22 - "RealtimeHub"
@@ -366,52 +382,56 @@ Cohesion: 0.12
 Nodes (12): createRealtimeHub(), RealtimeClient, RealtimeEvent, RealtimeHub, RealtimeServerOptions, SocketEntry, realtime, delay() (+4 more)
 
 ### Community 23 - "$lib/paraglide/messages.js"
-Cohesion: 0.15
+Cohesion: 0.10
 Nodes (6): ./$types, ./$types, ./$types, ./$types, ./$types, ./$types
 
 ### Community 24 - "SVForge"
-Cohesion: 0.09
-Nodes (20): Deployment profiles, Minimal examples, Node application with attached realtime, Runtime modules, Security and data lifecycle, Serverless web app with a worker, Decision (#349), Evaluation (+12 more)
+Cohesion: 0.08
+Nodes (21): Deployment profiles, Minimal examples, Node application with attached realtime, Runtime modules, Security and data lifecycle, Serverless web app with a worker, Decision (#349), Evaluation (+13 more)
+
+### Community 25 - "$lib/utils/cn"
+Cohesion: 0.13
+Nodes (4): describedByIds, describedByIds, describedByIds, options
 
 ### Community 26 - "AGENTS.md — SvelteForge"
 Cohesion: 0.10
 Nodes (19): AGENTS.md — SvelteForge, Architecture, Clôture de roadmap, Conventions composants (templates), Git, ⚠️ LE gotcha du repo : le prebuild n'embarque que `src/**` (+ `root/**` pour le dashboard), Pièges connus (vérifiés), Point d'entrée docs (+11 more)
 
-### Community 27 - "upgrade.ts"
-Cohesion: 0.16
-Nodes (14): ChangelogEntry, compareVersions(), entriesBetween(), RELEASE_NOTES, SDFORGE_RECIPE_VERSION, checksum(), loadTracking(), MODULE_RECIPES (+6 more)
+### Community 27 - "svforge/src/index.ts"
+Cohesion: 0.17
+Nodes (20): PlannedOperation, UpgradePlan, ChangelogEntry, compareVersions(), entriesBetween(), RELEASE_NOTES, MODULE_RECIPE_DATA, ModuleRecipeData (+12 more)
 
-### Community 28 - "base.ts"
-Cohesion: 0.18
-Nodes (13): applyBaseMode(), HookMode, ROOT_FILES, applyDashboardMode(), ROOT_FILES, NOTE: this is a TS constant written via sv.file(), NOT a template file —, scaffoldedAgents(), SHARED() (+5 more)
+### Community 28 - "upgrade-behavioral.test.ts"
+Cohesion: 0.10
+Nodes (23): TRACKING_FILE, renderLlmstxt(), BASE_ROOT_PATHS, DASHBOARD_ROOT_PATHS, applyBaseMode(), HookMode, applyDashboardMode(), SDFORGE_RECIPE_VERSION (+15 more)
 
 ### Community 29 - "helpers.ts"
-Cohesion: 0.20
-Nodes (11): baseRoot, dashboardRoot, dashboardRoot, baseTemplateFile(), dashboardTemplateFile(), expectFile(), expectNoFile(), packageDir() (+3 more)
+Cohesion: 0.24
+Nodes (9): dashboardRoot, dashboardRoot, baseTemplateFile(), dashboardTemplateFile(), expectFile(), expectNoFile(), packageDir(), packageFile() (+1 more)
 
 ### Community 30 - "scripts"
-Cohesion: 0.11
-Nodes (18): name, private, scripts, auth:schema, build, check, check:watch, db:generate (+10 more)
+Cohesion: 0.14
+Nodes (14): scripts, auth:schema, build, check, check:watch, db:generate, db:migrate, db:push (+6 more)
 
-### Community 31 - "svforge/src/index.ts"
-Cohesion: 0.22
-Nodes (12): expandPreset(), ModuleMeta, MODULES, Preset, PRESETS, validateComposition(), baseFiles, baseRootFiles (+4 more)
+### Community 31 - "svforge/src/templates.ts"
+Cohesion: 0.10
+Nodes (15): ./+page.server, baseFiles, baseRootFiles, dashboardFiles, dashboardRootFiles, baseRoot, compileComponent(), FilesystemSv (+7 more)
 
 ### Community 32 - "ai-context.ts"
-Cohesion: 0.19
-Nodes (15): BASE_CAPABILITIES, BASE_PATTERNS, buildManifest(), DASHBOARD_CAPABILITIES, DASHBOARD_PATTERNS, DEPLOYMENT_PROFILES, DeploymentProfile, enrichManifest() (+7 more)
-
-### Community 33 - "path"
 Cohesion: 0.12
-Nodes (9): __dirname, __dirname, count, templatesDir, path, ROOT, ROOT, ROOT (+1 more)
+Nodes (26): DeploymentProfile, MODULE_CONTRACTS, MODULE_DEPLOYMENT_SUPPORT, ModuleDeploymentSupport, CatalogMerge, JsonGuardError, JsonGuardResult, lineColumnOf() (+18 more)
+
+### Community 33 - "primitives/types.ts"
+Cohesion: 0.17
+Nodes (14): AnchorProps, ButtonColor, ButtonOrAnchorProps, ButtonProps, ButtonSharedProps, ButtonSize, ButtonVariant, TableBaseProps (+6 more)
 
 ### Community 34 - "@svforge/realtime"
 Cohesion: 0.12
 Nodes (15): Architecture, Client — subscribe, Dependencies, Envelope, Install, License, Limits (v1), Option A — adapter-node (customServer) (+7 more)
 
-### Community 35 - "generateTemplatesFile"
-Cohesion: 0.13
-Nodes (8): __dirname, __dirname, __dirname, __dirname, __dirname, __dirname, __dirname, generateTemplatesFile()
+### Community 35 - "prebuild-utils.ts"
+Cohesion: 0.06
+Nodes (35): additionalProperties, properties, required, type, minimum, type, const, changelog (+27 more)
 
 ### Community 36 - "devDependencies"
 Cohesion: 0.13
@@ -426,28 +446,28 @@ Cohesion: 0.14
 Nodes (13): compilerOptions, allowJs, checkJs, esModuleInterop, forceConsistentCasingInFileNames, moduleResolution, resolveJsonModule, rewriteRelativeImportExtensions (+5 more)
 
 ### Community 39 - "SVForge"
-Cohesion: 0.14
-Nodes (14): A design system that agents can follow, Agent instruction support (#347), AI-ready, Boring by design, Compose only what the project needs, Development, Getting started, License (+6 more)
+Cohesion: 0.13
+Nodes (15): A design system that agents can follow, Agent instruction support (#347), AI-ready, Boring by design, Compose only what the project needs, Defaults vs constraints, Development, Getting started (+7 more)
 
-### Community 40 - "audit.mjs"
-Cohesion: 0.23
-Nodes (11): audit(), BASELINE_PATH, formatFindings(), isBaselined(), isTransientNetworkError(), loadBaseline(), queryOsv(), resolvedPackages() (+3 more)
+### Community 40 - "better-auth-audit.mjs"
+Cohesion: 0.14
+Nodes (22): audit(), BASELINE_PATH, formatFindings(), isBaselined(), isTransientNetworkError(), loadBaseline(), queryOsv(), resolvedPackages() (+14 more)
 
 ### Community 41 - "properties"
 Cohesion: 0.15
 Nodes (13): pattern, type, properties, pattern, type, minLength, type, directory (+5 more)
 
 ### Community 42 - "users/+page.svelte"
-Cohesion: 0.17
-Nodes (4): gitignorePath, config, ./$types, config
+Cohesion: 0.18
+Nodes (3): config, ./$types, config
 
 ### Community 43 - "auth.schema.ts"
-Cohesion: 0.15
-Nodes (10): account, accountRelations, session, sessionRelations, user, userRelations, verification, client (+2 more)
+Cohesion: 0.12
+Nodes (12): account, accountRelations, session, sessionRelations, user, userRelations, verification, closeDb (+4 more)
 
 ### Community 44 - "release-plan.schema.json"
-Cohesion: 0.17
-Nodes (11): additionalProperties, $id, packages, required, $schema, title, type, changelog (+3 more)
+Cohesion: 0.33
+Nodes (5): additionalProperties, $id, $schema, title, type
 
 ### Community 45 - "registry"
 Cohesion: 0.17
@@ -462,20 +482,20 @@ Cohesion: 0.20
 Nodes (6): handlers, JobHandler, JobHandlerContext, jobsApi, JobStatus, jobs
 
 ### Community 48 - "@svforge/notifications"
-Cohesion: 0.17
-Nodes (11): Create, Install, License, Limits (v1), Model, Optional: email (#239/#236), Optional: realtime (#229), Read / update (+3 more)
+Cohesion: 0.15
+Nodes (12): Create, Deployment profile, Install, License, Limits (v1), Model, Optional: email (#239/#236), Optional: realtime (#229) (+4 more)
 
-### Community 49 - "prebuild-utils.ts"
-Cohesion: 0.26
-Nodes (9): buildAddonComponents(), buildSkeletonInventory(), kebabDirToExports(), SkeletonInventory, __dirname, generateMultiTemplateFile(), readDirRecursively(), modulePackages (+1 more)
+### Community 49 - "skeleton-markup.test.ts"
+Cohesion: 0.27
+Nodes (6): buildAddonComponents(), buildSkeletonInventory(), kebabDirToExports(), SkeletonInventory, CTX, ROOT
 
 ### Community 52 - "devDependencies"
-Cohesion: 0.18
-Nodes (11): better-auth, @better-auth/cli, devDependencies, better-auth, @better-auth/cli, clsx, @sveltejs/vite-plugin-svelte, typescript-eslint (+3 more)
+Cohesion: 0.12
+Nodes (17): better-auth, drizzle-kit, devDependencies, better-auth, drizzle-kit, drizzle-orm, eslint-config-prettier, eslint-plugin-svelte (+9 more)
 
-### Community 53 - "changelog"
-Cohesion: 0.18
-Nodes (11): additionalProperties, properties, required, type, minimum, type, const, changelog (+3 more)
+### Community 53 - "Table.svelte"
+Cohesion: 0.25
+Nodes (3): columns, rows, UserRow
 
 ### Community 54 - "@svforge/jobs"
 Cohesion: 0.18
@@ -494,15 +514,15 @@ Cohesion: 0.18
 Nodes (10): baseLocale, locales, modules, plugin.inlang.messageFormat, pathPattern, $schema, en, fr (+2 more)
 
 ### Community 58 - "What You Get (in addition to Base)"
-Cohesion: 0.18
-Nodes (10): Admin Dashboard — golden references (#267), Auth System, Database, Environment Variables, Next Steps, Pre-configured Files, Routes Structure, SvelteForge Dashboard Template (+2 more)
+Cohesion: 0.17
+Nodes (11): Admin Dashboard — golden references (#267), Auth System, Database, Database lifecycle (#332), Environment Variables, Next Steps, Pre-configured Files, Routes Structure (+3 more)
 
 ### Community 59 - "@svforge/tiptap"
-Cohesion: 0.18
-Nodes (10): Dependencies, Editor (editable), Editor + Preview side by side, Installation, Preview (read-only), Storage, @svforge/tiptap, Toolbar buttons (+2 more)
+Cohesion: 0.17
+Nodes (11): Dependencies, Deployment profile, Editor (editable), Editor + Preview side by side, Installation, Preview (read-only), Storage, @svforge/tiptap (+3 more)
 
 ### Community 60 - "npm release process"
-Cohesion: 0.20
+Cohesion: 0.29
 Nodes (6): Authentication and permissions, Independent versioning, Local preflight, npm release process, Resuming a failed release, Workflow gates
 
 ### Community 61 - "required"
@@ -510,28 +530,28 @@ Cohesion: 0.20
 Nodes (10): additionalProperties, required, items, type, packages, directory, localDependencies, manifestPath (+2 more)
 
 ### Community 62 - "@svforge/chat"
-Cohesion: 0.20
-Nodes (9): API, Composition (all optional), Install, License, Model, Security, @svforge/chat, UI (+1 more)
+Cohesion: 0.18
+Nodes (10): API, Composition (all optional), Deployment profile, Install, License, Model, Security, @svforge/chat (+2 more)
 
 ### Community 63 - "@svforge/email"
-Cohesion: 0.20
-Nodes (9): API, Dependencies, Installation, `sendEmail(options)`, Setup, @svforge/email, Templates, Usage (+1 more)
+Cohesion: 0.18
+Nodes (10): API, Dependencies, Deployment profile, Installation, `sendEmail(options)`, Setup, @svforge/email, Templates (+2 more)
 
 ### Community 64 - "svforge/scripts/prebuild.ts"
-Cohesion: 0.20
-Nodes (9): addonComponents, baseFiles, baseRootFilesRaw, changelogEntries, dashboardOverlay, dashboardRootFiles, __dirname, pkg (+1 more)
+Cohesion: 0.12
+Nodes (13): addonComponents, baseFiles, baseRootFilesRaw, changelogEntries, dashboardOverlay, dashboardRootFiles, __dirname, ExtractedRecipe (+5 more)
 
 ### Community 65 - "doctor.ts"
-Cohesion: 0.31
-Nodes (9): checkDependencies(), checkDeploymentCompatibility(), checkEnvVars(), checkSvelteKit(), checkSvforgeComponents(), DiagnosticResult, doctor(), DoctorReport (+1 more)
+Cohesion: 0.06
+Nodes (56): DeploymentProfile, MODULE_PROFILE_SUPPORT, boundAllows(), branchAllowsMajor(), branchSatisfies(), Capability, CAPABILITY_ENV_VARS, CAPABILITY_LABELS (+48 more)
 
 ### Community 66 - "Contributing to SVForge"
 Cohesion: 0.22
 Nodes (9): Building, Contributing to SVForge, Development Setup, Project Principles, Running Tests, Test Categories, Test Helpers, What to Avoid (+1 more)
 
 ### Community 67 - "@svforge/blog"
-Cohesion: 0.22
-Nodes (8): Create a Post, File Structure, Frontmatter Format, Install, License, MDsveX, Routes, @svforge/blog
+Cohesion: 0.20
+Nodes (9): Create a Post, Deployment profile, File Structure, Frontmatter Format, Install, License, MDsveX, Routes (+1 more)
 
 ### Community 68 - "posts.ts"
 Cohesion: 0.28
@@ -542,8 +562,8 @@ Cohesion: 0.47
 Nodes (5): resetPasswordEmailHtml(), escapeHtml(), SAFE_PROTOCOLS, sanitizeHref(), welcomeEmailHtml()
 
 ### Community 70 - "@svforge/oauth"
-Cohesion: 0.22
-Nodes (8): 1. Environment Variables, 2. Configure Better Auth, Install, License, Prerequisites, Setup, @svforge/oauth, Usage
+Cohesion: 0.20
+Nodes (9): 1. Environment Variables, 2. Configure Better Auth, Deployment profile, Install, License, Prerequisites, Setup, @svforge/oauth (+1 more)
 
 ### Community 71 - "PRD — SvelteForge Monorepo"
 Cohesion: 0.22
@@ -551,23 +571,31 @@ Nodes (8): Architecture, CSS foundation, Install, License, Modules, PRD — Svel
 
 ### Community 72 - "@svforge/uploads"
 Cohesion: 0.22
-Nodes (8): Deployment profile, Environment Variables, How it works, Install, License, @svforge/uploads, Usage, What it does
+Nodes (8): Deployment profile, Environment Variables, Install, License, Size policies, @svforge/uploads, Usage, What it does
 
 ### Community 73 - "Security Policy"
 Cohesion: 0.22
 Nodes (9): Coordinated disclosure, Leaked credentials and secrets, Reporting a vulnerability, Safe harbor, Security Policy, Supported versions, Vulnerabilities affecting generated projects, What a useful report contains (+1 more)
 
+### Community 75 - "required"
+Cohesion: 0.33
+Nodes (6): packages, required, changelog, commit, schemaVersion, versionPolicy
+
 ### Community 76 - "properties"
 Cohesion: 0.25
 Nodes (8): minLength, type, properties, commit, schemaVersion, versionPolicy, const, const
+
+### Community 77 - "base/src/lib/components/svforge/ui/index.ts"
+Cohesion: 0.21
+Nodes (5): boundedText(), CHANGE_FREQUENCIES, escapeXml(), generateSitemap(), SitemapEntry
 
 ### Community 78 - "schemas.ts"
 Cohesion: 0.25
 Nodes (7): ChangePasswordSchema, CreateUserSchema, LoginSchema, SetupSchema, ToggleUserStatusSchema, ToggleVerifySchema, UpdateUserSchema
 
-### Community 79 - "check-generated.mjs"
-Cohesion: 0.36
-Nodes (7): assertNoDrift(), checkGenerated(), discoverPrebuildPackages(), FIX_ADVICE, FIX_COMMAND, run(), SCRIPT_ROOT
+### Community 79 - "manifest-freshness.test.ts"
+Cohesion: 0.14
+Nodes (13): ADDON_COMPONENTS, assertNoDrift(), checkGenerated(), discoverPrebuildPackages(), FIX_ADVICE, FIX_COMMAND, run(), SCRIPT_ROOT (+5 more)
 
 ### Community 80 - "gen-modules-table.mjs"
 Cohesion: 0.25
@@ -582,48 +610,88 @@ Cohesion: 0.25
 Nodes (7): LAYOUT, LOGIN_SERVER, ROOT, SETTINGS_SERVER, SETUP_SERVER, USERS_PAGE, USERS_SERVER
 
 ### Community 83 - "bun.ts"
-Cohesion: 0.36
-Nodes (5): root, findBun(), runBun(), OAUTH_PKG, ROOT
+Cohesion: 0.29
+Nodes (6): root, root, findBun(), runBun(), OAUTH_PKG, ROOT
+
+### Community 84 - "planCatalogMerges"
+Cohesion: 0.16
+Nodes (8): planCatalogMerges(), validateMessageCatalog(), files, ./$types, files, ./$types, files, files
 
 ### Community 85 - "audit/index.ts"
 Cohesion: 0.38
 Nodes (5): audit, AuditEntryInput, AuditFilters, AuditListOptions, auditLogs
 
+### Community 86 - "addon-kit/src/index.ts"
+Cohesion: 0.09
+Nodes (13): mergeLlmstxt(), planAddonContext(), planManifestEnrich(), readProjectFile(), files, files, files, files (+5 more)
+
+### Community 87 - "addon-kit/src/upgrade.ts"
+Cohesion: 0.12
+Nodes (35): ApplyOptions, applyPlan(), ApplyResult, assertSafeRelativePath(), BACKUP_ROOT, baselineChecksum(), computeBaseline(), currentRange() (+27 more)
+
 ### Community 88 - "@svforge/graph"
-Cohesion: 0.29
-Nodes (6): Features, Installation, License, Props, @svforge/graph, Usage
+Cohesion: 0.25
+Nodes (7): Deployment profile, Features, Installation, License, Props, @svforge/graph, Usage
 
 ### Community 89 - "Versioning Strategy"
 Cohesion: 0.29
 Nodes (6): CI/CD Channels, Install, Packages, Release Process, Rules, Versioning Strategy
 
-### Community 90 - "What You Get"
-Cohesion: 0.29
-Nodes (6): Components, Next Steps, Routes, Styles, SvelteForge Base Template, What You Get
+### Community 90 - "SvelteForge Base Template"
+Cohesion: 0.20
+Nodes (9): Adding a locale (example: Spanish), Components, Defaults vs constraints, Next Steps, Routes, SEO and theme customization, Styles, SvelteForge Base Template (+1 more)
 
-### Community 93 - "blog-transport-compose.test.ts"
-Cohesion: 0.29
-Nodes (3): ADDON_INDEX, blogAddon, ROOT
+### Community 91 - "addon-kit/package.json"
+Cohesion: 0.07
+Nodes (26): author, description, devDependencies, tsdown, typescript, exports, files, dist/ (+18 more)
+
+### Community 92 - "check-auth-schema.mjs"
+Cohesion: 0.13
+Nodes (17): compareSchemas(), deriveRuntimeModel(), matchBrace(), normalizeDefaultLiteral(), normalizeRuntimeSchema(), parseColumnChunk(), parseDrizzleTables(), sameDefault() (+9 more)
+
+### Community 93 - "addon-json-guard.test.ts"
+Cohesion: 0.12
+Nodes (16): TEMPLATE_PROVIDES, MODULE_CAPABILITIES, project(), runAddon(), ADDON_INDEX, blogAddon, { dir: fixtureDir, cleanup: cleanupFixture }, ROOT (+8 more)
 
 ### Community 94 - "@svforge/dnd"
-Cohesion: 0.33
-Nodes (5): Dependencies, Installation, @svforge/dnd, Usage, What's included
+Cohesion: 0.29
+Nodes (6): Dependencies, Deployment profile, Installation, @svforge/dnd, Usage, What's included
+
+### Community 95 - "structural-duplication.ts"
+Cohesion: 0.18
+Nodes (18): AstRecord, CachedFingerprint, checkStructuralDuplicates(), clearStructuralFingerprintCache(), Fingerprint, fingerprintCache, fingerprintSvelte(), isAstRecord() (+10 more)
+
+### Community 96 - "capabilities.ts"
+Cohesion: 0.16
+Nodes (14): AUTH_HOOKS_SIGNALS, CAPABILITY_TOKENS, CapabilityEvaluation, CapabilityGate, CapabilityInfo, checkModuleCapabilities(), describeCapability(), detectCapability() (+6 more)
+
+### Community 97 - "node:fs"
+Cohesion: 0.21
+Nodes (5): AVOID_PATTERNS, checkArbitraryTokens(), COMPONENTS, DASHBOARD_TS, ROOT
 
 ### Community 98 - "notifications/index.ts"
 Cohesion: 0.40
 Nodes (4): NotificationInput, NotificationListOptions, notificationsApi, notifications
 
+### Community 99 - "Button.svelte"
+Cohesion: 0.15
+Nodes (9): anchorClasses, anchorRest, buttonRest, classes, inactive, isAnchor, presetClass, sizeClass (+1 more)
+
 ### Community 100 - "@svforge/ui_toast"
-Cohesion: 0.33
-Nodes (5): Dependencies, Installation, @svforge/ui_toast, Usage, What's included
+Cohesion: 0.29
+Nodes (6): Dependencies, Deployment profile, Installation, @svforge/ui_toast, Usage, What's included
 
-### Community 102 - "upload/+server.ts"
-Cohesion: 0.40
-Nodes (3): ALLOWED_MIME_TYPES, POST(), sanitizeFilename()
+### Community 101 - "better-auth-upgrade.mjs"
+Cohesion: 0.24
+Nodes (11): applyUpgrades(), BLOCKING_SEVERITIES, bumpRangeInSource(), changelogUrl(), classifyBump(), compareVersions(), currentPin(), PIN_FILES (+3 more)
 
-### Community 104 - "dashboard-mode.test.ts"
-Cohesion: 0.33
-Nodes (4): baseFiles, dashboardFiles, FakeSv, rootFiles
+### Community 102 - "upload/upload-security.test.ts"
+Cohesion: 0.20
+Nodes (7): ALLOWED_MIME_TYPES, getSizePolicy(), POST(), sanitizeFilename(), createPresignedPost, env, getSignedUrl
+
+### Community 104 - "scripts"
+Cohesion: 0.22
+Nodes (9): scripts, audit, build, build:all, lint, release:plan, test, test:watch (+1 more)
 
 ### Community 105 - "file-upload-contract.test.ts"
 Cohesion: 0.33
@@ -689,6 +757,18 @@ Nodes (5): Breaking changes, Deprecations, Fixes, Migrations, @svforge/email@0.0
 Cohesion: 0.40
 Nodes (5): type, items, type, uniqueItems, localDependencies
 
+### Community 121 - "package.json"
+Cohesion: 0.25
+Nodes (7): dependencies, packages/*, name, packageManager, private, type, workspaces
+
+### Community 122 - "Better Auth upgrades — policy & automation (#319)"
+Cohesion: 0.29
+Nodes (7): 1.7.x migration notes (applied in #319), Better Auth upgrades — policy & automation (#319), Known follow-ups, Manual run, The CLI (`@better-auth/cli`) is NOT a scaffold dependency, The gate — "tested" is part of the policy, Upgrade policy
+
+### Community 123 - "post-form.ts"
+Cohesion: 0.33
+Nodes (4): encoder, MAX_FILE_SIZE, MAX_MULTIPART_FORM_OVERHEAD, MAX_POST_BODY_SIZE
+
 ### Community 124 - "base/package.json"
 Cohesion: 0.40
 Nodes (4): name, private, type, version
@@ -697,9 +777,9 @@ Nodes (4): name, private, type, version
 Cohesion: 0.40
 Nodes (4): ADDON_INDEX, ARTICLE_SERVER, POSTS_UTIL, ROOT
 
-### Community 126 - "check-generated.test.ts"
-Cohesion: 0.50
-Nodes (3): git(), makeWorkspace(), ROOT
+### Community 126 - "@svforge/addon-kit@0.0.1 — 2026-09-06"
+Cohesion: 0.40
+Nodes (5): Breaking changes, Deprecations, Fixes, Migrations, @svforge/addon-kit@0.0.1 — 2026-09-06
 
 ### Community 127 - "email-security.test.ts"
 Cohesion: 0.40
@@ -745,25 +825,57 @@ Nodes (3): ROOT, S3_CLIENT, UPLOAD_ENDPOINT
 Cohesion: 0.67
 Nodes (3): `base`, `dashboard`, Templates
 
+### Community 155 - "module-composition.ts"
+Cohesion: 0.19
+Nodes (12): CAPABILITIES, Capability, compositionGaps(), ModuleCapabilityContract, expandPreset(), ModuleMeta, MODULES, Preset (+4 more)
+
+### Community 159 - "@svforge/addon-kit"
+Cohesion: 0.40
+Nodes (4): Capability contract (#323), Safe JSON merges (#324), @svforge/addon-kit, Vocabulary
+
+### Community 164 - "skeleton-inventory.ts"
+Cohesion: 0.40
+Nodes (4): SKELETON_PRIMITIVES, SKELETON_UTILITIES, SKELETON_UTILITY_PREFIXES, SKELETON_VERSIONS
+
+### Community 168 - "dashboard/package.json"
+Cohesion: 0.40
+Nodes (4): name, private, type, version
+
+### Community 170 - "tsconfig.test-d.json"
+Cohesion: 0.40
+Nodes (4): tests/**/*.test-d.ts, ./tsconfig.json, extends, include
+
+### Community 205 - "environment.ts"
+Cohesion: 0.50
+Nodes (3): building, dev, version
+
+### Community 208 - "svelte-shims.d.ts"
+Cohesion: 0.50
+Nodes (3): *.client.js, *.server.js, *.svelte
+
+### Community 234 - "admin-users.test.ts"
+Cohesion: 0.27
+Nodes (5): createCredentialUser(), CreateCredentialUserInput, DuplicateEmailError, ADMIN, auth
+
 ## Knowledge Gaps
-- **1394 isolated node(s):** `$schema`, `$id`, `title`, `type`, `schemaVersion` (+1389 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 1612 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
-- **110 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **1561 isolated node(s):** `$schema`, `$id`, `title`, `type`, `schemaVersion` (+1556 more)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 1794 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **102 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `unreadCount()` connect `chat/index.ts` to `Feedback.svelte`?**
-  _High betweenness centrality (0.013) - this node is a cross-community bridge._
-- **Why does `path` connect `path` to `svforge/scripts/prebuild.ts`, `generateTemplatesFile`, `chat/scripts/prebuild.ts`, `graph/scripts/prebuild.ts`, `jobs/scripts/prebuild.ts`, `oauth/scripts/prebuild.ts`, `prebuild-utils.ts`, `changelog`?**
-  _High betweenness centrality (0.008) - this node is a cross-community bridge._
-- **Why does `changelog` connect `changelog` to `properties`?**
-  _High betweenness centrality (0.006) - this node is a cross-community bridge._
+  _High betweenness centrality (0.022) - this node is a cross-community bridge._
+- **Why does `path` connect `prebuild-utils.ts` to `svforge/scripts/prebuild.ts`?**
+  _High betweenness centrality (0.014) - this node is a cross-community bridge._
+- **Why does `changelog` connect `prebuild-utils.ts` to `properties`?**
+  _High betweenness centrality (0.009) - this node is a cross-community bridge._
 - **What connects `$schema`, `$id`, `title` to the rest of the system?**
-  _1394 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _1561 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `en.json` be split into smaller, more focused modules?**
   _Cohesion score 0.011695906432748537 - nodes in this community are weakly interconnected._
 - **Should `fr.json` be split into smaller, more focused modules?**
   _Cohesion score 0.011695906432748537 - nodes in this community are weakly interconnected._
 - **Should `design-system.ts` be split into smaller, more focused modules?**
-  _Cohesion score 0.053551912568306013 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.0873440285204991 - nodes in this community are weakly interconnected._

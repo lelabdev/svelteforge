@@ -8,6 +8,10 @@ Notification toasts for SVForge projects. Wraps Skeleton UI Toast.
 npx sv add @svforge/ui_toast
 ```
 
+## Deployment profile
+
+Supported: `long-lived-node`, `serverless`, `edge`, `separate-worker`. Unsupported: none; this module is client-side UI only.
+
 ## Usage
 
 Add `<Toaster />` to your root layout:

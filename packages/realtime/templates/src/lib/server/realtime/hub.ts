@@ -23,9 +23,19 @@ export interface RealtimeEvent<T = unknown> {
 export interface RealtimeClient {
 	userId?: string;
 	channels: Set<string>;
+	pendingChannels: Set<string>;
+	/** Generation tokens prevent an old async authorization from winning a retry. */
+	pendingSubscriptions: Map<string, symbol>;
+	subscriptionTimestamps: number[];
 }
 
 export interface RealtimeServerOptions {
+	/** Maximum incoming frame size in bytes (default 16 KiB). */
+	maxFrameBytes?: number;
+	/** Maximum authorized channels retained by one connection (default 50). */
+	maxChannelsPerClient?: number;
+	/** Maximum subscribe requests per connection per minute (default 60). */
+	maxSubscriptionsPerMinute?: number;
 	/** Extract the authenticated user id from the upgrade request. */
 	authenticate?: (req: IncomingMessage) => Promise<string | null | undefined> | string | null | undefined;
 	/**
@@ -45,30 +55,49 @@ type SocketEntry = { ws: WebSocket; client: RealtimeClient };
 export class RealtimeHub {
 	private wss: WebSocketServer | null = null;
 	private sockets = new Map<WebSocket, SocketEntry>();
-	private options: RealtimeServerOptions;
+	private options: Required<Pick<RealtimeServerOptions, 'maxFrameBytes' | 'maxChannelsPerClient' | 'maxSubscriptionsPerMinute'>> & RealtimeServerOptions;
 
 	constructor(options: RealtimeServerOptions = {}) {
-		this.options = options;
+		const positiveInteger = (value: number | undefined, fallback: number) =>
+			Number.isFinite(value) && value! > 0 ? Math.floor(value!) : fallback;
+		this.options = {
+			...options,
+			maxFrameBytes: positiveInteger(options.maxFrameBytes, 16 * 1024),
+			maxChannelsPerClient: positiveInteger(options.maxChannelsPerClient, 50),
+			maxSubscriptionsPerMinute: positiveInteger(options.maxSubscriptionsPerMinute, 60)
+		};
 	}
 
 	/** Attach the WS server to an HTTP server (e.g. adapter-node customServer). */
 	attach(server: Server): void {
-		this.wss = new WebSocketServer({ server, path: '/api/realtime' });
+		this.wss = new WebSocketServer({ server, path: '/api/realtime', maxPayload: this.options.maxFrameBytes });
 		this.wss.on('connection', (ws, req) => this.handleConnection(ws, req));
 	}
 
 	/** Start a standalone WS server on its own port (portable, no adapter hook). */
 	listen(port: number, host = '0.0.0.0'): Promise<void> {
 		return new Promise((resolve) => {
-			this.wss = new WebSocketServer({ port, host, path: '/api/realtime' });
+			this.wss = new WebSocketServer({ port, host, path: '/api/realtime', maxPayload: this.options.maxFrameBytes });
 			this.wss.on('connection', (ws, req) => this.handleConnection(ws, req));
 			this.wss.on('listening', () => resolve());
 		});
 	}
 
 	private async handleConnection(ws: WebSocket, req: IncomingMessage): Promise<void> {
-		const userId = this.options.authenticate ? ((await this.options.authenticate(req)) ?? undefined) : undefined;
-		const client: RealtimeClient = { userId, channels: new Set() };
+		let userId: string | undefined;
+		try {
+			userId = this.options.authenticate ? ((await this.options.authenticate(req)) ?? undefined) : undefined;
+		} catch {
+			ws.close(1011, 'authentication failed');
+			return;
+		}
+		const client: RealtimeClient = {
+			userId,
+			channels: new Set(),
+			pendingChannels: new Set(),
+			pendingSubscriptions: new Map(),
+			subscriptionTimestamps: []
+		};
 		this.sockets.set(ws, { ws, client });
 
 		ws.on('message', (data) => {
@@ -78,6 +107,10 @@ export class RealtimeHub {
 					this.subscribe(ws, client, msg.channel);
 				} else if (msg.type === 'unsubscribe' && typeof msg.channel === 'string') {
 					client.channels.delete(msg.channel);
+					// Invalidate an authorization that is still in flight. A retry may
+					// start immediately with a new generation token.
+					client.pendingChannels.delete(msg.channel);
+					client.pendingSubscriptions.delete(msg.channel);
 				}
 			} catch {
 				// ignore malformed frames
@@ -89,14 +122,45 @@ export class RealtimeHub {
 	}
 
 	private async subscribe(ws: WebSocket, client: RealtimeClient, channel: string): Promise<void> {
+		const now = Date.now();
+		client.subscriptionTimestamps = client.subscriptionTimestamps.filter((timestamp) => now - timestamp < 60_000);
+		if (client.subscriptionTimestamps.length >= this.options.maxSubscriptionsPerMinute) {
+			ws.send(JSON.stringify({ type: 'error', channel, error: 'rate_limit' }));
+			return;
+		}
+		client.subscriptionTimestamps.push(now);
+		if (client.channels.has(channel) || client.pendingChannels.has(channel)) return;
+		if (client.channels.size + client.pendingChannels.size >= this.options.maxChannelsPerClient) {
+			ws.send(JSON.stringify({ type: 'error', channel, error: 'channel_limit' }));
+			return;
+		}
+
+		// Reserve before awaiting authorization: concurrent async checks cannot
+		// exceed the channel cap, and an unsubscribe during authorization wins.
+		client.pendingChannels.add(channel);
+		const generation = Symbol(channel);
+		client.pendingSubscriptions.set(channel, generation);
 		const authorize = this.options.authorize ?? (() => false);
-		const authorized = await authorize(client.userId, channel);
-		if (!authorized) {
-			ws.send(JSON.stringify({ type: 'error', channel, error: 'unauthorized' }));
+		let authorized = false;
+		try {
+			authorized = await authorize(client.userId, channel);
+		} catch {
+			// Authorization failures are treated as a refusal, never as an
+			// implicit allow or an unhandled rejection.
+		}
+		if (client.pendingSubscriptions.get(channel) !== generation || !this.sockets.has(ws)) return;
+		client.pendingChannels.delete(channel);
+		client.pendingSubscriptions.delete(channel);
+		if (!authorized || client.channels.has(channel)) {
+			if (!authorized && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'error', channel, error: 'unauthorized' }));
+			return;
+		}
+		if (client.channels.size >= this.options.maxChannelsPerClient) {
+			if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'error', channel, error: 'channel_limit' }));
 			return;
 		}
 		client.channels.add(channel);
-		ws.send(JSON.stringify({ type: 'subscribed', channel }));
+		if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'subscribed', channel }));
 	}
 
 	/**

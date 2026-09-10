@@ -72,6 +72,15 @@ describe('AI context generation (#234)', () => {
 		expect(m.capabilities).not.toContain('runtime.longLivedWorker');
 	});
 
+	it('generated context declares deployment profiles and module compatibility', () => {
+		const manifest = buildManifest('dashboard', ['realtime', 'jobs', 'uploads']);
+		expect(manifest.deployment?.profile).toBe('serverless');
+		expect(manifest.moduleProfiles?.dashboard.unsupported).toContain('edge');
+		expect(manifest.moduleProfiles?.realtime.supported).toEqual(['long-lived-node', 'separate-worker']);
+		expect(renderLlmstxt(manifest)).toContain('## Deployment profile');
+		expect(renderLlmstxt(manifest)).toContain('realtime: supported long-lived-node, separate-worker');
+	});
+
 	it('module installation adds its capability (no ghost when absent)', () => {
 		const base = buildManifest('base', []);
 		expect(base.capabilities).not.toContain('email (Resend)');

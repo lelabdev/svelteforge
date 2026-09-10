@@ -8,6 +8,10 @@ Interactive knowledge graph visualization for SvelteKit — Obsidian-style force
 npx sv add @svforge/graph
 ```
 
+## Deployment profile
+
+Supported: `long-lived-node`, `serverless`, `edge`, `separate-worker`. Unsupported: none; this is a client-side visualization.
+
 ## Usage
 
 ```svelte

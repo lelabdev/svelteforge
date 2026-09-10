@@ -27,6 +27,7 @@
 
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { MODULE_PROFILE_SUPPORT, type DeploymentProfile } from './ai-context';
 
 export interface DiagnosticResult {
 	/** Module or area being checked. */
@@ -52,6 +53,7 @@ interface InstalledState {
 	template: 'base' | 'dashboard' | null;
 	modules: string[];
 	capabilities: Capability[];
+	deploymentProfile?: DeploymentProfile;
 }
 
 /**
@@ -118,6 +120,9 @@ export async function doctor(projectRoot: string = process.cwd()): Promise<Docto
 
 	// 5. Check dependency compatibility (real SemVer)
 	results.push(...checkDependencies(projectRoot));
+
+	// 6. Warn only for installed modules incompatible with the declared target.
+	results.push(...checkDeploymentCompatibility(state));
 
 	return {
 		results,
@@ -192,7 +197,8 @@ function readInstalledState(root: string, results: DiagnosticResult[]): Installe
 				source: 'manifest',
 				template: manifest.template,
 				modules: manifest.modules,
-				capabilities: [...capabilities]
+				capabilities: [...capabilities],
+				deploymentProfile: manifest.deploymentProfile
 			};
 		}
 		// Invalid manifest: the error diagnostic was already emitted by
@@ -220,6 +226,11 @@ function readInstalledState(root: string, results: DiagnosticResult[]): Installe
 interface ParsedManifest {
 	template: 'base' | 'dashboard';
 	modules: string[];
+	deploymentProfile?: DeploymentProfile;
+}
+
+function isDeploymentProfile(value: unknown): value is DeploymentProfile {
+	return value === 'long-lived-node' || value === 'serverless' || value === 'edge' || value === 'separate-worker';
 }
 
 /** Parse and validate .svforge.json. Emits a clear error diagnostic when invalid. */
@@ -245,8 +256,19 @@ function parseManifest(manifestPath: string, results: DiagnosticResult[]): Parse
 		if (!record.modules.every((entry) => typeof entry === 'string')) {
 			return invalid('every entry in "modules" must be a string');
 		}
+		let deploymentProfile: DeploymentProfile | undefined;
+		if (record.deployment !== undefined) {
+			if (record.deployment === null || typeof record.deployment !== 'object' || Array.isArray(record.deployment)) {
+				return invalid('"deployment" must be an object');
+			}
+			const profile = (record.deployment as Record<string, unknown>).profile;
+			if (profile !== undefined && !isDeploymentProfile(profile)) {
+				return invalid('"deployment.profile" is not a supported deployment profile');
+			}
+			deploymentProfile = profile as DeploymentProfile | undefined;
+		}
 		// Unknown string module ids and unknown top-level fields stay accepted.
-		return { template, modules: record.modules as string[] };
+		return { template, modules: record.modules as string[], deploymentProfile };
 	} catch (error) {
 		return invalid(error instanceof Error ? error.message : 'invalid JSON');
 	}
@@ -270,6 +292,24 @@ function readDependencies(root: string): Record<string, string> | null {
 	} catch {
 		return null;
 	}
+}
+
+// ── Deployment compatibility ─────────────────────────────────────────
+
+/** Warn only for installed modules incompatible with the declared profile. */
+function checkDeploymentCompatibility(state: InstalledState): DiagnosticResult[] {
+	const profile = state.deploymentProfile;
+	if (!profile) return [];
+	const installed = [...(state.template === 'dashboard' ? ['dashboard'] : []), ...state.modules];
+	return installed.flatMap((moduleId) => {
+		const support = MODULE_PROFILE_SUPPORT[moduleId];
+		if (!support || !support.unsupported.includes(profile)) return [];
+		return [{
+			module: moduleId,
+			status: 'warn' as const,
+			message: `${moduleId} is incompatible with the declared ${profile} deployment profile. ${support.note}`
+		}];
+	});
 }
 
 // ── Environment checks (capability-derived) ─────────────────────────

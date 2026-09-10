@@ -13,6 +13,12 @@ npx sv add @svforge/jobs
 Requires the **dashboard** template (auth + Drizzle). The runner starts
 automatically in `hooks.server.ts`.
 
+## Deployment profile
+
+Supported: `long-lived-node`, `separate-worker`. Unsupported: `serverless`, `edge`.
+
+The polling runner must have one long-lived owner. In production, deploy it as the `separate-worker` profile described in #328 rather than starting it in a serverless request lifecycle.
+
 ## Define a handler
 
 ```ts

@@ -12,6 +12,10 @@ npx sv add @svforge/chat
 
 Requires the **dashboard** template (auth + Drizzle). Schemas auto-registered.
 
+## Deployment profile
+
+Supported: `long-lived-node`, `serverless`. Unsupported: `edge`, `separate-worker` because the module uses PostgreSQL. Realtime is an optional separately deployed integration.
+
 ## API
 
 ```ts

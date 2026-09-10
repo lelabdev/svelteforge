@@ -35,7 +35,9 @@ export {
 	renderLlmstxt,
 	mergeManifest,
 	regenerateLlmstxt,
-	MODULE_CAPABILITIES
+	MODULE_CAPABILITIES,
+	DEPLOYMENT_PROFILES,
+	MODULE_PROFILE_SUPPORT
 } from './ai-context';
 /**
  * Deprecated compatibility alias (#324): kept exported through the package
@@ -48,7 +50,7 @@ export {
  *   @svforge/addon-kit (plan-then-write, non-destructive).
  */
 export { enrichManifest } from './ai-context';
-export type { SvforgeManifest } from './ai-context';
+export type { SvforgeManifest, DeploymentProfile, ModuleProfileSupport } from './ai-context';
 
 // Export upgrade command for programmatic use (#327): one diffable protocol
 // for base, dashboard and the 13 standalone modules.

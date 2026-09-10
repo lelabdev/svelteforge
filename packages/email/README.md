@@ -8,6 +8,10 @@ Transactional emails for SVForge projects via Resend. Adds a `sendEmail()` helpe
 npx sv add @svforge/email
 ```
 
+## Deployment profile
+
+Supported: `long-lived-node`, `serverless`, `edge`, `separate-worker`. Unsupported: none. Trigger delivery from a request or a dedicated worker; keep `RESEND_API_KEY` server-side.
+
 ## Setup
 
 Add your Resend API key to `.env`:

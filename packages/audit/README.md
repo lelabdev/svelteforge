@@ -13,6 +13,12 @@ npx sv add @svforge/audit
 Requires the **dashboard** template (auth + Drizzle). The audit schema is
 auto-registered in `src/lib/server/db/schema.ts`.
 
+## Deployment profile
+
+Supported: `long-lived-node`, `serverless`. Unsupported: `edge`, `separate-worker` (the module uses PostgreSQL).
+
+Set a product retention period, classify metadata/PII, and limit read access to administrators. The included API is append-only at application level; where regulatory integrity is required, add a PostgreSQL trigger that rejects `UPDATE` and `DELETE` for `audit_logs`.
+
 ## Record
 
 ```ts
@@ -62,6 +68,22 @@ the other admin pages).
 The audit log is a business trail, not a technical log and not an event-sourcing
 store. No update/delete is exposed by the API — the table stays append-only at
 the application level.
+
+For a database-enforced policy, run this product-owned migration (adapt the
+retention window to your legal requirements):
+
+```sql
+CREATE FUNCTION reject_audit_mutation() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  RAISE EXCEPTION 'audit_logs is append-only';
+END;
+$$;
+CREATE TRIGGER audit_logs_append_only
+  BEFORE UPDATE OR DELETE ON audit_logs
+  FOR EACH ROW EXECUTE FUNCTION reject_audit_mutation();
+-- Example retention job, not a module default:
+-- DELETE FROM audit_logs WHERE created_at < now() - interval '2 years';
+```
 
 ## What's included
 

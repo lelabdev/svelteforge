@@ -45,6 +45,12 @@ with POST policies or add a size-limited server proxy/post-upload verification.
 AWS S3 supports the default. Verify POST-policy support with any other
 S3-compatible backend before selecting it.
 
+## Deployment profile
+
+Supported: `long-lived-node`, `serverless`. Unsupported: `edge`, `separate-worker`.
+
+A signed PUT does **not** reliably enforce `ContentLength` at the storage layer. For a hard size limit, use a bucket POST policy when supported, reserve/check a per-user quota before signing, and invoke a scan callback before making the object available.
+
 ## Usage
 
 ```svelte
