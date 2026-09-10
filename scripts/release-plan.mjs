@@ -218,6 +218,7 @@ export function checkPublishAccess(plan, root = SCRIPT_ROOT, npm = runNpm) {
 	const notYetPublished = plan.packages.filter((pkg) => !hasPublishedPackage(pkg));
 	let access = {};
 
+	let accessLookup = true;
 	if (existing.length) {
 		const result = npm(['access', 'list', 'packages', '--json'], root);
 		if (result.status !== 0) {
@@ -226,6 +227,7 @@ export function checkPublishAccess(plan, root = SCRIPT_ROOT, npm = runNpm) {
 			// is the real access test — skip this pre-check rather than fail.
 			const stderr = `${result.stdout}\n${result.stderr}`;
 			if (/E403|E401|may not perform|Unable to authenticate/i.test(stderr)) {
+				accessLookup = false;
 				console.log('npm access lookup unavailable for this token (granular, no org perms) — skipping access pre-check.');
 			} else {
 				throw new Error(`Could not query npm publish permissions: ${stderr.trim()}`);
@@ -242,13 +244,12 @@ export function checkPublishAccess(plan, root = SCRIPT_ROOT, npm = runNpm) {
 	const canPublish = (permission) => typeof permission === 'string'
 		? /write|admin/i.test(permission)
 		: permission === true;
-	if (Object.keys(access).length) {
+	if (accessLookup && Object.keys(access).length) {
 		const denied = existing.filter((pkg) => !canPublish(access[pkg.name])).map((pkg) => pkg.name);
 		if (denied.length) {
 			throw new Error(`Authenticated npm account cannot publish: ${denied.join(', ')}.`);
 		}
-	}
-	if (!Object.keys(access).length) {
+	} else if (!accessLookup) {
 		console.log('npm access list unavailable — publish access will be validated by the publish itself.');
 		return plan;
 	}
