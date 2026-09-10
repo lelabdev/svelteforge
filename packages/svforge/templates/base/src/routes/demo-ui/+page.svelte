@@ -62,6 +62,14 @@
 			<Button href="/">{m.demo_link_btn()}</Button>
 			<Button disabled>{m.demo_disabled()}</Button>
 		</div>
+		<h3 class="h3">{m.demo_brand()}</h3>
+		<!-- #315: the Skeleton brand concept — these presets resolve through
+		     --color-brand-* in the theme; keeps the brand contract visible. -->
+		<div class="flex flex-wrap gap-3">
+			<button type="button" class="btn preset-filled-brand">{m.demo_filled()}</button>
+			<button type="button" class="btn preset-tonal-brand">{m.demo_tonal()}</button>
+			<button type="button" class="btn preset-outlined-brand">{m.demo_outlined()}</button>
+		</div>
 	</section>
 
 	<!-- Cards -->
