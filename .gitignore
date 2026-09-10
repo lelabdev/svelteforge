@@ -3,3 +3,6 @@ dist/
 src/templates.ts
 frontend/
 tests/__gen__/
+
+# Graphify knowledge graph — locally regenerable artifact (graphify update .)
+graphify-out/
