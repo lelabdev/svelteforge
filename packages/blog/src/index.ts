@@ -1,5 +1,6 @@
 import { defineAddon, defineAddonOptions } from 'sv';
-import { checkModuleCapabilities, planAddonContext } from '@svforge/addon-kit';
+import { checkModuleCapabilities, planAddonContext, hasPatchApplied } from '@svforge/addon-kit';
+import { svforgePatchMarker } from '@svforge/addon-kit';
 import { files } from './templates';
 
 
@@ -149,8 +150,8 @@ export default defineAddon({
 			return;
 		}
 		sv.file('vite.config.ts', (content) => {
-			if (!content || content.includes('mdsvex')) return content;
-			let updated = content;
+			if (hasPatchApplied(content, 'vite-mdsvex', ['mdsvex'])) return content;
+			let updated = `// ${svforgePatchMarker('vite-mdsvex')}\n${content}`;
 			if (!updated.includes("from 'mdsvex'")) {
 				updated = updated.replace(
 					/import\s+\{[^}]+\}\s+from\s+'@sveltejs\/kit\/vite';/,
@@ -175,8 +176,8 @@ export default defineAddon({
 		});
 
 		sv.file('svelte.config.js', (content) => {
-			if (!content || content.includes('mdsvex')) return content;
-			let updated = content;
+			if (hasPatchApplied(content, 'svelte-config-mdsvex', ['mdsvex'])) return content;
+			let updated = `// ${svforgePatchMarker('svelte-config-mdsvex')}\n${content}`;
 			if (!updated.includes("from 'mdsvex'")) {
 				updated = updated.replace(
 					/(import\s+.*?;?\s*\n)(?=\n*export)/,
@@ -219,7 +220,7 @@ export default defineAddon({
 		// compiled component client-side. Patches the consumer's hooks.ts
 		// (which already exports the Paraglide reroute) without touching it.
 				sv.file('src/hooks.ts', (content) => {
-			if (!content || content.includes('mdx-post')) return content;
+			if (hasPatchApplied(content, 'posts-hooks', ['mdx-post'])) return content;
 			// Add our imports only when the consumer does not already provide
 			// them (a project with its own transport usually imports the
 			// Transport type from '@sveltejs/kit' already).

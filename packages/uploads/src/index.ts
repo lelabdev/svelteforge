@@ -73,8 +73,12 @@ export default defineAddon({
 			sv.devDependency('vitest', '^4.1.5');
 			sv.devDependency('jsdom', '^29.1.1');
 			sv.file('package.json', (content) => {
-				if (!content || content.includes('"test"')) return content;
+				if (!content) return content;
+				// #331: JSON transformation, not a string includes — any package
+				// containing the substring `"test"` (a dep name, a keyword) used
+				// to make this patch silently skip.
 				const pkg = JSON.parse(content);
+				if (pkg.scripts?.test) return content;
 				pkg.scripts = { ...(pkg.scripts || {}), test: 'vitest run' };
 				return `${JSON.stringify(pkg, null, 2)}\n`;
 			});
