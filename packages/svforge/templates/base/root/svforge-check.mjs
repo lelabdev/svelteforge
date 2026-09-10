@@ -702,13 +702,13 @@ for (const file of cssFiles) {
 	}
 }
 for (const file of walk(componentsDir, ['.svelte'])) {
-	const rel = relative(ROOT, file);
-	// Exact-path exemption (#361/#345), mirroring the repository engine.
-	const relPosix = rel.split(sep).join('/');
+	// Exemption paths are componentsDir-relative (catalog + addon mapping).
+	const relPosix = relative(componentsDir, file).split(sep).join('/');
 	const isCanonicalImplementation =
 		catalogPaths.has(relPosix) ||
 		installedModules.some((moduleId) => (ADDON_COMPONENTS[moduleId] ?? []).includes(relPosix));
 	if (isCanonicalImplementation) continue;
+	const rel = relative(ROOT, file);
 	for (const finding of checkStyleBlockDrift(readFileSync(file, 'utf-8'))) {
 		results.push({ status: finding.severity, msg: `${rel}: [svforge/${finding.rule}] ${finding.message}` });
 	}

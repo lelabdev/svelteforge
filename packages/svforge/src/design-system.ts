@@ -774,8 +774,10 @@ export async function checkDesignSystem(
 				return out;
 			};
 			for (const file of walkSvelte(componentsDir)) {
+				// Exemption paths are componentsDir-relative (catalog + addon mapping).
+				const relPosix = path.relative(componentsDir, file).split(path.sep).join('/');
+				if (approvedPaths.has(relPosix) || isApprovedAddonComponent(relPosix, installedModules)) continue;
 				const rel = path.relative(projectRoot, file).split(path.sep).join('/');
-				if (approvedPaths.has(rel) || isApprovedAddonComponent(rel, installedModules)) continue;
 				for (const finding of checkStyleBlockDrift(fs.readFileSync(file, 'utf-8'))) {
 					results.push({ module: 'ds', status: finding.severity, message: `${rel}: [svforge/${finding.rule}] ${finding.message}` });
 				}
