@@ -1,5 +1,4 @@
 import { describe, it, expect, vi } from 'vitest';
-import { redirect } from '@sveltejs/kit';
 
 // Mock the server modules so the test can run without a real database.
 vi.mock('$lib/server/db', () => ({

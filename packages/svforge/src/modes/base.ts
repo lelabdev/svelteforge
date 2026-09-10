@@ -19,6 +19,36 @@ const LEFTHOOK_CONFIG = `pre-commit:
 
 type HookMode = 'none' | 'lefthook';
 
+/**
+ * Split a plugins-array body on top-level commas only — commas inside call
+ * args, object literals or strings must not split (#325).
+ */
+function splitTopLevel(input: string): string[] {
+	const parts: string[] = [];
+	let depth = 0;
+	let start = 0;
+	let quote: string | null = null;
+	for (let i = 0; i < input.length; i++) {
+		const ch = input[i];
+		if (quote) {
+			if (ch === quote) quote = null;
+			continue;
+		}
+		if (ch === "'" || ch === '"' || ch === '`') {
+			quote = ch;
+			continue;
+		}
+		if (ch === '(' || ch === '{' || ch === '[') depth++;
+		else if (ch === ')' || ch === '}' || ch === ']') depth--;
+		else if (ch === ',' && depth === 0) {
+			parts.push(input.slice(start, i));
+			start = i + 1;
+		}
+	}
+	parts.push(input.slice(start));
+	return parts;
+}
+
 // `sv add --install` is valid before `git init`. The conditional preserves an
 // installation failure inside a repository while making the lifecycle script a
 // successful no-op outside one.
@@ -32,7 +62,8 @@ export function applyBaseMode(
 	sv: SvApi,
 	files: Record<string, string>,
 	rootFiles: Record<string, string> = {},
-	hooks: HookMode = 'none'
+	hooks: HookMode = 'none',
+	packageManager = 'npm'
 ): void {
 	// Baseline Vitest (#235): deliver the runnable test baseline. The
 	// devDependency + script mirror the template package.json (vitest ^5.0.0).
@@ -48,15 +79,22 @@ export function applyBaseMode(
 	// integration. The vite plugin generates src/lib/paraglide at build time.
 	sv.dependency('@inlang/paraglide-js', '^2.24.0');
 
-	// Add runnable test + type-check scripts to the generated project.
+	// Add runnable test, type-check and lint/format scripts to the generated
+	// project. The eslint + prettier devDependencies are injected by index.ts
+	// and the configs ship in the root files — the scripts are what make the
+	// lint/format promise REAL (#325).
 	// `check` compiles Paraglide first: the vite plugin generates
 	// src/lib/paraglide at build/dev time, but svelte-check needs the files
 	// present (and their .d.ts) to type-check the generated messages (#271).
+	// check:watch mirrors check (#325): without the compile step the watch
+	// variant advertised by the template reference fails on the generated
+	// Paraglide messages.
 	sv.file('package.json', (content: string) => {
 		const pkg = JSON.parse(content);
 		pkg.scripts = {
 			...pkg.scripts,
-			lint: 'eslint .',
+			lint: 'prettier --check . && eslint .',
+			format: 'prettier --write .',
 			test: 'vitest run',
 			'test:watch': 'vitest',
 			// #343: the design-system check rides on `bun run check` —
@@ -64,9 +102,11 @@ export function applyBaseMode(
 			// exits non-zero on ERROR and zero on WARN-only, so plain && keeps
 			// "ERROR fails the command, WARN stays informational".
 			check:
-				'svelte-kit sync && paraglide-js compile --project ./project.inlang --outdir ./src/lib/paraglide && svelte-check --tsconfig ./tsconfig.json && node svforge-check.mjs'
+				'svelte-kit sync && paraglide-js compile --project ./project.inlang --outdir ./src/lib/paraglide && svelte-check --tsconfig ./tsconfig.json && node svforge-check.mjs',
+			'check:watch':
+				'svelte-kit sync && paraglide-js compile --project ./project.inlang --outdir ./src/lib/paraglide && svelte-check --tsconfig ./tsconfig.json --watch'
 		};
-		return `${JSON.stringify(pkg, null, 2)}\n`;
+		return `${JSON.stringify(pkg, null, '\t')}\n`;
 	});
 
 // Strict checks stay opt-in (#344): Lefthook only runs for commits with
@@ -82,7 +122,7 @@ export function applyBaseMode(
 				...pkg.scripts,
 				prepare: prepare?.includes('lefthook install') ? prepare : prepare ? `${prepare} && ${LEFTHOOK_PREPARE}` : LEFTHOOK_PREPARE
 			};
-			return `${JSON.stringify(pkg, null, 2)}\n`;
+			return `${JSON.stringify(pkg, null, '\t')}\n`;
 		});
 	}
 
@@ -105,6 +145,28 @@ export function applyBaseMode(
 		}
 		if (!updated.includes('svforgeDesignSystemPlugin()')) {
 			updated = updated.replace(/plugins:\s*\[/, 'plugins: [svforgeDesignSystemPlugin(), ');
+		}
+		// #325: the scaffold ships `lint: prettier --check . && eslint .` —
+		// the patched plugins array must be prettier-stable (printWidth 100).
+		// When the single-line form no longer fits, render one plugin per line
+		// (exactly what prettier would produce), so `prettier --check .` is
+		// green on a fresh scaffold without reformatting user files.
+		const pluginsMatch = updated.match(/plugins:\s*\[([^\]]*)\]/);
+		if (pluginsMatch) {
+			const items = splitTopLevel(pluginsMatch[1])
+				.map((item) => item.trim())
+				.filter(Boolean);
+			if (items.length > 0) {
+				// The statement keeps ITS original indentation — only the array
+				// body is re-rendered (items one level deeper, closing bracket
+				// one level shallower) — exactly prettier's canonical output.
+				const single = `plugins: [${items.join(', ')}]`;
+				const rendered =
+					single.length + 1 <= 100
+						? single
+						: `plugins: [\n${items.map((item) => `\t\t${item}`).join(',\n')}\n\t]`;
+				updated = updated.replace(/plugins:\s*\[[^\]]*\]/, () => rendered);
+			}
 		}
 		return updated;
 	});
@@ -134,8 +196,8 @@ export function applyBaseMode(
 	}
 
 	// AI-ready: scaffold AGENTS.md at the project root (#203, #347) — the
-	// sole agent convention of a SvelteForge project.
-	sv.file('AGENTS.md', () => scaffoldedAgents('base'));
+	// sole agent convention of a SvelteForge project (#325: PM-aware commands).
+	sv.file('AGENTS.md', () => scaffoldedAgents('base', packageManager));
 
 	// #317: ship the cached Skeleton/Svelte LLM references so agents search
 	// local, version-matched docs before changing Skeleton UI/theme.

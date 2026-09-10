@@ -49,7 +49,7 @@ For the dashboard template, configure PostgreSQL and the generated environment:
 
 ```bash
 bash scripts/setup.sh
-bun run dev
+npm run dev  # or bun/pnpm/yarn equivalent
 ```
 
 The dashboard uses a standard `DATABASE_URL`, so local PostgreSQL, a server you manage, or a managed PostgreSQL provider all fit the same project structure.

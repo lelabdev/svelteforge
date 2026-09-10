@@ -33,10 +33,14 @@ describe('better-auth upgrade policy (#319)', () => {
 			// Its nested @better-auth/core (1.4.x) hoists over the runtime's
 			// @better-auth/core (1.7.x) and breaks the SSR build with
 			// "does not provide an export named 'APIError'". The generator runs
-			// via `bunx @better-auth/cli@<pinned>` (isolated tree) and its output
-			// is gated by scripts/check-auth-schema.mjs.
+			// via an ON-DEMAND dlx runner (`bunx` for bun, `npx --yes` for npm —
+			// #325) — isolated tree — and its output is gated by
+			// scripts/check-auth-schema.mjs.
 			const source = readFileSync(DASHBOARD_TS, 'utf8');
-			expect(source).not.toContain('@better-auth/cli');
+			expect(source).not.toMatch(/sv\.(dev)?[Dd]ependency\(\s*'@better-auth\/cli'/);
+			// The on-demand runner reference must survive in the shipped
+			// auth:schema path — still version-pinned.
+			expect(source).toContain('@better-auth/cli@1.4.21');
 			const templatePkg = JSON.parse(
 				readFileSync(join(ROOT, 'packages/svforge/templates/dashboard/package.json'), 'utf8')
 			);

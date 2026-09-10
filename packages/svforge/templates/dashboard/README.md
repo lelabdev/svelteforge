@@ -8,7 +8,7 @@ Base template + admin dashboard with Better Auth, Drizzle ORM, and user manageme
 - **Better Auth** with email/password — **sign-up CLOSED by default** (`SIGNUP_MODE`, #318)
 - **Sign-up modes** (server-enforced, `.env`): `closed` (default — admins create users from `/admin/users`), `invite-only` (pre-approved emails invited from `/admin/users`), `self-service` (public registration; admins can never result from it)
 - **Session management** via `hooks.server.ts`
-- **First-admin bootstrap**: `bun run admin:create -- --name … --email … --password …` — atomic (advisory lock + no-admin verification); `/setup` is a dev-only convenience sharing the same code path
+- **First-admin bootstrap**: `<pm> run admin:create -- --name … --email … --password …` — atomic (advisory lock + no-admin verification); `/setup` is a dev-only convenience sharing the same code path
 - **Login page** at `/login`
 - **Auth guard** on `(app)/` route group with callbackURL redirect
 - **Pattern**: explicit persisted `role` column (`admin` | `user`, see `$lib/server/admin.ts`) — granted ONLY by the bootstrap, never by sign-up or row ordering
@@ -57,13 +57,13 @@ locale configured in `project.inlang/settings.json`; see `tests/paraglide.test.t
 ### Routes Structure
 - `/` — redirects to `/login` or `/admin` based on session
 - `/login` — public
-- `/setup` — dev-only, atomic first-admin bootstrap (production uses `bun run admin:create`)
+- `/setup` — dev-only, atomic first-admin bootstrap (production uses `<pm> run admin:create`)
 - `/(app)/admin` — protected, requires session
 - `/(app)/admin/users` — protected, requires admin (also creates invitations for `invite-only`)
 - `/(app)/admin/settings` — protected
 
 ### Pre-configured Files
-- `drizzle.config.ts` — ready for `bunx drizzle-kit push`
+- `drizzle.config.ts` — ready for `drizzle-kit push` (npm run db:push)
 - `.env.example` — copy to `.env` and fill in
 - `scripts/setup.sh` — run after install (generates secret, inits DB)
 
@@ -101,9 +101,9 @@ Guarantees:
 ## Next Steps
 
 - **Start PostgreSQL** (local / Docker / managed — see `.env.example`)
-- **Run migrations**: `bunx drizzle-kit push --force`
+- **Run migrations**: `<pm> run db:push` (drizzle-kit push)
 - **Create first admin** (atomic — refuses if an admin already exists):
-  `bun run admin:create -- --name "Admin" --email admin@example.com --password '…'`
+  `<pm> run admin:create -- --name "Admin" --email admin@example.com --password '…'`
 - **Open sign-up (optional)**: set `SIGNUP_MODE=invite-only` (pre-approve emails from `/admin/users`) or `SIGNUP_MODE=self-service` — self-registered users are ALWAYS `role = user`, the admin role can only be granted by the bootstrap
 - **Add a protected route**: Create file in `src/routes/(app)/your-route/+page.svelte`
 - **Modify authorization**: roles live on the `user.role` column, checked in `src/lib/server/admin.ts`

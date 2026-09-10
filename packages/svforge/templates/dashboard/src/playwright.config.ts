@@ -5,9 +5,9 @@ import { defineConfig, devices } from '@playwright/test';
  *
  * This is an opt-in testing profile — install Playwright separately:
  *   bun add -D @playwright/test
- *   bunx playwright install
+ *   <package manager> exec playwright install (e.g. `npx playwright install`)
  *
- * Then run: bunx playwright test
+ * Then run: <package manager> exec playwright test
  */
 export default defineConfig({
 	testDir: './e2e',

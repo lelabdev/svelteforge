@@ -8,7 +8,8 @@ describe('cn utility', () => {
 	});
 
 	it('handles conditional classes', () => {
-		expect(cn('base', false && 'hidden', 'extra')).toBe('base extra');
+		const hidden: string | false = 'hidden';
+		expect(cn('base', false, hidden && 'italic', 'extra')).toBe('base italic extra');
 	});
 
 	it('merges conflicting tailwind classes', () => {

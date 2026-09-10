@@ -11,13 +11,45 @@ import { baseRootFiles } from '../templates';
  * Dashboard = base + admin dashboard + auth + DB
  */
 
+/**
+ * On-demand package runners per package manager (#325). The scaffolded
+ * scripts must never invoke a PM the user did not select, so the runner is
+ * derived from the `sv` install selection (Workspace.packageManager).
+ *
+ * `@better-auth/cli` must stay on-demand (NEVER a scaffold dependency — its
+ * bundled @better-auth/core hoists over the runtime's copy and breaks the
+ * SSR build, docs/better-auth-upgrades.md), which is why the dlx runner
+ * exists at all. yarn classic has no `dlx`; every Node environment ships
+ * npx, so yarn (and any unknown agent) falls back to npx like npm.
+ */
+export const DLX_RUNNERS: Record<string, string> = {
+	npm: 'npx --yes',
+	bun: 'bunx',
+	pnpm: 'pnpm dlx',
+	deno: 'deno run -A npm:'
+};
+
+/** Normalize an agent name ("bun", "pnpm@9"…) to its dlx runner (#325). */
+export function resolveDlxRunner(packageManager: string): string {
+	const agent = packageManager.split('@')[0] || 'npm';
+	return DLX_RUNNERS[agent] ?? DLX_RUNNERS.npm;
+}
+
 export function applyDashboardMode(
 	sv: SvApi,
 	baseFiles: Record<string, string>,
 	dashboardFiles: Record<string, string>,
 	testing: 'vitest' | 'playwright' = 'vitest',
-	rootFiles: Record<string, string> = {}
+	rootFiles: Record<string, string> = {},
+	packageManager = 'npm'
 ): void {
+	// PM-specific runners (#325): the advertised auth/admin commands must work
+	// with the package manager the user actually selected in `sv`.
+	const dlx = resolveDlxRunner(packageManager);
+	// create-admin.ts is TypeScript: bun runs it natively, every other PM
+	// gets tsx through its own on-demand runner (same download policy as the
+	// better-auth CLI — never a scaffold dependency).
+	const runTs = packageManager.split('@')[0] === 'bun' ? 'bun' : `${dlx} tsx`;
 	// Dashboard-specific runtime dependencies
 	sv.dependency('drizzle-orm', '^0.45.2');
 	sv.dependency('zod', '^4.3.5'); // schemas.ts — explicit, not transitive via better-auth (#192)
@@ -44,17 +76,30 @@ export function applyDashboardMode(
 		sv.devDependency('@playwright/test', '^1.52.0');
 	}
 
-	// Add runnable test scripts to the generated dashboard, plus the atomic
-	// first-admin bootstrap command (#318).
+	// Add the advertised scripts to the generated dashboard (#325): the DB
+	// commands are plain node_modules/.bin invocations (identical for npm,
+	// bun, pnpm and yarn), while auth:schema + admin:create go through the
+	// SELECTED package manager's on-demand runner.
 	sv.file('package.json', (content: string) => {
 		const pkg = JSON.parse(content);
 		pkg.scripts = {
 			...pkg.scripts,
 			test: 'vitest run',
-			'admin:create': 'bun scripts/create-admin.ts',
+			'db:push': 'drizzle-kit push',
+			'db:generate': 'drizzle-kit generate',
+			'db:migrate': 'drizzle-kit migrate',
+			'db:studio': 'drizzle-kit studio',
+			'admin:create': `${runTs} scripts/create-admin.ts`,
+			// The CLI's bundled schema knowledge LAGS the runtime (1.4.x vs 1.7.x
+			// — it omits runtime columns like user.role/disabled), so a blind
+			// overwrite of the committed auth.schema.ts breaks the app. The
+			// regeneration lands in a REVIEW copy instead: diff it against the
+			// runtime-gated src/lib/server/db/auth.schema.ts and port deliberate
+			// changes manually (#325, policy in docs/better-auth-upgrades.md).
+			'auth:schema': `${dlx} @better-auth/cli@1.4.21 generate --config src/lib/server/auth.ts --output auth-schema.review.ts --yes`,
 			...(testing === 'playwright' ? { 'test:e2e': 'playwright test' } : {})
 		};
-		return `${JSON.stringify(pkg, null, 2)}\n`;
+		return `${JSON.stringify(pkg, null, '\t')}\n`;
 	});
 
 	// Write all base files first — same canonical resolver as the overlay
@@ -96,8 +141,8 @@ export function applyDashboardMode(
 	);
 
 	// AI-ready: scaffold AGENTS.md at the project root (#203, #347) — the
-	// sole agent convention of a SvelteForge project.
-	sv.file('AGENTS.md', () => scaffoldedAgents('dashboard'));
+	// sole agent convention of a SvelteForge project (#325: PM-aware commands).
+	sv.file('AGENTS.md', () => scaffoldedAgents('dashboard', packageManager));
 
 	// AI context (#234): override the base manifest with the dashboard state.
 	const manifest = buildManifest('dashboard', []);

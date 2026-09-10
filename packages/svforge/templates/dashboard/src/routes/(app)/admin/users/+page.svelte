@@ -7,7 +7,6 @@
 	import { Card, AvatarInitial, Feedback, Table } from '$lib/components/svforge/ui';
 	import { Badge } from '$lib/components/svforge/primitives';
 	import { Button, Input } from '$lib/components/svforge/primitives';
-	import type { UserRow } from '$lib/types';
 	import UserPlus from 'phosphor-svelte/lib/UserPlus';
 	import EnvelopeSimple from 'phosphor-svelte/lib/EnvelopeSimple';
 	import Power from 'phosphor-svelte/lib/Power';

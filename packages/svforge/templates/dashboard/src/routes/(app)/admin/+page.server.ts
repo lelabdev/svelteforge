@@ -1,7 +1,7 @@
 import { redirect } from '@sveltejs/kit';
 import { db } from '$lib/server/db';
 import { user, session } from '$lib/server/db/schema';
-import { sql, desc, asc } from 'drizzle-orm';
+import { sql, desc } from 'drizzle-orm';
 import { isAdmin } from '$lib/server/admin';
 import type { PageServerLoad } from './$types';
 
