@@ -150,7 +150,9 @@ export default defineAddon({
 			return;
 		}
 		sv.file('vite.config.ts', (content) => {
-			if (hasPatchApplied(content, 'vite-mdsvex', ['mdsvex'])) return content;
+			// legacy fragment = the exact integration this patch injects; a bare
+			// keyword ("mdsvex" in a consumer TODO) must NOT skip the patch (#331)
+			if (hasPatchApplied(content, 'vite-mdsvex', ['mdsvex({ extensions'])) return content;
 			let updated = `// ${svforgePatchMarker('vite-mdsvex')}\n${content}`;
 			if (!updated.includes("from 'mdsvex'")) {
 				updated = updated.replace(
@@ -176,7 +178,7 @@ export default defineAddon({
 		});
 
 		sv.file('svelte.config.js', (content) => {
-			if (hasPatchApplied(content, 'svelte-config-mdsvex', ['mdsvex'])) return content;
+			if (hasPatchApplied(content, 'svelte-config-mdsvex', ['mdsvex({ extensions'])) return content;
 			let updated = `// ${svforgePatchMarker('svelte-config-mdsvex')}\n${content}`;
 			if (!updated.includes("from 'mdsvex'")) {
 				updated = updated.replace(
@@ -220,7 +222,7 @@ export default defineAddon({
 		// compiled component client-side. Patches the consumer's hooks.ts
 		// (which already exports the Paraglide reroute) without touching it.
 				sv.file('src/hooks.ts', (content) => {
-			if (hasPatchApplied(content, 'posts-hooks', ['mdx-post'])) return content;
+			if (hasPatchApplied(content, 'posts-hooks', ["'mdx-post': {"])) return content;
 			// Add our imports only when the consumer does not already provide
 			// them (a project with its own transport usually imports the
 			// Transport type from '@sveltejs/kit' already).

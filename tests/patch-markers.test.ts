@@ -46,6 +46,20 @@ describe('named patch markers (#331)', () => {
 		expect(hasPatchApplied(consumerSchema, 'jobs-schema', ["from '$lib/server/jobs/schema'"])).toBe(false);
 	});
 
+	it('blog legacy patterns are structural fragments, not bare keywords (#331 review)', () => {
+		// a TODO mentioning mdsvex / mdx-post must NOT count as "already patched"…
+		expect(hasPatchApplied('// TODO: evaluate mdsvex for markdown', 'vite-mdsvex', ['mdsvex({ extensions'])).toBe(false);
+		expect(hasPatchApplied('// TODO: evaluate mdsvex for markdown', 'svelte-config-mdsvex', ['mdsvex({ extensions'])).toBe(false);
+		expect(hasPatchApplied('// TODO: migrate the mdx-post transport', 'posts-hooks', ["'mdx-post': {"])).toBe(false);
+		// …while a pre-marker install still matches the exact injected fragment.
+		const injectedVite = "sveltekit({ extensions: ['.svelte', '.md'], preprocess: mdsvex({ extensions: ['.md'] }) })";
+		expect(hasPatchApplied(injectedVite, 'vite-mdsvex', ['mdsvex({ extensions'])).toBe(true);
+		const injectedConfig = "preprocess: [mdsvex({ extensions: ['.md'] })]";
+		expect(hasPatchApplied(injectedConfig, 'svelte-config-mdsvex', ['mdsvex({ extensions'])).toBe(true);
+		const injectedHook = "const transport: Transport = { 'mdx-post': { encode: (v) => [v.slug] } };";
+		expect(hasPatchApplied(injectedHook, 'posts-hooks', ["'mdx-post': {"])).toBe(true);
+	});
+
 	it('every migrated addon patch uses the shared guard (#331)', () => {
 		for (const [module, patchId] of schemaBarrelModules) {
 			const index = readFileSync(join(ROOT, `packages/${module}/src/index.ts`), 'utf-8');
