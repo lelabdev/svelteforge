@@ -57,9 +57,13 @@ describe('published package metadata (#334)', () => {
 				cwd: packageDirectory,
 				encoding: 'utf8'
 			});
-			const files = (JSON.parse(result) as Array<{ files: Array<{ path: string }> }>)[0].files.map(
-				(file) => file.path
-			);
+			// npm <= 10 returns an array of entries; npm >= 11 maps them by package name.
+			const parsed = JSON.parse(result) as
+				| Array<{ files?: Array<{ path: string }> }>
+				| Record<string, { files: Array<{ path: string }> }>;
+			const manifestName = (JSON.parse(readFileSync(join(packageDirectory, 'package.json'), 'utf8')) as { name: string }).name;
+			const entry = Array.isArray(parsed) ? parsed[0] : parsed[manifestName];
+			const files = (entry?.files ?? []).map((file) => file.path);
 
 			expect(files, packageName).toContain('LICENSE');
 			expect(files, packageName).toContain('README.md');

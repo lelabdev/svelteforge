@@ -1,15 +1,20 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
-import { readFileSync, existsSync } from 'node:fs';
 
-// $env/dynamic/private is a SvelteKit virtual module — not resolvable by the
-// bare vitest environment. Read DATABASE_URL from the project .env (created
-// by scripts/setup.sh before CI runs `bun run test`) — same pattern as the
-// admin baseline suite.
+// #312 — integration suites NEVER read the application .env: the database
+// comes exclusively from TEST_DATABASE_URL (a dedicated test database,
+// enforced by resolveTestDbUrl). Without it the suite skips cleanly.
+const hasDb = !!process.env.TEST_DATABASE_URL;
+const d = hasDb ? describe : describe.skip;
+
 vi.mock('$env/dynamic/private', async () => {
-	const { readFileSync } = await import('node:fs');
-	const dotenv = existsSync('.env') ? readFileSync('.env', 'utf8') : '';
-	const value = (key: string) => dotenv.match(new RegExp(`^${key}="?([^"\\n]+)"?$`, 'm'))?.[1].trim();
-	return { env: { DATABASE_URL: value('DATABASE_URL'), ORIGIN: value('ORIGIN'), BETTER_AUTH_SECRET: value('BETTER_AUTH_SECRET') } };
+	const { resolveTestDbUrl } = await import('../test-db');
+	return {
+		env: {
+			DATABASE_URL: resolveTestDbUrl(),
+			ORIGIN: 'http://localhost:5173',
+			BETTER_AUTH_SECRET: 'sforge-integration-secret-0123456789abcdef'
+		}
+	};
 });
 
 import { db } from '$lib/server/db';
@@ -25,11 +30,10 @@ import { eq, like } from 'drizzle-orm';
  * shutdown. Runs in the dashboard-foundations profile (CI provides PostgreSQL);
  * skips cleanly when no database is configured.
  */
-const dotenv = existsSync('.env') ? readFileSync('.env', 'utf8') : '';
-const hasDb = /^DATABASE_URL="?[^"\n]+"?$/m.test(dotenv) || !!process.env.DATABASE_URL;
-const d = hasDb ? describe : describe.skip;
 
-const TEST_PREFIX = 'claimtest-';
+// Run-scoped type prefix (#312): two concurrent runs on the same dedicated
+// test database never claim or delete each other's rows.
+const TEST_PREFIX = `claimtest-${crypto.randomUUID().slice(0, 8)}-`;
 
 d('jobs claim contract (#328, real PostgreSQL)', () => {
 	const executed: Record<string, number> = {};

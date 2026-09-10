@@ -162,12 +162,13 @@ if [ "$TEMPLATE" = "dashboard" ] || [ "$TEMPLATE" = "dashboard-playwright" ] || 
 	test -f static/robots.txt || { echo "❌ static/robots.txt missing at project root (#187)"; exit 1; }
 	bash scripts/setup.sh >/dev/null 2>&1 || { echo "❌ setup.sh failed"; exit 1; }
 	test -f .env || { echo "❌ setup.sh did not create .env"; exit 1; }
-	# Local convenience: point the scaffold at a different DB endpoint without
-	# touching setup.sh (e.g. when 5432 is already taken by another project).
-	# CI is unaffected (SF_TEST_DB_URL unset there).
-	if [ -n "${SF_TEST_DB_URL:-}" ]; then
-		sed -i.bak "s|^DATABASE_URL=.*|DATABASE_URL=\"$SF_TEST_DB_URL\"|" .env && rm -f .env.bak
-	fi
+	# #312 — the scaffold's integration suites run against a DEDICATED test
+	# database (TEST_DATABASE_URL, name must contain a "test" segment — the
+	# shipped suites refuse anything else and never read .env). The harness
+	# points the scaffold's .env at the SAME isolated instance so the build
+	# and dev-server smoke tests never touch a developer database either.
+	export TEST_DATABASE_URL="${TEST_DATABASE_URL:-postgres://postgres:postgres@localhost:5432/sf_dashboard_test}"
+	sed -i.bak "s|^DATABASE_URL=.*|DATABASE_URL=\"$TEST_DATABASE_URL\"|" .env && rm -f .env.bak
 
 	# PostgreSQL is real in CI (#255): require the drizzle push to actually
 	# succeed against the service (the dashboard must be usable out of the box).
@@ -521,13 +522,15 @@ if [ "$TEMPLATE" = "dashboard" ]; then
 	fi
 
 	# 5f.c Runtime HTTP smoke against the dev server (the /setup route is
-	# dev-only). Reset the users table first so the bootstrap is
-	# deterministic: /setup grants the EXPLICIT admin role (role column,
-	# #318) — never an ordering-based rule. SvelteKit form-action
-	# CSRF: POSTs need a matching `origin` header (no token/cookie dance).
-	# Action responses may carry `"type":"failure"` bodies over HTTP 200 —
-	# assert bodies, not just status codes.
-	bun -e 'const { default: postgres } = await import("postgres"); const { readFileSync } = await import("node:fs"); const dotenv = readFileSync(".env", "utf8"); const url = dotenv.match(/^DATABASE_URL="?([^"\n]+)"?$/m)?.[1]; const sql = postgres(url, { max: 1 }); await sql.unsafe("DELETE FROM session"); await sql.unsafe("DELETE FROM account"); await sql.unsafe("DELETE FROM \"user\""); await sql.end();'
+	# dev-only). The dedicated test database is already EMPTY here: the vitest
+	# suites clean their own rows (#312), so /setup's zero-admin precondition
+	# holds WITHOUT a destructive wipe — the old global DELETE FROM is gone.
+	# SvelteKit form-action CSRF: POSTs need a matching `origin` header (no
+	# token/cookie dance). Action responses may carry "type:failure" bodies
+	# over HTTP 200 — assert bodies, not just status codes.
+	SMOKE_RUN="$$-$(date +%s)"
+	SMOKE_ADMIN_EMAIL="smoke-admin-${SMOKE_RUN}@sf-test.example"
+	SMOKE_USER_EMAIL="smoke-user-${SMOKE_RUN}@sf-test.example"
 
 	SMOKE_PORT=5173 # must equal ORIGIN in .env — SvelteKit CSRF and better-auth trust that origin only
 	ORIGIN="http://localhost:$SMOKE_PORT"
@@ -551,7 +554,7 @@ if [ "$TEMPLATE" = "dashboard" ]; then
 
 		# Setup: create the first admin (dev-only route redirects to /login).
 		setup_body=$(curl -sf -b "$ADMIN_JAR" -c "$ADMIN_JAR" -H "origin: $ORIGIN" \
-			--data 'name=Smoke Admin&email=smoke-admin@example.com&password=smokepass123' \
+			--data "name=Smoke Admin&email=${SMOKE_ADMIN_EMAIL}&password=smokepass123" \
 			"$ORIGIN/setup") || fail "POST /setup errored"
 		if printf '%s' "$setup_body" | grep -q '"type":"failure"'; then
 			fail "POST /setup failed: $setup_body"
@@ -566,12 +569,12 @@ if [ "$TEMPLATE" = "dashboard" ]; then
 		[ "$signup_status" = "400" ] || fail "public sign-up was NOT rejected in closed mode (HTTP $signup_status)"
 		grep -q 'EMAIL_PASSWORD_SIGN_UP_DISABLED' "${TMPDIR:-/tmp}/sf-smoke-signup.json" \
 			|| fail "sign-up rejection missing the EMAIL_PASSWORD_SIGN_UP_DISABLED code"
-		attacker_count=$(bun -e 'const { default: postgres } = await import("postgres"); const { readFileSync } = await import("node:fs"); const url = readFileSync(".env", "utf8").match(/^DATABASE_URL="?([^"\n]+)"?$/m)?.[1]; const sql = postgres(url, { max: 1 }); const rows = await sql`SELECT count(*)::int AS n FROM "user" WHERE email = ${"attacker@example.com"}`; console.log(rows[0].n); await sql.end();')
+		attacker_count=$(bun -e 'const { default: postgres } = await import("postgres"); const sql = postgres(process.env.TEST_DATABASE_URL, { max: 1 }); const rows = await sql`SELECT count(*)::int AS n FROM "user" WHERE email = ${"attacker@example.com"}`; console.log(rows[0].n); await sql.end();')
 		[ "$attacker_count" = "0" ] || fail "the anonymous sign-up probe created a user row"
 
 		# Admin login through the real Better Auth credential flow.
 		curl -sf -o /dev/null -b "$ADMIN_JAR" -c "$ADMIN_JAR" -H "origin: $ORIGIN" \
-			--data 'email=smoke-admin@example.com&password=smokepass123' \
+			--data "email=${SMOKE_ADMIN_EMAIL}&password=smokepass123" \
 			"$ORIGIN/login" || fail "admin login action errored"
 		grep -q better-auth.session_token "$ADMIN_JAR" || fail "admin login did not set a session cookie"
 
@@ -579,10 +582,10 @@ if [ "$TEMPLATE" = "dashboard" ]; then
 		# action persists user B.
 		admin_status=$(curl -s -o "${TMPDIR:-/tmp}/sf-smoke-admin.html" -w '%{http_code}' -b "$ADMIN_JAR" "$ORIGIN/admin/users")
 		[ "$admin_status" = "200" ] || fail "GET /admin/users returned $admin_status for the admin"
-		grep -q smoke-admin@example.com "${TMPDIR:-/tmp}/sf-smoke-admin.html" || fail "admin users page does not list the admin"
+		grep -q "$SMOKE_ADMIN_EMAIL" "${TMPDIR:-/tmp}/sf-smoke-admin.html" || fail "admin users page does not list the admin"
 
 		create_body=$(curl -sf -b "$ADMIN_JAR" -c "$ADMIN_JAR" -H "origin: $ORIGIN" \
-			--data 'name=Smoke User&email=smoke-user@example.com&password=smokepass123' \
+			--data "name=Smoke User&email=${SMOKE_USER_EMAIL}&password=smokepass123" \
 			"$ORIGIN/admin/users?/create") || fail "admin create action errored"
 		if printf '%s' "$create_body" | grep -q '"type":"failure"'; then
 			fail "admin create action failed: $create_body"
@@ -592,11 +595,11 @@ if [ "$TEMPLATE" = "dashboard" ]; then
 		# the users page must still authorize as the ADMIN (HTTP 200).
 		still_admin=$(curl -s -o "${TMPDIR:-/tmp}/sf-smoke-admin2.html" -w '%{http_code}' -b "$ADMIN_JAR" "$ORIGIN/admin/users")
 		[ "$still_admin" = "200" ] || fail "admin session did not survive the create action (HTTP $still_admin)"
-		grep -q smoke-user@example.com "${TMPDIR:-/tmp}/sf-smoke-admin2.html" || fail "admin create action did not persist user B"
+		grep -q "$SMOKE_USER_EMAIL" "${TMPDIR:-/tmp}/sf-smoke-admin2.html" || fail "admin create action did not persist user B"
 
 		# B can sign in with the credentials the admin created.
 		curl -sf -o /dev/null -b "$USER_JAR" -c "$USER_JAR" -H "origin: $ORIGIN" \
-			--data 'email=smoke-user@example.com&password=smokepass123' \
+			--data "email=${SMOKE_USER_EMAIL}&password=smokepass123" \
 			"$ORIGIN/login" || fail "created user B could not sign in"
 		grep -q better-auth.session_token "$USER_JAR" || fail "user B login did not set a session cookie"
 
@@ -608,6 +611,12 @@ if [ "$TEMPLATE" = "dashboard" ]; then
 		kill "$DEV_PID" 2>/dev/null || true
 		echo "✓ Better Auth runtime smoke: setup → closed sign-up rejected → admin login → admin CRUD → user B sign-in → B denied admin (#319, #318)"
 	)
+
+	# #312 — the harness leaves the DEDICATED test database EMPTY: remove the
+	# rows the smoke flow created (run-scoped marker) and assert that no test
+	# data of any kind remains behind.
+	SF_MARKER='%@sf-test.example' SF_ATTACKER='attacker@example.com' bun -e 'const { default: postgres } = await import("postgres"); const sql = postgres(process.env.TEST_DATABASE_URL, { max: 1 }); await sql`DELETE FROM "user" WHERE email LIKE ${process.env.SF_MARKER} OR email = ${process.env.SF_ATTACKER}`; const rows = await sql`SELECT count(*)::int AS n FROM "user"`; if (rows[0].n !== 0) { console.error("leftover users:", rows[0].n); await sql.end(); process.exit(1); } await sql.end();' \
+		|| { echo "❌ test data left behind in the dedicated test database (#312)"; exit 1; }
 fi
 
 # 6. AI-ready: AGENTS.md scaffolded at the project root (#203)
