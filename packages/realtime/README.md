@@ -83,6 +83,8 @@ The hub needs an HTTP server. Two options:
 
 ### Option A — adapter-node (customServer)
 
+Compatible with `@sveltejs/adapter-node` and another long-lived Node HTTP server where you own the `Server`. It is **not** compatible with adapter-auto's serverless output, Vercel/Netlify serverless functions, or Cloudflare/edge Workers.
+
 In `svelte.config.js` / `vite.config.ts` build, attach the hub:
 
 ```ts
@@ -92,6 +94,8 @@ realtime.attach(server);
 ```
 
 ### Option B — standalone port (portable)
+
+This is the separate-WS-server option: deploy this Node process independently from any SvelteKit adapter, then point the client at its public WSS URL. It is the required option when the web application is serverless or edge.
 
 Start the WS server on its own port (e.g. in a server bootstrap):
 
@@ -145,6 +149,8 @@ type RealtimeEvent<T = unknown> = { channel: string; event: string; payload: T }
 
 ## Limits (v1)
 
+- Incoming frames are capped at **16 KiB**, each connection has at most **50 channels**, and it may make at most **60 subscribe requests/minute**. Pass `maxFrameBytes`, `maxChannelsPerClient`, or `maxSubscriptionsPerMinute` to `createRealtimeHub` to tune them.
+- Authorization is asynchronous and deny-by-default. A channel is reserved while authorization is pending so concurrent subscribe frames cannot bypass the channel cap.
 - Single hub per process — no horizontal scaling of connections in v1 (one
   instance / dev server). Channels give isolation, not multi-process fan-out.
 - No message persistence — realtime is transport only; durable state belongs to

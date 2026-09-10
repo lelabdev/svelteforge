@@ -22,6 +22,14 @@ Base template + admin dashboard with Better Auth, Drizzle ORM, and user manageme
 - **Auth schema** at `src/lib/server/db/auth.schema.ts`
 - **Conventions**: uuid ids (`defaultRandom()`), `timestamp withTimezone` + `defaultNow()`, `jsonb` for structured data, explicit FK/cascade, composite PKs on join tables
 
+### Database lifecycle (#332)
+
+The generated `src/lib/server/db/index.ts` exports `createDb(url, options)` as
+well as the backwards-compatible `db` singleton. Reuse one pool for a
+long-lived Node process. In a serverless handler, create a client with
+`maxConnections: 1` and always `await close()` in `finally`; do not rely on a
+module-level pool surviving between invocations.
+
 ### Admin Dashboard — golden references (#267)
 
 The admin screens are **canonical examples agents should imitate** when

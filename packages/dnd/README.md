@@ -8,6 +8,10 @@ Drag & drop sortable lists for SVForge projects. Uses @thisux/sveltednd (native 
 npx sv add @svforge/dnd
 ```
 
+## Deployment profile
+
+Supported: `long-lived-node`, `serverless`, `edge`, `separate-worker`. Unsupported: none; this module is client-side UI only.
+
 ## Usage
 
 ```svelte

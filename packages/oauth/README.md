@@ -14,6 +14,10 @@ Or with the alias:
 npx sv add forge-oauth
 ```
 
+## Deployment profile
+
+Supported: `long-lived-node`, `serverless`. Unsupported: `edge`, `separate-worker`. This module uses the dashboard authentication wiring and does not provide an edge-compatible auth server.
+
 ## Prerequisites
 
 This module assumes you already have:

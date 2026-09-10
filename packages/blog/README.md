@@ -14,6 +14,10 @@ This will:
 - Add `/blog` (post list) and `/blog/[slug]` (article) routes
 - Add `src/lib/utils/posts.ts` for post management
 
+## Deployment profile
+
+Supported: `long-lived-node`, `serverless`, `edge`, `separate-worker`. Unsupported: none; the module has no persistent runtime requirement.
+
 ## Create a Post
 
 Create `.md` files in `src/posts/`:

@@ -153,6 +153,40 @@ describe('realtime module (#229/#264)', () => {
 		await cleanup();
 	});
 
+	it('enforces a bounded number of authorized channels per connection', async () => {
+		const { RealtimeHub } = await import(hubPath);
+		const hub = new RealtimeHub({ authorize: () => true, maxChannelsPerClient: 1 });
+		const { port, cleanup } = await startHub(hub);
+		const frames: Array<Record<string, unknown>> = [];
+		const ws = new WsWebSocket(`ws://127.0.0.1:${port}/api/realtime`);
+		ws.on('message', (data) => frames.push(JSON.parse(String(data))));
+		await new Promise<void>((resolve) => ws.on('open', resolve));
+		ws.send(JSON.stringify({ type: 'subscribe', channel: 'one' }));
+		await waitFor(() => frames.some((frame) => frame.type === 'subscribed'));
+		ws.send(JSON.stringify({ type: 'subscribe', channel: 'two' }));
+		await waitFor(() => frames.some((frame) => frame.error === 'channel_limit'));
+		expect(frames.some((frame) => frame.type === 'subscribed' && frame.channel === 'two')).toBe(false);
+		ws.close();
+		await cleanup();
+	});
+
+	it('rate-limits subscription requests per connection', async () => {
+		const { RealtimeHub } = await import(hubPath);
+		const hub = new RealtimeHub({ authorize: () => true, maxSubscriptionsPerMinute: 1 });
+		const { port, cleanup } = await startHub(hub);
+		const frames: Array<Record<string, unknown>> = [];
+		const ws = new WsWebSocket(`ws://127.0.0.1:${port}/api/realtime`);
+		ws.on('message', (data) => frames.push(JSON.parse(String(data))));
+		await new Promise<void>((resolve) => ws.on('open', resolve));
+		ws.send(JSON.stringify({ type: 'subscribe', channel: 'one' }));
+		await waitFor(() => frames.some((frame) => frame.type === 'subscribed'));
+		ws.send(JSON.stringify({ type: 'subscribe', channel: 'two' }));
+		await waitFor(() => frames.some((frame) => frame.error === 'rate_limit'));
+		expect(frames.some((frame) => frame.type === 'subscribed' && frame.channel === 'two')).toBe(false);
+		ws.close();
+		await cleanup();
+	});
+
 	it('deny-by-default: without authorize every subscription is refused and gets no event', async () => {
 		const { RealtimeHub } = await import(hubPath);
 		const hub = new RealtimeHub(); // no authorize callback at all (#264)

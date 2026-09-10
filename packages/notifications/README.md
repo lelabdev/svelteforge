@@ -13,6 +13,10 @@ npx sv add @svforge/notifications
 Requires the **dashboard** template (auth + Drizzle). `@svforge/realtime` and
 `@svforge/email` are **optional** integrations.
 
+## Deployment profile
+
+Supported: `long-lived-node`, `serverless`. Unsupported: `edge`, `separate-worker` because the module uses PostgreSQL. Realtime and email remain optional integrations.
+
 ## Create
 
 ```ts

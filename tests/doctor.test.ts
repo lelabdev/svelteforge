@@ -169,6 +169,32 @@ describe('svforge doctor behavioral (#178/#189)', () => {
 		}
 	});
 
+	it('warns only when an installed module conflicts with the declared deployment profile', async () => {
+		const dir = mkdtempSync(join(tmpdir(), 'sf-doc-deployment-'));
+		try {
+			writeFileSync(join(dir, '.svforge.json'), JSON.stringify({
+				template: 'base',
+				modules: ['realtime'],
+				deployment: { profile: 'serverless' }
+			}));
+			const serverless = await doctor(dir);
+			expect(serverless.results).toContainEqual(expect.objectContaining({
+				module: 'realtime',
+				status: 'warn'
+			}));
+
+			writeFileSync(join(dir, '.svforge.json'), JSON.stringify({
+				template: 'base',
+				modules: ['realtime'],
+				deployment: { profile: 'long-lived-node' }
+			}));
+			const node = await doctor(dir);
+			expect(node.results.some((result) => result.module === 'realtime')).toBe(false);
+		} finally {
+			rmSync(dir, { recursive: true, force: true });
+		}
+	});
+
 	it('reports dependency checks from package.json', async () => {
 		const dir = mkdtempSync(join(tmpdir(), 'sf-doc-dep-'));
 		try {

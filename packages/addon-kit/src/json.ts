@@ -20,7 +20,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { MODULE_CONTRACTS } from './capabilities';
+import { MODULE_CONTRACTS, MODULE_DEPLOYMENT_SUPPORT, type ModuleDeploymentSupport } from './capabilities';
 
 /** Error raised for an invalid JSON file: path + diagnostic + remediation. */
 export class JsonGuardError extends Error {
@@ -156,6 +156,34 @@ export function validateManifestShape(value: unknown, filePath: string): string[
 			for (const field of ['adapter', 'baseLocale', 'catalogs', 'settings'] as const) {
 				if (block[field] !== undefined && typeof block[field] !== 'string') {
 					problems.push(`"${filePath}": i18n.${field} must be a string when present (got ${typeof block[field]}).`);
+				}
+			}
+		}
+	}
+	if (manifest.deployment !== undefined) {
+		const deployment = manifest.deployment;
+		if (typeof deployment !== 'object' || deployment === null || Array.isArray(deployment)) {
+			problems.push(`"${filePath}": deployment must be an object with a supported profile.`);
+		} else if (
+			(deployment as Record<string, unknown>).profile !== undefined &&
+			!['long-lived-node', 'serverless', 'edge', 'separate-worker'].includes(String((deployment as Record<string, unknown>).profile))
+		) {
+			problems.push(`"${filePath}": deployment.profile must be one of long-lived-node, serverless, edge, separate-worker.`);
+		}
+	}
+	if (manifest.moduleProfiles !== undefined) {
+		const moduleProfiles = manifest.moduleProfiles;
+		if (typeof moduleProfiles !== 'object' || moduleProfiles === null || Array.isArray(moduleProfiles)) {
+			problems.push(`"${filePath}": moduleProfiles must be an object mapping module ids to profile support.`);
+		} else {
+			for (const [id, entry] of Object.entries(moduleProfiles as Record<string, unknown>)) {
+				if (typeof entry !== 'object' || entry === null || Array.isArray(entry)) {
+					problems.push(`"${filePath}": moduleProfiles["${id}"] must be an object.`);
+					continue;
+				}
+				const block = entry as Record<string, unknown>;
+				if (!Array.isArray(block.supported) || !block.supported.every((p) => typeof p === 'string') || !Array.isArray(block.unsupported) || !block.unsupported.every((p) => typeof p === 'string') || typeof block.note !== 'string') {
+					problems.push(`"${filePath}": moduleProfiles["${id}"] must contain supported/unsupported string arrays and a note.`);
 				}
 			}
 		}
@@ -321,6 +349,17 @@ export function planManifestEnrichContent(existing: string | undefined, enrichme
 		manifest.capabilities = capabilities;
 	}
 
+	// Keep deployment compatibility in the manifest even when a standalone
+	// module is installed after the base/dashboard scaffold. This makes the
+	// constraint available to humans and agents before architecture work.
+	const profileIds = [...new Set([...(manifest.template === 'dashboard' ? ['dashboard'] : []), enrichment.moduleId])];
+	const moduleProfiles = (manifest.moduleProfiles as Record<string, ModuleDeploymentSupport> | undefined) ?? {};
+	for (const moduleId of profileIds) {
+		const support = MODULE_DEPLOYMENT_SUPPORT[moduleId];
+		if (support) moduleProfiles[moduleId] = support;
+	}
+	if (Object.keys(moduleProfiles).length > 0) manifest.moduleProfiles = moduleProfiles;
+
 	return {
 		ok: true,
 		writes: [{ path: MANIFEST_PATH, content: `${JSON.stringify(manifest, null, 2)}\n` }]
@@ -353,7 +392,11 @@ export function planAddonContext(rootDir: string, enrichment: ManifestEnrichment
 	if (existingLlms !== undefined) {
 		// No llms.txt (non-SVForge project): skip — it is created by the next
 		// scaffold or `svforge context` regeneration, not by a bare module.
-		const llms = mergeLlmstxt(existingLlms, enrichment.capability, enrichment.pattern, contractLine);
+		const deployment = MODULE_DEPLOYMENT_SUPPORT[enrichment.moduleId];
+		const deploymentLine = deployment
+			? `- ${enrichment.moduleId}: supported ${deployment.supported.join(', ') || 'none'}; unsupported ${deployment.unsupported.join(', ') || 'none'} — ${deployment.note}`
+			: undefined;
+		const llms = mergeLlmstxt(existingLlms, enrichment.capability, enrichment.pattern, contractLine, deploymentLine);
 		if (llms !== existingLlms) writes.push({ path: 'llms.txt', content: llms });
 	}
 	return { ok: true, writes };
@@ -376,7 +419,7 @@ export interface CatalogMerge {
  * The layout must stay byte-compatible with svforge's `renderLlmstxt` so a
  * later `svforge context` regeneration is a no-op (#296).
  */
-export function mergeLlmstxt(content: string, capability: string, pattern: string, contract?: string): string {
+export function mergeLlmstxt(content: string, capability: string, pattern: string, contract?: string, deploymentLine?: string): string {
 	const lines = (content || '').split('\n');
 
 	const insertAtSectionEnd = (header: string): number => {
@@ -392,6 +435,14 @@ export function mergeLlmstxt(content: string, capability: string, pattern: strin
 	const capLine = `- ${capability}`;
 	if (!lines.some((l) => l === capLine)) {
 		lines.splice(insertAtSectionEnd('## Capabilities installed'), 0, capLine);
+	}
+	if (deploymentLine && lines.some((l) => l === '## Deployment profile') && !lines.some((l) => l === deploymentLine)) {
+		if (!lines.some((l) => l === '### Installed module compatibility')) {
+			const capabilitiesIndex = lines.findIndex((l) => l === '## Capabilities installed');
+			const insertAt = capabilitiesIndex >= 0 ? capabilitiesIndex : lines.length;
+			lines.splice(insertAt, 0, '### Installed module compatibility', '');
+		}
+		lines.splice(insertAtSectionEnd('### Installed module compatibility'), 0, deploymentLine);
 	}
 	if (contract && !lines.some((l) => l === contract)) {
 		// Create the section on demand, in renderLlmstxt order: directly

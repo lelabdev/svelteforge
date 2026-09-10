@@ -27,6 +27,32 @@ import { join } from 'node:path';
 
 // ── Vocabulary ──
 
+export type DeploymentProfile = 'long-lived-node' | 'serverless' | 'edge' | 'separate-worker';
+
+export interface ModuleDeploymentSupport {
+	supported: DeploymentProfile[];
+	unsupported: DeploymentProfile[];
+	note: string;
+}
+
+/** Runtime compatibility shared by install-time context and svforge doctor. */
+export const MODULE_DEPLOYMENT_SUPPORT: Record<string, ModuleDeploymentSupport> = {
+	dashboard: { supported: ['long-lived-node', 'serverless'], unsupported: ['edge', 'separate-worker'], note: 'The bundled postgres.js client needs a Node runtime; use a lifecycle-aware client in serverless.' },
+	ui_toast: { supported: ['long-lived-node', 'serverless', 'edge', 'separate-worker'], unsupported: [], note: 'Client-side UI only.' },
+	dnd: { supported: ['long-lived-node', 'serverless', 'edge', 'separate-worker'], unsupported: [], note: 'Client-side UI only.' },
+	tiptap: { supported: ['long-lived-node', 'serverless', 'edge', 'separate-worker'], unsupported: [], note: 'Editor runs in the browser.' },
+	graph: { supported: ['long-lived-node', 'serverless', 'edge', 'separate-worker'], unsupported: [], note: 'Client-side visualization only.' },
+	email: { supported: ['long-lived-node', 'serverless', 'edge', 'separate-worker'], unsupported: [], note: 'Trigger delivery from the web request or a worker.' },
+	oauth: { supported: ['long-lived-node', 'serverless'], unsupported: ['edge', 'separate-worker'], note: 'Uses the dashboard authentication wiring.' },
+	uploads: { supported: ['long-lived-node', 'serverless'], unsupported: ['edge', 'separate-worker'], note: 'Presigned PUT ContentLength is not a storage limit; use a POST policy, quota, and scan callback when enforcement matters.' },
+	blog: { supported: ['long-lived-node', 'serverless', 'edge', 'separate-worker'], unsupported: [], note: 'Static/content routes; no persistent process required.' },
+	realtime: { supported: ['long-lived-node', 'separate-worker'], unsupported: ['serverless', 'edge'], note: 'Requires a WebSocket-capable Node server or a separate WS server.' },
+	audit: { supported: ['long-lived-node', 'serverless'], unsupported: ['edge', 'separate-worker'], note: 'PostgreSQL-backed; define retention, PII access, and an optional DB append-only policy.' },
+	notifications: { supported: ['long-lived-node', 'serverless'], unsupported: ['edge', 'separate-worker'], note: 'PostgreSQL-backed notifications.' },
+	jobs: { supported: ['long-lived-node', 'separate-worker'], unsupported: ['serverless', 'edge'], note: 'Polling requires one long-lived owner; prefer a separate worker in production.' },
+	chat: { supported: ['long-lived-node', 'serverless'], unsupported: ['edge', 'separate-worker'], note: 'PostgreSQL-backed; realtime transport is a separate optional integration.' }
+};
+
 export const CAPABILITY_TOKENS = [
 	'ui.skeleton',
 	'ui.svforge',

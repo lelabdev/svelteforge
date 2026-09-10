@@ -6,6 +6,8 @@ SVForge starts from a normal SvelteKit app and adds the pieces you would otherwi
 
 **Not a component library. Not a shadcn clone.** SVForge gives you the essentials — buttons, inputs, selects, cards, badges, theme, SEO, layouts — so you start fast and own everything. For richer components (dialog, tabs, tooltip, date-picker…), use the official [`@skeletonlabs/skeleton-svelte`](https://skeleton.dev) components directly.
 
+Choose a target before architecture work: see [deployment profiles](docs/deployment-profiles.md) for Node, serverless, edge, and separate-worker constraints.
+
 ## Install
 
 Create a SvelteKit project, then apply a template:

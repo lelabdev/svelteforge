@@ -12,8 +12,28 @@
  * `svforge context` regenerates deterministically.
  */
 
-import { JsonGuardError, parseJsonFile, planManifestEnrichContent, validateManifestShape, TEMPLATE_PROVIDES } from '@svforge/addon-kit';
+import {
+	JsonGuardError,
+	parseJsonFile,
+	planManifestEnrichContent,
+	validateManifestShape,
+	TEMPLATE_PROVIDES,
+	MODULE_DEPLOYMENT_SUPPORT,
+	type DeploymentProfile as AddonDeploymentProfile,
+	type ModuleDeploymentSupport
+} from '@svforge/addon-kit';
 import { MODULES } from './module-composition';
+
+export type DeploymentProfile = AddonDeploymentProfile;
+export type ModuleProfileSupport = ModuleDeploymentSupport;
+export const MODULE_PROFILE_SUPPORT = MODULE_DEPLOYMENT_SUPPORT;
+
+export const DEPLOYMENT_PROFILES: Record<DeploymentProfile, string[]> = {
+	'long-lived-node': ['persistent Node process', 'PostgreSQL pool', 'attached WebSocket server'],
+	serverless: ['request-scoped functions', 'no in-process worker or WebSocket server'],
+	edge: ['Web-standard runtime', 'no Node APIs or TCP PostgreSQL driver'],
+	'separate-worker': ['dedicated long-lived process for jobs or WebSocket transport']
+};
 
 export interface SvforgeManifest {
 	schema: 1;
@@ -39,6 +59,13 @@ export interface SvforgeManifest {
 	patterns: Record<string, string>;
 	/** Capability contracts of the installed modules (#323). */
 	moduleCapabilities?: Record<string, { provides: string[]; requires: string[] }>;
+	/** Declared deployment target and profile capabilities (#332). */
+	deployment?: {
+		profile: DeploymentProfile;
+		profiles: Record<DeploymentProfile, string[]>;
+	};
+	/** Runtime compatibility for installed modules (#332). */
+	moduleProfiles?: Record<string, ModuleProfileSupport>;
 	/**
 	 * i18n contract (#322): where the message catalogs live and which locale is
 	 * the base. Values mirror the SCAFFOLD DEFAULT; the live configuration is
@@ -145,6 +172,12 @@ export function buildManifest(template: 'base' | 'dashboard', modules: string[])
 			catalogs: 'messages/',
 			settings: 'project.inlang/settings.json'
 		},
+		deployment: { profile: 'serverless', profiles: DEPLOYMENT_PROFILES },
+		moduleProfiles: Object.fromEntries(
+			[...new Set([...(template === 'dashboard' ? ['dashboard'] : []), ...modules])]
+				.filter((moduleId) => MODULE_PROFILE_SUPPORT[moduleId])
+				.map((moduleId) => [moduleId, MODULE_PROFILE_SUPPORT[moduleId]])
+		),
 		generatedBy: 'svforge'
 	};
 }
@@ -158,6 +191,22 @@ export function renderLlmstxt(manifest: SvforgeManifest): string {
 	lines.push('Stack: SvelteKit + Skeleton UI v5 + Tailwind v4 + Paraglide i18n + Vitest');
 	if (manifest.stack?.auth) lines.push(`Auth: ${manifest.stack.auth}  •  ORM: ${manifest.stack.orm}`);
 	if (manifest.stack?.database) lines.push(`Database: ${manifest.stack.database}`);
+	const deployment = manifest.deployment;
+	if (deployment) {
+		lines.push('');
+		lines.push('## Deployment profile');
+		lines.push(`Declared profile: ${deployment.profile}`);
+		for (const [profile, capabilities] of Object.entries(deployment.profiles)) {
+			lines.push(`- ${profile}: ${capabilities.join('; ')}`);
+		}
+		const moduleProfiles = manifest.moduleProfiles ?? {};
+		if (Object.keys(moduleProfiles).length > 0) {
+			lines.push('### Installed module compatibility');
+			for (const [moduleId, support] of Object.entries(moduleProfiles)) {
+				lines.push(`- ${moduleId}: supported ${support.supported.join(', ') || 'none'}; unsupported ${support.unsupported.join(', ') || 'none'} — ${support.note}`);
+			}
+		}
+	}
 	lines.push('');
 	lines.push('## Capabilities installed');
 	for (const cap of manifest.capabilities) lines.push(`- ${cap}`);
@@ -222,6 +271,11 @@ export function renderLlmstxt(manifest: SvforgeManifest): string {
 /** Merge module contributions into an existing manifest (idempotent). */
 export function mergeManifest(existing: SvforgeManifest, template: 'base' | 'dashboard', modules: string[]): SvforgeManifest {
 	const merged = buildManifest(template, [...new Set([...existing.modules, ...modules])]);
+	// A user-selected target is configuration, not generated module metadata.
+	// Preserve it when a legacy helper enriches an existing manifest.
+	if (existing.deployment?.profile) {
+		merged.deployment = { ...merged.deployment, profile: existing.deployment.profile, profiles: existing.deployment.profiles ?? DEPLOYMENT_PROFILES };
+	}
 	return merged;
 }
 
@@ -293,5 +347,8 @@ export function regenerateLlmstxt(manifestContent: string): string {
 	// Rebuild from the template + installed modules so capabilities/patterns
 	// always reflect the real state (module enrich only adds its id).
 	const rebuilt = buildManifest(manifest.template ?? 'base', manifest.modules ?? []);
+	if (manifest.deployment?.profile) {
+		rebuilt.deployment = { ...rebuilt.deployment, profile: manifest.deployment.profile, profiles: manifest.deployment.profiles ?? DEPLOYMENT_PROFILES };
+	}
 	return renderLlmstxt(rebuilt);
 }
