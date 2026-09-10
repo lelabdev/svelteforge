@@ -23,6 +23,25 @@ const dashboardFiles = dashboardOverlay;
 // so its Skeleton knowledge can never drift from the shipped version.
 const skeletonInventory = buildSkeletonInventory(join(__dirname, '../../..'));
 
+// Catalog guidance fix (#320): svforge-catalog.json must list ONLY the real
+// @skeletonlabs/skeleton-svelte exports. The hand-written list presented CSS
+// recipes (Card, Badge, Table…) and v2 leftovers (Breadcrumb, Drawer,
+// Stepper…) as importable components. Rewritten from the generated inventory
+// so the guidance can never drift from the installed packages again.
+{
+	const catalogPath = join(__dirname, '../templates/base/root/svforge-catalog.json');
+	const catalogSource = readFileSync(catalogPath, 'utf-8');
+	if (!/"skeletonPrimitives"\s*:\s*\[/.test(catalogSource)) {
+		throw new Error('svforge-catalog.json is missing the skeletonPrimitives array.');
+	}
+	const corrected = catalogSource.replace(
+		/("skeletonPrimitives"\s*:\s*)\[[\s\S]*?\]/,
+		`$1${JSON.stringify(skeletonInventory.primitives)}`
+	);
+	JSON.parse(corrected); // never deliver a catalog that stopped being valid JSON
+	writeFileSync(catalogPath, corrected);
+}
+
 // Approved addon component paths (#335): the EXACT .svelte paths the addons
 // deliver under src/lib/components/svforge/. Exemption is per precise path —
 // never per addon directory — so a new local component matching a Skeleton

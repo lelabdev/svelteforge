@@ -24,13 +24,7 @@
 		}
 	},
 	"skeletonSource": "@skeletonlabs/skeleton-svelte",
-	"skeletonPrimitives": [
-		"Accordion", "AppBar", "Avatar", "Badge", "Breadcrumb", "Button", "Card",
-		"Checkbox", "Combobox", "DatePicker", "Dialog", "Drawer", "DropdownMenu",
-		"Field", "Input", "Listbox", "Menu", "Popover", "Progress", "RadioGroup",
-		"Select", "Slider", "SegmentedControl", "Stepper", "Tab", "Table",
-		"Textarea", "Toast", "Toggle", "Tooltip"
-	],
+	"skeletonPrimitives": ["Accordion","AppBar","Avatar","Carousel","Collapsible","Combobox","DatePicker","Dialog","FileUpload","FloatingPanel","Listbox","LocaleProvider","Marquee","Menu","Navigation","Pagination","Popover","Portal","Progress","QrCode","RatingGroup","SegmentedControl","Slider","Steps","Switch","Tabs","TagsInput","Toast","ToggleGroup","Tooltip","TreeView"],
 	"rules": {
 		"reuseFirst": "Prefer reuse over invention. Coherence > originality on first pass.",
 		"mustNot": [

@@ -39,7 +39,7 @@
 	</button>
 
 	{#if open}
-		<div class="absolute right-0 mt-2 w-80 max-h-96 overflow-auto rounded-card border border-surface-200-800 bg-surface-50-950 shadow-lg z-50">
+		<div class="absolute right-0 mt-2 w-80 max-h-96 overflow-auto rounded-container border border-surface-200-800 bg-surface-50-950 shadow-lg z-50">
 			<div class="flex items-center justify-between px-4 py-3 border-b border-surface-200-800">
 				<span class="font-bold text-sm">{m.notif_title()}</span>
 				<button type="button" class="text-xs text-primary-500 hover:underline" onclick={markAll}>

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import {
 	buildAddonComponents,
@@ -14,7 +14,7 @@ const {
 	isApprovedAddonComponent,
 	REMOVED_SCAFFOLD_ALIASES
 } = await import('../packages/svforge/src/design-system');
-const { SKELETON_UTILITIES, SKELETON_UTILITY_PREFIXES, SKELETON_VERSIONS } = await import(
+const { SKELETON_UTILITIES, SKELETON_UTILITY_PREFIXES, SKELETON_VERSIONS, SKELETON_PRIMITIVES } = await import(
 	'../packages/svforge/src/skeleton-inventory'
 );
 
@@ -114,6 +114,93 @@ describe('skeleton markup rules (#335) — must fail', () => {
 			expect(tokens(violations), alias).toContain(alias);
 			expect(severities(violations), alias).toContain('error');
 		}
+	});
+
+	it('rejects invented radii while accepting Tailwind and theme radii (#320)', () => {
+		// rounded-card is a Skeleton v2 leftover: no --radius-card token exists.
+		expect(tokens(checkClassString('rounded-card border border-surface-200-800', CTX))).toContain('rounded-card');
+		// Tailwind default scale stays valid…
+		expect(checkClassString('rounded-lg rounded-t-xl rounded-full', CTX)).toEqual([]);
+		// …and so do the Skeleton theme radii generated from --radius-base/--radius-container.
+		expect(checkClassString('rounded-base rounded-container rounded-t-container', CTX)).toEqual([]);
+	});
+});
+
+describe('class expression coverage (#320) — assembled classes obey the same rules', () => {
+	it('scans quoted literals inside class={…} expressions', () => {
+		const violations = checkSvelteMarkup(
+			`<span class={cn('badge', size === 'lg' ? 'badge-lg' : 'badge-md')}>x</span>`,
+			CTX
+		);
+		const offenders = violations.flatMap((entry) => entry.violations.map((violation) => violation.token));
+		expect(offenders).toContain('badge-lg');
+		expect(offenders).toContain('badge-md');
+	});
+
+	it('scans quoted literals inside <script> blocks (sizeClass-style ternaries)', () => {
+		const violations = checkSvelteMarkup(
+			`<script lang="ts">\n\tconst sizeClass = $derived(size === 'sm' ? 'btn-sm' : size === 'lg' ? 'btn-lg' : 'btn-md');\n</script>\n<button class={sizeClass}>x</button>`,
+			CTX
+		);
+		const offenders = violations.flatMap((entry) => entry.violations.map((violation) => violation.token));
+		expect(offenders).toContain('btn-md');
+		expect(offenders).not.toContain('btn-sm');
+		expect(offenders).not.toContain('btn-lg');
+	});
+
+	it('keeps clean script and expression literals clean (imports, i18n keys, urls)', () => {
+		const violations = checkSvelteMarkup(
+			`<script lang="ts">\n\timport { cn } from '$lib/utils/cn';\n\timport { Switch } from '@skeletonlabs/skeleton-svelte';\n\tconst mode = mode === 'light' ? 'dark' : 'system';\n\tconst classes = $derived(cn('btn', 'preset-filled-primary-500', className));\n</script>\n<button class={classes} type="button">x</button>\n<span class={variant === 'info' ? 'preset-tonal-primary' : 'preset-tonal-error'}>x</span>`,
+			CTX
+		);
+		expect(violations).toEqual([]);
+	});
+
+	it('keeps flagging Skeleton primitives injected into wrappers through expressions', () => {
+		const violations = checkSvelteMarkup(
+			`<Card class={cn('rounded-container', wide && 'w-full')}>x</Card>`,
+			CTX
+		);
+		expect(violations.length).toBeGreaterThan(0);
+		expect(violations[0].violations.some((violation) => violation.message.includes('wrapper') || violation.message.includes('owns its shape'))).toBe(true);
+	});
+});
+
+describe('template sources pass the expression-aware rules (#320)', () => {
+	const TEMPLATE_DIRS = ['packages/svforge/templates', ...readdirSync(join(ROOT, 'packages'), { withFileTypes: true })
+		.filter((entry) => entry.isDirectory() && existsSync(join(ROOT, 'packages', entry.name, 'templates')))
+		.map((entry) => join('packages', entry.name, 'templates'))];
+
+	function walkSvelte(dir: string, out: string[] = []): string[] {
+		for (const entry of readdirSync(dir, { withFileTypes: true })) {
+			const full = join(dir, entry.name);
+			if (entry.isDirectory()) walkSvelte(full, out);
+			else if (entry.name.endsWith('.svelte')) out.push(full);
+		}
+		return out;
+	}
+
+	it('every template .svelte file passes the deterministic markup rules', () => {
+		const offenders: string[] = [];
+		for (const dir of TEMPLATE_DIRS) {
+			for (const file of walkSvelte(join(ROOT, dir))) {
+				const source = readFileSync(file, 'utf-8');
+				for (const { className, violations } of checkSvelteMarkup(source, CTX)) {
+					offenders.push(`${file}: "${className}" — ${violations.map((violation) => violation.token).join(', ')}`);
+				}
+			}
+		}
+		expect(offenders, `ghost classes assembled in template sources:\n${offenders.join('\n')}`).toEqual([]);
+	});
+
+	it('the delivered catalog lists only REAL @skeletonlabs/skeleton-svelte exports (#320)', () => {
+		const catalog = JSON.parse(
+			readFileSync(join(ROOT, 'packages/svforge/templates/base/root/svforge-catalog.json'), 'utf-8')
+		) as { skeletonPrimitives: string[] };
+		// CSS recipes (Card, Badge, Table…) and v2 leftovers (Breadcrumb,
+		// Drawer, Stepper…) are NOT importable from skeleton-svelte: the
+		// guidance must never present them as such.
+		expect(catalog.skeletonPrimitives).toEqual(SKELETON_PRIMITIVES);
 	});
 });
 
