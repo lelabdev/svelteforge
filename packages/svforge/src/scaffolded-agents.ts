@@ -58,8 +58,8 @@ behavior with Tailwind or custom CSS.
 - \`preset-filled-*\` / \`preset-tonal-*\` / \`preset-outlined-*\` (+ color suffixes like \`-primary-500\`, \`-surface-400-600\`)
 - component classes: \`btn\`, \`btn-icon\`, \`badge\`, \`chip\`, \`card\`, \`input\`, \`select\`, \`textarea\`, \`checkbox\`, \`table\`, \`label\`
 - typography: \`h1\`…\`h6\`, \`anchor\`, \`pre\`, \`kbd\` — driven by the theme's \`--typo-*\` / \`--font-mono\` tokens
-- radius/shape: \`corner-shape-*\` — NOT \`rounded-container\` / custom radii
-- sizes: \`btn-xs…btn-9xl\`, \`btn-icon-*\` — NOT invented medium sizes
+- radius: Tailwind scale (\`rounded-lg\`, …) + the theme radii \`rounded-base\` / \`rounded-container\` (from \`--radius-*\`); \`corner-shape-*\` for shapes — NOT invented radii like \`rounded-card\`
+- sizes: \`btn-xs…btn-9xl\`, \`btn-icon-*\` — NOT \`btn-md\`; badges have NO size utilities (they scale via their \`--badge-size\` token)
 
 **BLACKLIST — these do NOT exist in v5 (nor v4):**
 

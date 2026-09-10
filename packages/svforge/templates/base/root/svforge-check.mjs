@@ -121,6 +121,53 @@ function isTailwind(token) {
 	return TAILWIND_NS.some((ns) => segment.startsWith(ns));
 }
 
+// ── Radius validation (#320) ─────────────────────────────────────────
+// Tailwind default scale + Skeleton theme radii (--radius-base/--radius-
+// container generate rounded-base/rounded-container). Anything else — e.g.
+// the Skeleton v2 leftover rounded-card — renders NO CSS in v5.
+const TAILWIND_RADIUS = /^(none|sm|md|lg|xl|2xl|3xl|full|(t|b|l|r|tl|tr|bl|br|s|e|ss|se|es|ee)(-(none|sm|md|lg|xl|2xl|3xl|full))?|start|end)$/;
+const THEME_RADII = new Set(['base', 'container']);
+
+function isRealRadiusSuffix(suffix) {
+	if (TAILWIND_RADIUS.test(suffix)) return true;
+	if (THEME_RADII.has(suffix)) return true;
+	return /^(?:t|r|b|l|tl|tr|bl|br|s|e|ss|se|es|ee)-(base|container)$/.test(suffix);
+}
+
+const STRING_LITERAL = /(?<!\\)(['"])((?:\\.|(?!\1)[^\\\r\n])*)\1/g;
+
+function extractStringLiterals(region) {
+	return [...region.matchAll(STRING_LITERAL)]
+		.map((match) => match[2])
+		.filter((literal) => literal.trim().length > 0);
+}
+
+function balancedRegion(source, openBraceIndex) {
+	let depth = 0;
+	for (let i = openBraceIndex; i < source.length; i++) {
+		const ch = source[i];
+		if (ch === '"' || ch === "'" || ch === '`') {
+			const quote = ch;
+			i++;
+			while (i < source.length && source[i] !== quote) {
+				if (source[i] === '\\') i++;
+				i++;
+			}
+			continue;
+		}
+		if (ch === '{') depth++;
+		else if (ch === '}') {
+			depth--;
+			if (depth === 0) return source.slice(openBraceIndex + 1, i);
+		}
+	}
+	return null;
+}
+
+function scriptRegions(source) {
+	return [...source.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)].map((match) => match[1]);
+}
+
 // Prefer the project's own installed Skeleton when it can be derived.
 // Primitives and utilities are derived independently: a consumer can install a
 // newer skeleton-svelte (new primitives) or skeleton (new utilities), and each
@@ -299,6 +346,13 @@ function classViolations(classString) {
 			continue;
 		}
 		if (isSkeletonUtility(segment, INVENTORY)) continue;
+		// Invented radius (#320): checked BEFORE the Tailwind namespace
+		// short-circuit, which accepts any rounded-* suffix; skipped when a
+		// primitive on the same element already reported the conflict above.
+		if (!hasBtn && !hasCard && segment.startsWith('rounded-') && !segment.includes('[') && !isRealRadiusSuffix(segment.slice('rounded-'.length))) {
+			violations.push(`${segment} is not a real radius: use a Tailwind radius (rounded-lg, …) or a Skeleton theme radius (rounded-base / rounded-container).`);
+			continue;
+		}
 		if (isTailwind(token)) continue;
 		if (SKELETON_LOOKING.some((ns) => segment.startsWith(ns)) && !segment.includes('[')) {
 			violations.push(`${segment} does not exist in the installed Skeleton version. Check the class name.`);
@@ -323,13 +377,67 @@ for (const file of walk(join(ROOT, 'src'), ['.svelte', '.html'])) {
 		const violations = classViolations(staticClassName);
 		if (match[1] !== undefined) {
 			for (const token of staticClassName.split(/\s+/).filter(Boolean)) {
-				if (isSkeletonUtility(lastSegment(token), INVENTORY)) {
+				const segment = lastSegment(token);
+				if (isSkeletonUtility(segment, INVENTORY)) {
 					violations.push(`The SVForge wrapper already renders its Skeleton primitive: select the visual through props — not class ("${token}").`);
+				} else if (segment.startsWith('rounded-') && !segment.includes('[')) {
+					// ANY radius on a wrapper is an error (the wrapper owns its shape) (#320).
+					const suffix = segment.slice('rounded-'.length);
+					violations.push(isRealRadiusSuffix(suffix)
+						? `The SVForge wrapper already owns its shape — do not reapply ${token}: select the shape through props (or corner-shape-*).`
+						: `${token} is not a real radius (Tailwind scale or theme rounded-base / rounded-container) and the wrapper already owns its shape.`);
 				}
 			}
 		}
 		for (const violation of violations) {
 			results.push({ status: 'error', msg: `${rel}: "${className}" — ${violation}` });
+		}
+	}
+
+	// class={…} expressions and <script> literals (#320): ghost classes are
+	// usually assembled in cn(...) ternaries — the SAME rules run over every
+	// quoted literal in those regions (no second denylist). On an SVForge
+	// wrapper the wrapper contract applies instead (primitives and radii come
+	// through props).
+	const wrapperOpenPattern = catalogWrappers.length
+		? new RegExp(`<(?:${catalogWrappers.join('|')})\\b[^>]*$`)
+		: null;
+	const reportLiteral = (literal, isOnWrapper) => {
+		const violations = [];
+		if (isOnWrapper) {
+			for (const token of literal.split(/\s+/).filter(Boolean)) {
+				const segment = lastSegment(token);
+				if (isSkeletonUtility(segment, INVENTORY)) {
+					violations.push(`The SVForge wrapper already renders its Skeleton primitive: select the visual through props — not class ("${token}").`);
+				} else if (segment.startsWith('rounded-') && !segment.includes('[')) {
+					const suffix = segment.slice('rounded-'.length);
+					violations.push(isRealRadiusSuffix(suffix)
+						? `The SVForge wrapper already owns its shape — do not reapply ${token}: select the shape through props (or corner-shape-*).`
+						: `${token} is not a real radius (Tailwind scale or theme rounded-base / rounded-container) and the wrapper already owns its shape.`);
+				}
+			}
+		} else {
+			violations.push(...classViolations(literal));
+		}
+		return violations;
+	};
+	for (const match of source.matchAll(/class\s*=\s*\{/g)) {
+		const region = balancedRegion(source, match.index + match[0].length - 1);
+		if (!region) continue;
+		const before = source.slice(0, match.index);
+		const tagStart = before.lastIndexOf('>') + 1;
+		const isOnWrapper = wrapperOpenPattern ? wrapperOpenPattern.test(before.slice(tagStart)) : false;
+		for (const literal of extractStringLiterals(region)) {
+			for (const violation of reportLiteral(literal, isOnWrapper)) {
+				results.push({ status: 'error', msg: `${rel}: "class={…} → ${literal}" — ${violation}` });
+			}
+		}
+	}
+	for (const region of scriptRegions(source)) {
+		for (const literal of extractStringLiterals(region)) {
+			for (const violation of classViolations(literal)) {
+				results.push({ status: 'error', msg: `${rel}: "<script> → ${literal}" — ${violation}` });
+			}
 		}
 	}
 }

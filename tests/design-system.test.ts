@@ -102,4 +102,17 @@ describe('design-system harness (#240)', () => {
 		expect(script).toMatch(/svforge-catalog\.json/);
 		expect(script).toMatch(/svforge-check\.mjs/);
 	});
+
+	it('scaffold gate inspects the compiled CSS for canonical classes (#320)', () => {
+		const script = readFileSync(join(ROOT, 'scripts/test-scaffold.sh'), 'utf-8');
+		expect(script).toMatch(/compiled CSS canonical-class gate \(#320\)/);
+		// ghosts must be asserted absent…
+		for (const ghost of ['btn-md', 'badge-sm', 'badge-md', 'badge-lg', 'preset-tonal-info', 'rounded-card']) {
+			expect(script).toContain(ghost);
+		}
+		// …and canonical replacements asserted present.
+		for (const canonical of ['btn-base', 'preset-tonal-primary', 'rounded-container']) {
+			expect(script).toContain(canonical);
+		}
+	});
 });

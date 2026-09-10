@@ -270,6 +270,21 @@ const SKELETON_TAILWIND_EXCEPTIONS: Record<string, string[]> = {
 };
 /** Valid Tailwind rounded-* suffixes; anything else is an invented shape. */
 const TAILWIND_RADIUS = /^(none|sm|md|lg|xl|2xl|3xl|full|(t|b|l|r|tl|tr|bl|br|s|e|ss|se|es|ee)(-(none|sm|md|lg|xl|2xl|3xl|full))?|start|end)$/;
+/**
+ * Skeleton theme radii (#320): Skeleton v5's @theme defines --radius-base and
+ * --radius-container, so Tailwind generates rounded-base / rounded-container
+ * (incl. directional variants). Anything else outside the Tailwind scale —
+ * e.g. the Skeleton v2 leftover rounded-card — renders NO CSS.
+ */
+const THEME_RADII = new Set(['base', 'container']);
+const DIRECTIONAL = '^(?:t|r|b|l|tl|tr|bl|br|s|e|ss|se|es|ee)-';
+
+function isRealRadiusSuffix(suffix: string): boolean {
+	if (TAILWIND_RADIUS.test(suffix)) return true;
+	if (THEME_RADII.has(suffix)) return true;
+	const directional = new RegExp(DIRECTIONAL + '(base|container)$');
+	return directional.test(suffix);
+}
 
 /** Tailwind namespaces that can never be Skeleton primitives (last segment). */
 const TAILWIND_NAMESPACES = [
@@ -396,6 +411,19 @@ export function checkClassString(classString: string, ctx: MarkupContext): Marku
 				});
 				continue;
 			}
+		}
+		// Invented radius (#320): rounded-* must be a Tailwind default or a
+		// Skeleton theme radius (base/container). Checked BEFORE the Tailwind
+		// namespace short-circuit, which accepts any rounded-* suffix, and
+		// skipped when a primitive on the same element already reported the
+		// owned-shape conflict above.
+		if (!hasBtn && !hasCard && segment.startsWith('rounded-') && !segment.includes('[') && !isRealRadiusSuffix(segment.slice('rounded-'.length))) {
+			violations.push({
+				token,
+				severity: 'error',
+				message: `${segment} is not a real radius: use a Tailwind radius (rounded-lg, …) or a Skeleton theme radius (rounded-base / rounded-container).`
+			});
+			continue;
 		}
 		if (isTailwind(token)) continue;
 		// Unknown non-Skeleton tokens are #314 territory (CSS drift), not flagged here.
@@ -707,14 +735,19 @@ export async function checkDesignSystem(
 }
 
 /**
- * Extract markup violations from a Svelte/HTML source (#335).
+ * Extract markup violations from a Svelte/HTML source (#335, #320).
  *
- * Two families:
+ * Three families:
  * - class="..." attributes on plain elements → primitive conflicts, invented
- *   Skeleton-looking utilities, removed scaffold aliases;
+ *   Skeleton-looking utilities, invented radii, removed scaffold aliases;
  * - class="..." on an SVForge wrapper component (Button, Card, …) containing
  *   a Skeleton primitive → the wrapper already owns its primitive; the class
- *   contract is "props = Skeleton choice, class = local Tailwind".
+ *   contract is "props = Skeleton choice, class = local Tailwind";
+ * - QUOTED LITERALS inside class={…} expressions and <script> blocks (#320):
+ *   ghost classes are typically assembled through cn(...) ternaries
+ *   (`size === 'md' ? 'btn-md' : 'btn-lg'`), invisible to the static-attribute
+ *   scan. The SAME deterministic rules apply to those literals — no second
+ *   denylist.
  */
 export function checkSvelteMarkup(source: string, ctx: MarkupContext): { className: string; violations: MarkupViolation[] }[] {
 	const out: { className: string; violations: MarkupViolation[] }[] = [];
@@ -744,18 +777,117 @@ export function checkSvelteMarkup(source: string, ctx: MarkupContext): { classNa
 						severity: 'error',
 						message: `The SVForge wrapper already renders its Skeleton primitive: select the visual through its props (variant, size, …) — not through class ("${token}").`
 					});
-				} else if (segment.startsWith('rounded-') && !TAILWIND_RADIUS.test(segment.slice('rounded-'.length))) {
+				} else if (segment.startsWith('rounded-') && !segment.includes('[')) {
+					// ANY radius on a wrapper is an error (the wrapper owns its shape);
+					// the message distinguishes an invented radius (#320) from an
+					// unnecessary override of a real one.
+					const suffix = segment.slice('rounded-'.length);
 					violations.push({
 						token,
 						severity: 'error',
-						message: `${segment} is not a Tailwind default radius and the wrapper already owns its shape: select the shape through props (or corner-shape-*).`
+						message: isRealRadiusSuffix(suffix)
+							? `The SVForge wrapper already owns its shape — do not reapply ${segment}: select the shape through props (or corner-shape-*).`
+							: `${segment} is not a real radius (Tailwind scale or theme rounded-base / rounded-container) and the wrapper already owns its shape.`
 					});
 				}
 			}
 		}
 		if (violations.length) out.push({ className, violations });
 	}
+
+	// ── class={…} expressions and <script> literals (#320) ─────────
+	// Ghost classes are usually assembled in cn(...) ternaries — the same
+	// deterministic rules run over every quoted literal in those regions.
+	// When the class={…} sits on an SVForge wrapper, the wrapper contract
+	// applies instead: primitives and radii come through props.
+	const reported = new Set(out.map((entry) => entry.className));
+	const wrapperOpenPattern = new RegExp(`<(?:${wrapperNames})\\b[^>]*$`);
+	for (const match of source.matchAll(/class\s*=\s*\{/g)) {
+		const region = balancedRegion(source, match.index + match[0].length - 1);
+		if (!region) continue;
+		// The current (unclosed) tag = text after the last '>' before the attr.
+		const before = source.slice(0, match.index);
+		const tagStart = before.lastIndexOf('>') + 1;
+		const isOnWrapper = wrapperOpenPattern.test(before.slice(tagStart));
+		for (const literal of extractStringLiterals(region)) {
+			const violations: MarkupViolation[] = [];
+			if (isOnWrapper) {
+				for (const token of literal.split(/\s+/).filter(Boolean)) {
+					const segment = token.includes(':') ? token.slice(token.lastIndexOf(':') + 1) : token;
+					if (isSkeletonUtility(segment, ctx)) {
+						violations.push({
+							token,
+							severity: 'error',
+							message: `The SVForge wrapper already renders its Skeleton primitive: select the visual through its props (variant, size, …) — not through class ("${token}").`
+						});
+					} else if (segment.startsWith('rounded-') && !segment.includes('[')) {
+						const suffix = segment.slice('rounded-'.length);
+						violations.push({
+							token,
+							severity: 'error',
+							message: isRealRadiusSuffix(suffix)
+								? `The SVForge wrapper already owns its shape — do not reapply ${token}: select the shape through props (or corner-shape-*).`
+								: `${token} is not a real radius (Tailwind scale or theme rounded-base / rounded-container) and the wrapper already owns its shape.`
+						});
+					}
+				}
+			} else {
+				violations.push(...checkClassString(literal, ctx));
+			}
+			const key = `${isOnWrapper ? 'wrapper' : 'expr'}:${literal}`;
+			if (violations.length && !reported.has(key)) {
+				reported.add(key);
+				out.push({ className: `class={…} → ${literal}`, violations });
+			}
+		}
+	}
+	for (const region of scriptRegions(source)) {
+		for (const literal of extractStringLiterals(region)) {
+			const violations = checkClassString(literal, ctx);
+			if (violations.length && !reported.has(`script:${literal}`)) {
+				reported.add(`script:${literal}`);
+				out.push({ className: `<script> → ${literal}`, violations });
+			}
+		}
+	}
+
 	return out;
+}
+
+const STRING_LITERAL_PATTERN = /(?<!\\)(['"])((?:\\.|(?!\1)[^\\\r\n])*)\1/g;
+
+/** Quoted string literals of a region (single/double quotes, no template parts). */
+function extractStringLiterals(region: string): string[] {
+	return [...region.matchAll(STRING_LITERAL_PATTERN)]
+		.map((match) => match[2])
+		.filter((literal) => literal.trim().length > 0);
+}
+
+/** Content of <script> blocks (the only place wrapper components assemble classes). */
+function scriptRegions(source: string): string[] {
+	return [...source.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)].map((match) => match[1]);
+}
+
+function balancedRegion(source: string, openBraceIndex: number): string | null {
+	let depth = 0;
+	for (let i = openBraceIndex; i < source.length; i++) {
+		const ch = source[i];
+		if (ch === '"' || ch === "'" || ch === '`') {
+			const quote = ch;
+			i++;
+			while (i < source.length && source[i] !== quote) {
+				if (source[i] === '\\') i++;
+				i++;
+			}
+			continue;
+		}
+		if (ch === '{') depth++;
+		else if (ch === '}') {
+			depth--;
+			if (depth === 0) return source.slice(openBraceIndex + 1, i);
+		}
+	}
+	return null;
 }
 
 /**

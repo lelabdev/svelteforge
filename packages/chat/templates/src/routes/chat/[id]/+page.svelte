@@ -16,7 +16,7 @@
 	{#if messages.length === 0}
 		<p class="text-surface-500">{m.chat_empty()}</p>
 	{:else}
-		<ul class="space-y-2 rounded-card border border-surface-200-800 p-4">
+		<ul class="space-y-2 rounded-container border border-surface-200-800 p-4">
 			{#each [...messages].reverse() as msg (msg.id)}
 				<li class="flex flex-col gap-0.5">
 					<span class="text-xs text-surface-500">{msg.authorId} · {new Date(msg.createdAt).toLocaleString()}</span>

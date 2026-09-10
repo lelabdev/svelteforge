@@ -14,7 +14,7 @@
 	{#if conversations.length === 0}
 		<p class="text-surface-500">{m.chat_empty()}</p>
 	{:else}
-		<ul class="divide-y divide-surface-200-800 rounded-card border border-surface-200-800 overflow-hidden">
+		<ul class="divide-y divide-surface-200-800 rounded-container border border-surface-200-800 overflow-hidden">
 			{#each conversations as conv (conv.id)}
 				<li>
 					<a href={`/chat/${conv.id}`} class="flex items-center justify-between px-4 py-3 hover:bg-surface-100-800 transition-colors">

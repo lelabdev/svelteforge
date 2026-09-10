@@ -119,8 +119,9 @@
 		consumer?.(event);
 	};
 
-	// #317: Skeleton v5 sizes are btn-xs…btn-9xl — the default size utility is
-	// `btn-base`; there is no invented medium size (svforge check rejects it).
+	// #317/#320: Skeleton v5 sizes are btn-xs…btn-9xl — the medium size
+	// utility is `btn-base`; there is no invented medium size (svforge check
+	// rejects it).
 	const sizeClass = $derived(size === 'sm' ? 'btn-sm' : size === 'lg' ? 'btn-lg' : 'btn-base');
 	const presetClass = $derived(presets[variant]?.[color] ?? '');
 	const classes = $derived(cn('btn', presetClass, sizeClass, className));

@@ -166,6 +166,30 @@ fi
 # 4. Build the scaffolded project — the actual assertion
 bun run build
 
+# 4-320. Compiled CSS canonical-class gate (#320): every canonical class the
+# demo screens render must exist in the compiled CSS (a ghost class would
+# silently produce NO css), and no ghost class may appear at all.
+CSS_BUILT=$(find .svelte-kit/output/client -name '*.css' -type f -exec cat {} + 2>/dev/null || true)
+if [ -z "$CSS_BUILT" ]; then
+	echo "❌ no compiled client CSS found under .svelte-kit/output/client (#320)"; exit 1
+fi
+for ghost in btn-md badge-sm badge-md badge-lg preset-tonal-info input-error rounded-card; do
+	if printf '%s' "$CSS_BUILT" | grep -q "\\.${ghost}[^a-z0-9-]"; then
+		echo "❌ ghost class .${ghost} compiled into the scaffold CSS (#320)"; exit 1
+	fi
+done
+for canonical in btn-base btn-sm btn-lg badge preset-tonal-primary; do
+	if ! printf '%s' "$CSS_BUILT" | grep -q "\\.${canonical}[^a-z0-9-]"; then
+		echo "❌ canonical .${canonical} missing from compiled CSS (#320)"; exit 1
+	fi
+done
+# rounded-container is rendered by the chat/notifications modules.
+if [ -f src/lib/components/svforge/ui/NotificationsBell.svelte ] || [ -f src/routes/chat/+page.svelte ]; then
+	printf '%s' "$CSS_BUILT" | grep -q '\.rounded-container[^a-z0-9-]' \
+		|| { echo "❌ canonical .rounded-container missing from compiled CSS (#320)"; exit 1; }
+fi
+echo "✓ compiled CSS canonical-class gate (#320)"
+
 # 4a. Production Vite build gate (#350): an AI-created component that shadows
 # a Skeleton primitive must block `bun run build`, not only `bun run check`.
 # Exercise both primary scaffolds after their clean builds and always remove the
