@@ -607,6 +607,113 @@ for (const file of walk(componentsDir, ['.svelte'])) {
 	}
 }
 
+// ── 6. CSS drift outside Skeleton (#314) ──────────────────────────
+// Same rules as the repository engine (checkLayoutCss / checkCssVariables /
+// checkStyleBlockDrift): layout.css stays wiring, Skeleton namespaces keep ONE
+// source of truth (theme file recognized by CONTENT, any filename), parallel
+// palettes and literal styling in wrappers are strong WARNs.
+const parseCssVariables = (css) => {
+	const code = css.replace(/\/\*[\s\S]*?\*\//g, '');
+	const vars = new Map();
+	for (const match of code.matchAll(/(--[a-zA-Z0-9-]+)\s*:\s*([^;{}]+)[;}]?/g)) vars.set(match[1], match[2].trim());
+	return vars;
+};
+const SKELETON_CSS_NAMESPACES = [
+	[/^--typo-/, 'typography (--typo-*)'],
+	[/^--text-scaling$/, 'the typographic scale (--text-scaling)'],
+	[/^--radius-(?:base|container)$/, 'theme radii (--radius-base / --radius-container)'],
+	[/^--corner-shape-/, 'corner shapes (--corner-shape-*)'],
+	[/^--default-(?:border|outline|ring)-width$/, 'default edge widths'],
+	[/^--color-root-bg-/, 'root backgrounds (--color-root-bg-*)'],
+	[/^--color-brand-/, 'brand colors (--color-brand-*)']
+];
+const isSkeletonThemeCss = (css) => {
+	if (!/\[data-theme=/.test(css)) return false;
+	const hints = css.match(/--(?:color-(?:primary|secondary|tertiary|success|warning|error|surface)-\d{3}|typo-[a-z]+--|radius-(?:base|container)|corner-shape-[a-z])/g);
+	return (hints?.length ?? 0) >= 5;
+};
+const checkLayoutCss = (css) => {
+	const findings = [];
+	const code = css.replace(/\/\*[\s\S]*?\*\//g, '');
+	let rest = code.replace(/^[ \t]*@(?:import|plugin|custom-variant|source)[^\n{]*;?[ \t]*$/gm, '');
+	rest = rest.replace(/@theme\s*\{([^}]*)\}/g, (_m, body) => {
+		for (const decl of body.split(';').map((s) => s.trim()).filter(Boolean)) {
+			if (!/^--(?:font-|typo-)/.test(decl)) {
+				findings.push({ rule: 'layout-theme-token', severity: 'error', message: `layout.css @theme may only define font tokens (found: ${decl.split(':')[0].trim()}) — colors, radii and palettes belong to the theme file.` });
+			}
+		}
+		return '';
+	});
+	for (const match of rest.matchAll(/--[a-zA-Z0-9-]+\s*:/g)) {
+		findings.push({ rule: 'layout-variable', severity: 'error', message: `layout.css must stay wiring: define ${match[0].replace(/[:\s]+$/, '')} in the Skeleton theme file, not here.` });
+	}
+	for (const match of rest.matchAll(/(^|\n)(?!\s*@)([^\n{}@]+)\{/g)) {
+		const selector = match[2].trim();
+		if (/^(?:code|pre)\b|^\s*(?:code|pre)\s*,/.test(selector)) continue;
+		findings.push({ rule: 'layout-override', severity: 'error', message: `layout.css must stay wiring. Global override "${selector} { … }" belongs in the theme file or a component.` });
+	}
+	return findings;
+};
+const checkCssVariables = (cssPath, css, isThemeFile) => {
+	if (isThemeFile) return [];
+	const findings = [];
+	for (const name of parseCssVariables(css).keys()) {
+		for (const [pattern, label] of SKELETON_CSS_NAMESPACES) {
+			if (pattern.test(name)) {
+				findings.push({ rule: 'skeleton-namespace', severity: 'error', message: `${cssPath}: ${name} recreates a Skeleton namespace (${label}) outside the theme file — keep ONE source of truth.` });
+			}
+		}
+	}
+	for (const name of parseCssVariables(css).keys()) {
+		if (/^--color-(?!root-bg-|brand-)/.test(name)) {
+			findings.push({ rule: 'parallel-palette', severity: 'warn', message: `${cssPath}: ${name} looks like a parallel palette variable. If it duplicates a Skeleton token, use the theme; keep product colors to a real, documented need.` });
+		} else if (/^--radius-/.test(name) && !/^--radius-(?:base|container)$/.test(name)) {
+			findings.push({ rule: 'parallel-palette', severity: 'warn', message: `${cssPath}: ${name} looks like a parallel radius token. Use the Tailwind scale or the theme radii (--radius-base / --radius-container).` });
+		}
+	}
+	return findings;
+};
+const checkStyleBlockDrift = (source) => {
+	const findings = [];
+	for (const block of source.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/g)) {
+		const css = block[1].replace(/\/\*[\s\S]*?\*\//g, '');
+		for (const match of css.matchAll(/\b(background-color|background|color|border-color|border-radius|box-shadow|fill|stroke)\s*:\s*([^;{}]+)/g)) {
+			const property = match[1];
+			const value = match[2].trim();
+			const tokenBased = /^var\(/.test(value) || value.includes('from var(') || /^(?:transparent|inherit|currentcolor|none)$/i.test(value);
+			if (tokenBased) continue;
+			if (/^#[0-9a-f]{3,8}\b|^(?:rgb|hsl|oklch)\(/i.test(value)) {
+				findings.push({ rule: 'style-block-color', severity: 'warn', message: `<style> sets ${property} to a literal color ("${value}") — compose theme tokens or Tailwind utilities instead.` });
+			} else if (property === 'border-radius') {
+				findings.push({ rule: 'style-block-radius', severity: 'warn', message: `<style> sets border-radius to a literal value ("${value}") — use rounded-* utilities or the theme radii.` });
+			}
+		}
+	}
+	return findings;
+};
+const cssFiles = walk(join(ROOT, 'src'), ['.css']);
+const themeFileSet = new Set(cssFiles.filter((file) => isSkeletonThemeCss(readFileSync(file, 'utf-8'))));
+for (const file of cssFiles) {
+	const rel = relative(ROOT, file);
+	const content = readFileSync(file, 'utf-8');
+	const findings = rel === 'src/routes/layout.css' ? checkLayoutCss(content) : checkCssVariables(rel, content, themeFileSet.has(file));
+	for (const finding of findings) {
+		results.push({ status: finding.severity, msg: `[svforge/${finding.rule}] ${finding.message}` });
+	}
+}
+for (const file of walk(componentsDir, ['.svelte'])) {
+	const rel = relative(ROOT, file);
+	// Exact-path exemption (#361/#345), mirroring the repository engine.
+	const relPosix = rel.split(sep).join('/');
+	const isCanonicalImplementation =
+		catalogPaths.has(relPosix) ||
+		installedModules.some((moduleId) => (ADDON_COMPONENTS[moduleId] ?? []).includes(relPosix));
+	if (isCanonicalImplementation) continue;
+	for (const finding of checkStyleBlockDrift(readFileSync(file, 'utf-8'))) {
+		results.push({ status: finding.severity, msg: `${rel}: [svforge/${finding.rule}] ${finding.message}` });
+	}
+}
+
 	return results;
 }
 
