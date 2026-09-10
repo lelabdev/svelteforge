@@ -53,7 +53,7 @@
 
 	// #317: Skeleton v5 ships NO badge size utilities (only badge, badge-dot,
 	// badge-icon) — the `badge` utility owns sizing through --badge-size. The
-	// former size prop emitted invented badge-sm/md/lg classes (dead in v5,
+	// former size prop emitted invented per-size classes (dead in v5,
 	// rejected by svforge check); a smaller/larger badge is a theme change
 	// (--badge-size), not a local override.
 	let presetClass = $derived(presets[variant][color]);

@@ -115,8 +115,11 @@ describe('dashboard admin composition', () => {
 				expect(html).toMatch(new RegExp(`<h1[^>]*>${shellTitle}</h1>`));
 				expect(html).toMatch(new RegExp(`<h2[^>]*>${pageTitle}</h2>`));
 				expect(pageTitle).not.toBe(shellTitle);
+				// #317: the page title consumes the native Skeleton h2 utility
+				// (shell chrome keeps its compact local heading). Order matters:
+				// the shell title renders first, the page title after it.
 				expect(html.indexOf(`<h1 class="text-lg font-bold">${shellTitle}</h1>`)).toBeLessThan(
-					html.indexOf(`<h2 class="text-2xl font-bold">${pageTitle}</h2>`)
+					html.indexOf(`<h2 class="h2">${pageTitle}</h2>`)
 				);
 			}
 		} finally {

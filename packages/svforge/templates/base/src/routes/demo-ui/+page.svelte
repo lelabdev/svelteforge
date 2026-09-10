@@ -153,7 +153,7 @@
 			<a class="anchor" href="https://github.com/lelabdev/svelteforge">{m.home_github()}</a>
 		</p>
 		<pre>{skeletonImportExample}</pre>
-		<p>{m.demo_typography_kbd()} <kbd>Ctrl</kbd> + <kbd>K</kbd></p>
+		<p>{m.demo_typography_kbd()} <kbd class="kbd">Ctrl</kbd> + <kbd class="kbd">K</kbd></p>
 	</section>
 
 	<!-- Form -->

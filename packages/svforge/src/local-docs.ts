@@ -28,8 +28,9 @@ export const LOCAL_DOCS = ['docs/llms-skeleton.txt', 'docs/llms-svelte.txt'] as 
 
 /** Read one cached doc relative to the package root (dist/ or src/). */
 function readLocalDoc(doc: string): string {
-	// doc = 'docs/llms-*.txt' → up one level from src/ or dist/ = package root.
-	const url = new URL(`../../${doc}`, import.meta.url);
+	// URL resolution drops the filename first: one '../' from <root>/src/*.ts
+	// (source) or <root>/dist/*.js (bundled) lands on the package root.
+	const url = new URL(`../${doc}`, import.meta.url);
 	try {
 		return readFileSync(fileURLToPath(url), 'utf-8');
 	} catch (error) {

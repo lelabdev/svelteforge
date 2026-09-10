@@ -102,19 +102,29 @@ describe('Fira Code rides the native mono token (#317)', () => {
 });
 
 describe('local Skeleton/Svelte references ship with every scaffold (#317)', () => {
-	type FakeSv = { files: Map<string, string> };
-	function fakeSv(): FakeSv {
-		return { files: new Map() };
-	}
-	function asSvApi(sv: FakeSv): Parameters<typeof applyBaseMode>[0] {
-		return sv as unknown as Parameters<typeof applyBaseMode>[0];
+	// A tolerant sv.add API recorder (same contract as agents-md.test.ts):
+	// sv.file() results land in `files`, transforms receive existing content,
+	// every other addon method is a no-op — keeps the fake immune to
+	// unrelated applyBaseMode API surface.
+	function fakeSv(): { files: Map<string, string>; api: Parameters<typeof applyBaseMode>[0] } {
+		const files = new Map<string, string>();
+		const target = {
+			dependency: () => {},
+			devDependency: () => {},
+			file: (path: string, transform: (existing: string) => string) =>
+				files.set(path, transform(path === 'package.json' ? '{"scripts":{}}' : ''))
+		};
+		const api = new Proxy(target, {
+			get: (t, prop) => (prop in t ? t[prop as keyof typeof t] : () => {})
+		}) as unknown as Parameters<typeof applyBaseMode>[0];
+		return { files, api };
 	}
 
 	it('applyBaseMode delivers docs/llms-skeleton.txt and docs/llms-svelte.txt', () => {
-		const sv = fakeSv();
-		applyBaseMode(asSvApi(sv), { '/lib/base.ts': 'base' });
+		const { files, api } = fakeSv();
+		applyBaseMode(api, { '/lib/base.ts': 'base' });
 		for (const doc of ['docs/llms-skeleton.txt', 'docs/llms-svelte.txt']) {
-			const content = sv.files.get(doc);
+			const content = files.get(doc);
 			expect(content, `${doc} must be scaffolded`).toBeTruthy();
 			expect(content!.length, `${doc} must carry the full cached dump`).toBeGreaterThan(10_000);
 			expect(content).toContain('source: https://');
@@ -122,11 +132,11 @@ describe('local Skeleton/Svelte references ship with every scaffold (#317)', () 
 	});
 
 	it('the shipped docs are the same cached files the freshness tests guard', () => {
-		const sv = fakeSv();
-		applyBaseMode(asSvApi(sv), { '/lib/base.ts': 'base' });
+		const { files, api } = fakeSv();
+		applyBaseMode(api, { '/lib/base.ts': 'base' });
 		for (const doc of ['docs/llms-skeleton.txt', 'docs/llms-svelte.txt']) {
 			const cached = readFileSync(join(ROOT, 'packages/svforge/docs', doc.split('/')[1]), 'utf-8');
-			expect(sv.files.get(doc)).toBe(cached);
+			expect(files.get(doc)).toBe(cached);
 		}
 	});
 });

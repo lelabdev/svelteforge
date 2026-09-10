@@ -16,7 +16,7 @@
 	const presets: Record<Variant, string> = {
 		// #317: Skeleton v5 has no info color — the informational variant maps
 		// to the theme's primary tonal preset (theme → Skeleton primitive →
-		// component). Invented preset-tonal-info rendered UNSTYLED in v5.
+		// component): an invented info tonal preset renders UNSTYLED in v5.
 		info: 'preset-tonal-primary',
 		success: 'preset-tonal-success',
 		warning: 'preset-tonal-warning',
