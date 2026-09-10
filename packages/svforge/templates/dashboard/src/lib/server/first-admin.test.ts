@@ -1,19 +1,18 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi, beforeAll, afterAll } from 'vitest';
 
-// The dashboard's DB tests run in the scaffold CI after drizzle-kit push. Read
-// its generated .env because $env/dynamic/private is a SvelteKit virtual module.
+// $env/dynamic/private is a SvelteKit virtual module — not resolvable by the
+// bare vitest environment. Integration suites NEVER read the application
+// .env (#312): the database comes exclusively from TEST_DATABASE_URL, a
+// dedicated test database enforced by resolveTestDbUrl().
 vi.mock('$app/server', () => ({ getRequestEvent: () => undefined }));
 
 vi.mock('$env/dynamic/private', async () => {
-	const { readFileSync } = await import('node:fs');
-	const dotenv = readFileSync('.env', 'utf8');
-	const value = (key: string) =>
-		dotenv.match(new RegExp(`^${key}="?([^"\\n]+)"?$`, 'm'))?.[1].trim();
+	const { resolveTestDbUrl } = await import('./test-db');
 	return {
 		env: {
-			DATABASE_URL: value('DATABASE_URL'),
-			ORIGIN: value('ORIGIN'),
-			BETTER_AUTH_SECRET: value('BETTER_AUTH_SECRET')
+			DATABASE_URL: resolveTestDbUrl(),
+			ORIGIN: 'http://localhost:5173',
+			BETTER_AUTH_SECRET: 'sforge-integration-secret-0123456789abcdef'
 		}
 	};
 });
@@ -24,22 +23,40 @@ import { isAdmin } from './admin';
 import { createCredentialUser } from './admin-users';
 import { db } from '$lib/server/db';
 import { user, account } from './db/schema';
-import { eq, inArray } from 'drizzle-orm';
+import { eq, inArray, like, notLike, sql } from 'drizzle-orm';
+import { TEST_EMAIL_DOMAIN } from './test-db';
 
 const PASSWORD = 'password123';
-const email = (tag: string) => `bootstrap-${tag}-${crypto.randomUUID()}@example.com`;
+const RUN = crypto.randomUUID().slice(0, 8);
+const email = (tag: string) => `${tag}-${RUN}@${TEST_EMAIL_DOMAIN}`;
 
 /**
- * First-admin bootstrap + explicit role authorization (#318).
- *
- * Runs against the real PostgreSQL database. The invariant under test: the
- * admin role is EXPLICIT, granted only by bootstrapFirstAdmin, and concurrent
- * bootstraps can never create two administrators.
+ * Refuses to run against a database holding rows this run did NOT create
+ * (#312). The bootstrap requires an empty administrator table; instead of
+ * silently demoting or deleting pre-existing identities, the suite fails
+ * loudly and asks for a dedicated test database.
  */
+async function assertNoForeignUsers(): Promise<void> {
+	const [foreign] = await db
+		.select({ count: sql<number>`count(*)::int`, roles: sql<string>`coalesce(string_agg(${user.role}, ','), '')` })
+		.from(user)
+		.where(notLike(user.email, `%@${TEST_EMAIL_DOMAIN}`));
+	if (foreign.count > 0) {
+		throw new Error(
+			`[svelteforge:test-db] the dedicated test database is not empty (${foreign.count} foreign row(s), roles: ${foreign.roles}). ` +
+				'bootstrapFirstAdmin tests require an empty database — point TEST_DATABASE_URL at an isolated test database. ' +
+				'The suite never demotes or deletes rows it did not create (#312).'
+		);
+	}
+}
 
-/** Makes "no administrator exists" deterministic WITHOUT deleting identities. */
-async function demoteAllAdmins(): Promise<void> {
-	await db.update(user).set({ role: 'user' }).where(eq(user.role, 'admin'));
+/**
+ * Makes "no administrator exists" deterministic WITHOUT touching other
+ * identities: only this run's rows (the @sf-test.example marker) are deleted;
+ * FK cascades wipe their account + session rows (#312).
+ */
+async function resetRunState(): Promise<void> {
+	await db.delete(user).where(like(user.email, `%@${TEST_EMAIL_DOMAIN}`));
 }
 
 function signInAs(email: string, password: string): Promise<Response> {
@@ -53,9 +70,18 @@ function signInAs(email: string, password: string): Promise<Response> {
 }
 
 describe('first-admin bootstrap (#318)', () => {
-	beforeEach(async () => {
-		await demoteAllAdmins();
-	});
+	/**
+	 * First-admin bootstrap + explicit role authorization (#318).
+	 *
+	 * Runs against the DEDICATED test database (#312). The invariant under
+	 * test: the admin role is EXPLICIT, granted only by bootstrapFirstAdmin,
+	 * and concurrent bootstraps can never create two administrators.
+	 */
+	beforeAll(assertNoForeignUsers);
+
+	beforeEach(resetRunState);
+
+	afterAll(resetRunState);
 
 	it('bootstraps the first admin with the explicit admin role and a working credential', async () => {
 		const adminEmail = email('first');
@@ -130,9 +156,7 @@ describe('first-admin bootstrap (#318)', () => {
 });
 
 describe('explicit role authorization (#318)', () => {
-	beforeEach(async () => {
-		await demoteAllAdmins();
-	});
+	beforeEach(resetRunState);
 
 	it('createdAt ordering NEVER decides permissions — the older user with role user is not admin', async () => {
 		// Created FIRST (oldest row) — under the removed first-user-is-admin

@@ -73,6 +73,30 @@ locale configured in `project.inlang/settings.json`; see `tests/paraglide.test.t
 - `ORIGIN` — app URL (e.g. `http://localhost:5173`)
 - `BETTER_AUTH_SECRET` — generate with `openssl rand -base64 32`
 - `SIGNUP_MODE` — public sign-up policy: `closed` (default) | `invite-only` | `self-service`. Unknown values fail closed to `closed`. Change requires a restart.
+- `TEST_DATABASE_URL` — **dedicated test database** for the integration suites. The database name must contain a `test` segment (`myapp_test`); anything else is REFUSED before a single row is read, and the suites never touch `DATABASE_URL` (#312).
+
+## Running Tests Safely (#312)
+
+The shipped integration suites (auth lifecycle, first-admin bootstrap, jobs) mutate real data — so they only ever run against the database pointed to by `TEST_DATABASE_URL`:
+
+```sh
+# 1. Create a dedicated test database (NOT your development database)
+createdb myapp_test
+# or: docker run --name sf-test-db -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=myapp_test -p 5433:5432 -d postgres:17
+
+# 2. Point TEST_DATABASE_URL at it (see .env.example)
+export TEST_DATABASE_URL="postgres://postgres:postgres@localhost:5432/myapp_test"
+
+# 3. Push the schema there, then run the suites
+DATABASE_URL="$TEST_DATABASE_URL" bunx drizzle-kit push --force
+bun run test
+```
+
+Guarantees:
+
+- the application database (`.env` `DATABASE_URL`) is never read, written or deleted by the suites;
+- every identity a suite creates is namespaced with a per-run `@sf-test.example` marker and ONLY those rows are ever deleted;
+- parallel test runs don't collide (per-run identifiers), and no test data survives a completed run.
 
 ## Next Steps
 

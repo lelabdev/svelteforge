@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterAll, describe, expect, it, vi } from 'vitest';
 
 /**
  * Public sign-up policy — the three documented modes (#318).
@@ -12,12 +12,16 @@ import { describe, expect, it, vi } from 'vitest';
 const state = vi.hoisted(() => ({ overrides: {} as Record<string, string | undefined> }));
 
 vi.mock('$env/dynamic/private', async () => {
-	const { readFileSync } = await import('node:fs');
-	const dotenv = readFileSync('.env', 'utf8');
+	// #312 — no .env read: the database comes exclusively from the dedicated
+	// TEST_DATABASE_URL; the other variables are hermetic literals.
+	const { resolveTestDbUrl } = await import('./test-db');
 	const value = (key: string) => {
 		const override = state.overrides[key];
 		if (override !== undefined) return override;
-		return dotenv.match(new RegExp(`^${key}="?([^"\\n]+)"?$`, 'm'))?.[1].trim();
+		if (key === 'DATABASE_URL') return resolveTestDbUrl();
+		if (key === 'ORIGIN') return 'http://localhost:5173';
+		if (key === 'BETTER_AUTH_SECRET') return 'sforge-integration-secret-0123456789abcdef';
+		return undefined;
 	};
 	return {
 		// Getters, not values: the mock factory result is cached across
@@ -51,10 +55,22 @@ vi.doMock('$lib/server/db', () => ({ db: dbModule.db, closeDb: dbModule.closeDb 
 import { createInvitation, findValidInvitation } from './invitations';
 import { db } from '$lib/server/db';
 import { user } from './db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, like } from 'drizzle-orm';
+import { TEST_EMAIL_DOMAIN } from './test-db';
+
+afterAll(function cleanupRunUsers() {
+	// Deletes ONLY this suite's identities — every identity here carries the
+	// run marker; FK cascades wipe their accounts/sessions (#312).
+	return db.delete(user).where(like(user.email, `%@${TEST_EMAIL_DOMAIN}`));
+});
 
 const ORIGIN = envModule.env.ORIGIN ?? 'http://localhost:5173';
-const uniqueEmail = (tag: string) => `signup-${tag}-${crypto.randomUUID()}@example.com`;
+const uniqueEmail = (tag: string) => `signup-${tag}-${crypto.randomUUID()}@${TEST_EMAIL_DOMAIN}`;
+
+/** Deletes ONLY this run's identities — every identity here carries the marker (#312). */
+async function cleanupRunUsers() {
+	await db.delete(user).where(like(user.email, `%@${TEST_EMAIL_DOMAIN}`));
+}
 
 /** Re-imports ./auth with SIGNUP_MODE resolved from the given raw value. */
 async function authWithMode(mode?: string) {
