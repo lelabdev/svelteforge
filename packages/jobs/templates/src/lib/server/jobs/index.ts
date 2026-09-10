@@ -130,7 +130,11 @@ export const jobsApi = {
 					updatedAt: now
 				})
 				.where(inArray(jobs.id, ids));
-			return claimable;
+			// The SELECT above read the rows BEFORE the increment (#391 review):
+			// report the incremented attempt so retry bookkeeping in
+			// runClaimed() sees 1..maxAttempts and a job runs at most
+			// maxAttempts times.
+			return claimable.map((job) => ({ ...job, attempts: job.attempts + 1 }));
 		});
 	},
 

@@ -71,18 +71,18 @@ d('jobs claim contract (#328, real PostgreSQL)', () => {
 		define(`${TEST_PREFIX}lease`, async (_payload, ctx) => {
 			runs += 1;
 			await ctx.progress(10);
-			if (runs === 1) await new Promise((r) => setTimeout(r, 150)); // first "worker" dies mid-flight
+			if (runs === 1) await new Promise((r) => setTimeout(r, 200)); // first "worker" dies mid-flight
 			return { ok: runs };
 		});
-		const first = jobsApi.processNextBatch(1, 50); // 50ms lease, dies at +150ms
-		await new Promise((r) => setTimeout(r, 80));
-		const second = jobsApi.processNextBatch(1, 50); // second worker reclaims the expired lease
+		const first = jobsApi.processNextBatch(1, 50); // 50ms lease, dies at +200ms
+		await new Promise((r) => setTimeout(r, 120)); // second worker reclaims: even a progress() at t+50 kept the lease alive only until t+100
+		const second = jobsApi.processNextBatch(1, 50);
 		await Promise.all([first, second]);
 		expect(runs).toBe(2); // at-least-once: replayed after crash
 		const [row] = await db.select().from(jobs).where(eq(jobs.type, `${TEST_PREFIX}lease`));
 		expect(row.status).toBe('completed');
 		expect(row.attempts).toBe(2);
-	});
+	}, 15000);
 
 	it('a live heartbeat keeps the lease alive — no duplicate execution', async () => {
 		await jobsApi.enqueue(`${TEST_PREFIX}heartbeat`, { n: 1 });
@@ -128,6 +128,30 @@ d('jobs claim contract (#328, real PostgreSQL)', () => {
 		expect(row.status).toBe('completed');
 		expect(row.attempts).toBe(2);
 		expect(row.error).toBeNull();
+	});
+
+	it('bounded retries: the handler runs EXACTLY maxAttempts times (#391 regression)', async () => {
+		await jobsApi.enqueue(`${TEST_PREFIX}bounded`, { n: 1 }, 3);
+		let runs = 0;
+		define(`${TEST_PREFIX}bounded`, async () => {
+			runs += 1;
+			throw new Error('always fails');
+		});
+		for (let attempt = 1; attempt <= 3; attempt++) {
+			await jobsApi.processNextBatch(1);
+			expect(runs).toBe(attempt);
+			const [row] = await db.select().from(jobs).where(eq(jobs.type, `${TEST_PREFIX}bounded`));
+			if (attempt < 3) {
+				// skip the backoff window deterministically between attempts
+				await db.update(jobs).set({ runAfter: new Date(Date.now() - 1) }).where(eq(jobs.type, `${TEST_PREFIX}bounded`));
+			}
+		}
+		const fourth = await jobsApi.processNextBatch(1);
+		expect(fourth).toBe(0);
+		expect(runs).toBe(3);
+		const [row] = await db.select().from(jobs).where(eq(jobs.type, `${TEST_PREFIX}bounded`));
+		expect(row.status).toBe('failed');
+		expect(row.attempts).toBe(3);
 	});
 
 	it('a NonRetryableJobError fails the job immediately (no retry)', async () => {
