@@ -24,7 +24,16 @@ TMP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/sf-scaffold-$TEMPLATE-XXXXXX")"
 echo "Testing svforge scaffold: template=$TEMPLATE (local addon)"
 
 # Clean up on exit
-trap "rm -rf $TMP_DIR" EXIT
+# rm -rf robuste pour node_modules: les fichiers d'un install concurrent
+# peuvent être read-only ou disparaître pendant le unlink — on force les
+# perms et on retente une fois avant d'abandonner (le test a déjà PASSÉ à
+# ce stade: un cleanup raté ne doit pas rendre la CI rouge).
+cleanup_tmp() {
+	[ -d "$TMP_DIR" ] || return 0
+	chmod -R u+w "$TMP_DIR" 2>/dev/null || true
+	rm -rf "$TMP_DIR" 2>/dev/null || { sleep 2; rm -rf "$TMP_DIR" 2>/dev/null || true; }
+}
+trap cleanup_tmp EXIT
 
 # 0. Build the local addon (prebuild regenerates src/templates.ts + tsdown dist)
 cd "$REPO_ROOT/packages/svforge"
