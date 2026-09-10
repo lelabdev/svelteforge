@@ -2,7 +2,12 @@ import { pgTable, uuid, text, jsonb, integer, timestamp } from 'drizzle-orm/pg-c
 
 /**
  * Jobs schema (#231) — background job foundation.
- * States: queued → running → completed | failed. Retries bounded.
+ * States: queued → running → completed | failed. Retries bounded, claims
+ * lease-guarded (#328).
+ *
+ * - `lockedAt` / `leaseUntil`: claim bookkeeping. A `running` job whose lease
+ *   expired is recoverable (the claiming worker crashed).
+ * - `runAfter`: retry backoff — a queued job is not claimable before it.
  */
 export const jobs = pgTable('jobs', {
 	id: uuid('id').primaryKey().defaultRandom(),
@@ -19,5 +24,9 @@ export const jobs = pgTable('jobs', {
 	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 	updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 	startedAt: timestamp('started_at', { withTimezone: true }),
-	finishedAt: timestamp('finished_at', { withTimezone: true })
+	finishedAt: timestamp('finished_at', { withTimezone: true }),
+	// #328: atomic, lease-guarded claims
+	lockedAt: timestamp('locked_at', { withTimezone: true }),
+	leaseUntil: timestamp('lease_until', { withTimezone: true }),
+	runAfter: timestamp('run_after', { withTimezone: true })
 });

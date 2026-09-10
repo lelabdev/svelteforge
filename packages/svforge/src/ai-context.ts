@@ -116,7 +116,7 @@ export const MODULE_CAPABILITIES: Record<string, { capability: string; pattern?:
 	realtime: { capability: 'realtime (WebSocket)', pattern: 'src/lib/server/realtime/', note: 'Publish/subscribe hub + Svelte client' },
 	audit: { capability: 'audit trail', pattern: 'src/lib/server/audit/', note: 'Append-only business action log' },
 	notifications: { capability: 'notifications', pattern: 'src/lib/server/notifications/', note: 'Persistent read/unread inbox' },
-	jobs: { capability: 'background jobs', pattern: 'src/lib/server/jobs/', note: 'Encapsulated queue, bounded retries, progress' },
+	jobs: { capability: 'background jobs', pattern: 'src/lib/server/jobs/', note: 'Encapsulated queue, atomic claims + leases, bounded retries with backoff. Worker: `bun run jobs:worker` — never auto-started in the web runtime (#328)' },
 	chat: { capability: 'chat', pattern: 'src/lib/server/chat/', note: 'Conversations + messages + read-state, membership-enforced' }
 };
 

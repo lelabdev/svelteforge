@@ -49,7 +49,7 @@ export const MODULE_DEPLOYMENT_SUPPORT: Record<string, ModuleDeploymentSupport> 
 	realtime: { supported: ['long-lived-node', 'separate-worker'], unsupported: ['serverless', 'edge'], note: 'Requires a WebSocket-capable Node server or a separate WS server.' },
 	audit: { supported: ['long-lived-node', 'serverless'], unsupported: ['edge', 'separate-worker'], note: 'PostgreSQL-backed; define retention, PII access, and an optional DB append-only policy.' },
 	notifications: { supported: ['long-lived-node', 'serverless'], unsupported: ['edge', 'separate-worker'], note: 'PostgreSQL-backed notifications.' },
-	jobs: { supported: ['long-lived-node', 'separate-worker'], unsupported: ['serverless', 'edge'], note: 'Polling requires one long-lived owner; prefer a separate worker in production.' },
+	jobs: { supported: ['long-lived-node', 'separate-worker'], unsupported: ['serverless', 'edge'], note: 'Polling requires one long-lived owner: run `bun run jobs:worker` (separate-worker) or opt in via startJobRunner() in a single-instance deployment — never auto-started in the web runtime (#328).' },
 	chat: { supported: ['long-lived-node', 'serverless'], unsupported: ['edge', 'separate-worker'], note: 'PostgreSQL-backed; realtime transport is a separate optional integration.' }
 };
 

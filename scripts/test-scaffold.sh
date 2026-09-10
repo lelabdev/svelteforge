@@ -162,6 +162,12 @@ if [ "$TEMPLATE" = "dashboard" ] || [ "$TEMPLATE" = "dashboard-playwright" ] || 
 	test -f static/robots.txt || { echo "❌ static/robots.txt missing at project root (#187)"; exit 1; }
 	bash scripts/setup.sh >/dev/null 2>&1 || { echo "❌ setup.sh failed"; exit 1; }
 	test -f .env || { echo "❌ setup.sh did not create .env"; exit 1; }
+	# Local convenience: point the scaffold at a different DB endpoint without
+	# touching setup.sh (e.g. when 5432 is already taken by another project).
+	# CI is unaffected (SF_TEST_DB_URL unset there).
+	if [ -n "${SF_TEST_DB_URL:-}" ]; then
+		sed -i.bak "s|^DATABASE_URL=.*|DATABASE_URL=\"$SF_TEST_DB_URL\"|" .env && rm -f .env.bak
+	fi
 
 	# PostgreSQL is real in CI (#255): require the drizzle push to actually
 	# succeed against the service (the dashboard must be usable out of the box).
@@ -308,11 +314,16 @@ if [ "$TEMPLATE" = "dashboard-foundations" ]; then
 	for sym in auditLogs notifications jobs conversations messageReads; do
 		grep -q "$sym" src/lib/server/db/schema.ts || { echo "❌ schema $sym missing in Drizzle barrel (#258)"; exit 1; }
 	done
-	# Hooks are patched/composed without overwriting (paraglide + better-auth + runner)
+	# Hooks are patched/composed without overwriting (paraglide + better-auth);
+	# #328: the jobs runner is OPT-IN ONLY — the web runtime never starts a poller.
 	grep -q "paraglideMiddleware" src/hooks.server.ts || { echo "❌ paraglide middleware missing (#258)"; exit 1; }
 	grep -q "svelteKitHandler" src/hooks.server.ts || { echo "❌ better-auth handler missing (#258)"; exit 1; }
-	grep -q "startJobRunner" src/hooks.server.ts || { echo "❌ job runner not started in hooks (#258)"; exit 1; }
-	grep -q "startJobRunner()" src/hooks.server.ts || { echo "❌ startJobRunner() not called (#258)"; exit 1; }
+	if grep -q "startJobRunner" src/hooks.server.ts; then
+		echo "❌ hooks.server.ts auto-starts the job runner — forbidden since #328"; exit 1
+	fi
+	# #328: the explicit worker entrypoint IS wired instead
+	test -f src/lib/server/jobs/worker.ts || { echo "❌ jobs worker entrypoint missing (#328)"; exit 1; }
+	grep -q '"jobs:worker"' package.json || { echo "❌ jobs:worker script missing (#328)"; exit 1; }
 	# Paraglide FR/EN stays coherent across all modules
 	grep -q "chat_title" messages/fr.json || { echo "❌ chat fr messages missing (#258)"; exit 1; }
 	grep -q "chat_title" messages/en.json || { echo "❌ chat en messages missing (#258)"; exit 1; }

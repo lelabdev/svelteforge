@@ -1,79 +1,64 @@
 # @svforge/jobs
 
-Background job foundation for SvelteForge **dashboard** projects — run async
-work without blocking a request and without coupling the business to a queue
-provider (BullMQ/Redis/NATS).
+Background job foundation for SvelteKit — retry, progress, atomic claims, and an encapsulated backend. The business never imports a queue provider (BullMQ/Redis/etc.): handlers and enqueues go through one small API.
 
-## Install
-
-```bash
-npx sv add @svforge/jobs
-```
-
-Requires the **dashboard** template (auth + Drizzle). The runner starts
-automatically in `hooks.server.ts`.
-
-## Deployment profile
-
-Supported: `long-lived-node`, `separate-worker`. Unsupported: `serverless`, `edge`.
-
-The polling runner must have one long-lived owner. In production, deploy it as the `separate-worker` profile described in #328 rather than starting it in a serverless request lifecycle.
-
-## Define a handler
+## Quick start
 
 ```ts
+// src/lib/server/jobs/handlers.ts (or anywhere server-side)
 import { define } from '$lib/server/jobs';
 
 define('payroll.export', async (payload, ctx) => {
 	await ctx.progress(10);
-	// long work: generate CSV/PDF, sync API, batch email…
+	// long work — call ctx.heartbeat() to keep the claim alive
 	await ctx.progress(100);
-	return { fileId: 'f_123' };
+	return { fileId };
 });
 ```
-
-## Enqueue
 
 ```ts
-import { jobsApi } from '$lib/server/jobs';
-
-const job = await jobsApi.enqueue('payroll.export', {
-	organizationId,
-	period: '2026-07'
-});
-// HTTP response returns immediately
+await jobs.enqueue('payroll.export', { organizationId });
 ```
 
-## States
+## Running the worker (the only place jobs execute)
 
-`queued → running → completed | failed` — with `attempts`, `progress`,
-`result`, `error`, timestamps.
+Installing the module **never** starts a poller inside the web runtime (#328): no background process is silently added to every web process, serverless instance, or hot reload.
 
-## Guarantees (v1) — read before relying on it
+Jobs execute where a runner is explicitly started:
 
-- **At-least-once**: a crashed handler may re-run → handlers must be
-  **idempotent** (guard by payload key/entity id).
-- **Bounded retries**: `maxAttempts` (default 3), never infinite.
-- **Single-process polling** (default 5s, `startJobRunner(intervalMs)`). For
-  multi-instance deployments, run the runner on ONE instance (a dedicated
-  worker) — no row locking in v1.
-- Failures are persisted (sanitized `error`) and diagnosable via `jobsApi.get`.
+```sh
+bun run jobs:worker
+```
 
-## Optional composition
+`jobs:worker` runs the dedicated worker process (`src/lib/server/jobs/worker.ts`): it polls every 5s, drains the in-flight batch on SIGTERM/SIGINT, and exits cleanly under systemd/Docker stop sequences.
 
-- **realtime (#229)**: publish `job.progress` / `job.completed` on a channel so
-  the UI updates live (optional — never required).
-- **notifications (#230)**: at completion/failure, create a notification for
-  the requesting user (optional).
-- **email**: usable from inside a handler (optional).
+### Deployment profiles
 
-## What's included
+| Profile | Runner | Notes |
+|---|---|---|
+| `long-lived-node` (single instance) | `startJobRunner()` explicitly in `src/hooks.server.ts` | Acceptable only while ONE server process exists. |
+| `separate-worker` (recommended) | `bun run jobs:worker` in its own process/deployment | Several worker processes are safe: claims are atomic and lease-guarded — work is split, never duplicated. |
+| `serverless` | none — enqueue only, run the worker elsewhere (or use an external queue) | Request handlers must not poll. |
 
-- `$lib/server/jobs/schema.ts` — Drizzle schema (`jobs`)
-- `$lib/server/jobs/index.ts` — `define`, `enqueue`, `progress`, `get`, `processNextBatch`
-- `$lib/server/jobs/runner.ts` — interval runner (`startJobRunner` / `stopJobRunner`)
-- Schema auto-registered; runner auto-started in `hooks.server.ts`
+See `docs/deployment-profiles.md` in the scaffold for the full matrix.
 
-## License
+## Guarantees
 
-MIT
+- **At-least-once**: a crashed worker's job is re-claimed after its lease expires → handlers must be **idempotent**.
+- **Atomic claims**: `FOR UPDATE SKIP LOCKED` inside a transaction — two workers can never claim the same job.
+- **Leases**: a claim is exclusive for 60s (default). `ctx.progress()` and `ctx.heartbeat()` renew it; long handlers should heartbeat.
+- **Bounded retries**: `maxAttempts` (default 3) with exponential backoff (1s → 2s → 4s… capped at 60s via `runAfter`).
+- **Non-retryable**: throw `NonRetryableJobError` to fail a job immediately, without consuming retries on a permanent error.
+- **Unknown handler**: the job fails cleanly with `Unknown handler`.
+
+## API
+
+| Export | Purpose |
+|---|---|
+| `define(type, handler)` | Register a typed handler. |
+| `jobs.enqueue(type, payload, maxAttempts?)` | Queue a job, returns the row. |
+| `jobs.get(jobId)` | Diagnostics. |
+| `jobs.processNextBatch(batchSize?, leaseMs?)` | Claim + run one batch (used by the runner; also handy in tests). |
+| `startJobRunner(intervalMs?, batchSize?, { leaseMs? })` | Start polling — **explicit opt-in only**. |
+| `stopJobRunner()` | Stop + drain: resolves after the in-flight batch. |
+| `NonRetryableJobError` | Throw from a handler to skip retries. |

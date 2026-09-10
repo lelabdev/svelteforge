@@ -42,7 +42,7 @@ Keep uploads as direct-to-storage presigned requests. If jobs or realtime are ne
 The generated `.svforge.json` and `llms.txt` list supported and unsupported profiles for each installed runtime module. In summary:
 
 - `realtime` supports `long-lived-node` or `separate-worker`; its `ws` server is not compatible with serverless or edge adapters.
-- `jobs` needs one long-lived runner; production deployments should use `separate-worker` (#328).
+- `jobs` supports `long-lived-node` or `separate-worker`. The runner is never auto-started in the web runtime: production deployments run the dedicated worker (`bun run jobs:worker`), claims are atomic (`FOR UPDATE SKIP LOCKED`) and lease-guarded, so several worker processes split the queue without duplicate execution (#328). In serverless, enqueue only and run the worker elsewhere.
 - dashboard, audit, notifications, and chat use PostgreSQL and support Node/serverless, not edge.
 - uploads supports Node/serverless. A presigned PUT's `ContentLength` is metadata, not a portable storage-level limit: enforce a bucket POST policy where available, record per-user quotas before signing, and trigger a malware/content scan callback before serving the object.
 
