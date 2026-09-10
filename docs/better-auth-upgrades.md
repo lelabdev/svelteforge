@@ -104,9 +104,11 @@ must be **relative**.
   `providerId: 'credential'` with `accountId = user.id`, and
   `better-auth/crypto` still exports `hashPassword`/`verifyPassword`. The
   isolated `createCredentialUser` helper stays — the official admin plugin's
-  `createUser` is session-safe but drags in the role/ban schema fields and
-  permission model, which the template's deliberate "first user = admin" +
-  `disabled` lifecycle does not use. Revisit if multi-role lands.
+  `createUser` is session-safe but drags in the plugin's own role/ban schema
+  fields and permission model, which duplicates the template's explicit
+  persisted `user.role` column (#318: `admin` granted only by the atomic
+  first-admin bootstrap) + `disabled` lifecycle. Adopting the plugin is a
+  product decision, not a dependency upgrade.
 - The daily security escalation and the weekly pass share the same gate; the
   only difference is cadence.
 

@@ -8,6 +8,10 @@ export const user = pgTable('user', {
 	emailVerified: boolean('email_verified').notNull().default(false),
 	// Deactivation preserves the identity row for domain and audit references.
 	disabled: boolean('disabled').notNull().default(false),
+	// Explicit authorization role (#318): 'admin' | 'user'. Server-enforced via
+	// isAdmin() — NEVER settable through Better Auth requests (deliberately not
+	// declared in additionalFields). Only bootstrapFirstAdmin grants 'admin'.
+	role: text('role').notNull().default('user'),
 	image: text('image'),
 	createdAt: timestamp('created_at', { withTimezone: true })
 		.default(sql`now()`)

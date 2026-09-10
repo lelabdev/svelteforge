@@ -90,7 +90,7 @@
   "login_sign_in": "Sign In",
   "setup_title": "Setup — SvelteForge",
   "setup_create_admin": "Create Admin",
-  "setup_hint": "First user becomes admin automatically.",
+  "setup_hint": "Creates the first administrator account (no admin may already exist).",
   "setup_submit": "Create & Continue",
   "setup_dev_only": "This page is only available in development mode.",
   "settings_title": "Settings — SvelteForge Admin",
@@ -173,5 +173,11 @@
   "users_reactivate_confirm": "Reactivate {name}? They will be able to sign in again.",
   "users_deactivate_btn": "Deactivate",
   "users_reactivate_btn": "Reactivate",
-  "users_disabled": "Deactivated"
+  "users_disabled": "Deactivated",
+  "users_invite_btn": "Invite",
+  "users_invite_title": "Invite a user",
+  "users_invite_desc": "Pre-approves an email to create its own account (invite-only sign-up).",
+  "users_invited": "Invitation created",
+  "users_already_invited": "This email has already been invited",
+  "users_invite_failed": "Failed to create the invitation"
 }

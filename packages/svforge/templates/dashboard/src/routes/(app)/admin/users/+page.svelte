@@ -9,6 +9,7 @@
 	import { Button, Input } from '$lib/components/svforge/primitives';
 	import type { UserRow } from '$lib/types';
 	import UserPlus from 'phosphor-svelte/lib/UserPlus';
+	import EnvelopeSimple from 'phosphor-svelte/lib/EnvelopeSimple';
 	import Power from 'phosphor-svelte/lib/Power';
 	import Pencil from 'phosphor-svelte/lib/Pencil';
 	import X from 'phosphor-svelte/lib/X';
@@ -20,7 +21,7 @@
 	let feedback = $state<{ type: 'success' | 'error'; message: string } | null>(null);
 
 	// Modal state
-	let modal = $state<'create' | 'edit' | 'status' | null>(null);
+	let modal = $state<'create' | 'edit' | 'status' | 'invite' | null>(null);
 	let editUser = $state<{ id: string; name: string; email: string } | null>(null);
 	let statusTarget = $state<{ id: string; name: string; disabled: boolean } | null>(null);
 
@@ -40,9 +41,10 @@
 	]);
 
 	let filtered = $derived(
-		data.users.filter((u) =>
-			u.name.toLowerCase().includes(search.toLowerCase()) ||
-			u.email.toLowerCase().includes(search.toLowerCase())
+		data.users.filter(
+			(u) =>
+				u.name.toLowerCase().includes(search.toLowerCase()) ||
+				u.email.toLowerCase().includes(search.toLowerCase())
 		)
 	);
 
@@ -51,6 +53,11 @@
 		formEmail = '';
 		formPassword = '';
 		modal = 'create';
+	}
+
+	function openInvite() {
+		formEmail = '';
+		modal = 'invite';
 	}
 
 	function openEdit(u: { id: string; name: string; email: string }) {
@@ -90,6 +97,8 @@
 					return m.users_verified_ok();
 				case 'unverified':
 					return m.users_unverified();
+				case 'invited':
+					return m.users_invited();
 				default:
 					return m.users_created();
 			}
@@ -113,6 +122,10 @@
 				return m.users_status_failed();
 			case 'verify_failed':
 				return m.users_verify_failed();
+			case 'already_invited':
+				return m.users_already_invited();
+			case 'invite_failed':
+				return m.users_invite_failed();
 			default:
 				return m.users_created_failed();
 		}
@@ -149,10 +162,16 @@
 <div class="space-y-6">
 	<div class="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
 		<h2 class="h2">{m.users_heading()}</h2>
-		<Button onclick={openCreate}>
-			<UserPlus size={16} class="mr-1" />
-			{m.users_add()}
-		</Button>
+		<div class="flex gap-2">
+			<Button variant="tonal" color="secondary" onclick={openInvite}>
+				<EnvelopeSimple size={16} class="mr-1" />
+				{m.users_invite_btn()}
+			</Button>
+			<Button onclick={openCreate}>
+				<UserPlus size={16} class="mr-1" />
+				{m.users_add()}
+			</Button>
+		</div>
 	</div>
 
 	{#if feedback}
@@ -181,7 +200,11 @@
 					<form method="POST" action="?/toggleVerify" use:enhance={submitEnhance}>
 						<input type="hidden" name="id" value={row.id} />
 						<input type="hidden" name="verified" value={String(row.emailVerified)} />
-						<button type="submit" class="inline-flex" aria-label={row.emailVerified ? m.users_pending() : m.users_verified()}>
+						<button
+							type="submit"
+							class="inline-flex"
+							aria-label={row.emailVerified ? m.users_pending() : m.users_verified()}
+						>
 							<Badge color={row.emailVerified ? 'success' : 'warning'}>
 								{row.emailVerified ? m.users_verified() : m.users_pending()}
 							</Badge>
@@ -190,10 +213,19 @@
 				{/if}
 			{:else if col.key === 'actions'}
 				<div class="flex items-center justify-end gap-1">
-					<button class="btn p-2 preset-tonal-surface" onclick={() => openEdit(row)} aria-label={m.users_edit()}>
+					<button
+						class="btn preset-tonal-surface p-2"
+						onclick={() => openEdit(row)}
+						aria-label={m.users_edit()}
+					>
 						<Pencil size={16} />
 					</button>
-					<button class="btn p-2 preset-tonal-warning" onclick={() => openStatus(row)} disabled={row.id === currentUserId} aria-label={row.disabled ? m.users_reactivate() : m.users_deactivate()}>
+					<button
+						class="btn preset-tonal-warning p-2"
+						onclick={() => openStatus(row)}
+						disabled={row.id === currentUserId}
+						aria-label={row.disabled ? m.users_reactivate() : m.users_deactivate()}
+					>
 						<Power size={16} />
 					</button>
 				</div>
@@ -208,13 +240,29 @@
 
 <!-- Modal overlay -->
 {#if modal}
-	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" role="presentation" onclick={closeModal}>
+	<div
+		class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+		role="presentation"
+		onclick={closeModal}
+	>
 		<Card class="w-full max-w-md" onclick={(e: Event) => e.stopPropagation()}>
 			<div class="mb-4 flex items-center justify-between">
 				<h3 class="h3">
-					{modal === 'create' ? m.users_modal_create() : modal === 'edit' ? m.users_modal_edit() : statusTarget?.disabled ? m.users_modal_reactivate() : m.users_modal_deactivate()}
+					{modal === 'create'
+						? m.users_modal_create()
+						: modal === 'edit'
+							? m.users_modal_edit()
+							: modal === 'invite'
+								? m.users_invite_title()
+								: statusTarget?.disabled
+									? m.users_modal_reactivate()
+									: m.users_modal_deactivate()}
 				</h3>
-				<button class="btn p-1 preset-tonal-surface" onclick={closeModal} aria-label={m.users_close()}>
+				<button
+					class="btn preset-tonal-surface p-1"
+					onclick={closeModal}
+					aria-label={m.users_close()}
+				>
 					<X size={18} />
 				</button>
 			</div>
@@ -231,26 +279,66 @@
 					{#if modal === 'edit' && editUser}
 						<input type="hidden" name="id" value={editUser.id} />
 					{/if}
-					<Input label={m.users_label_name()} name="name" bind:value={formName} placeholder={m.users_placeholder_name()} required />
-					<Input label={m.users_label_email()} name="email" type="email" bind:value={formEmail} placeholder={m.users_placeholder_email()} required />
+					<Input
+						label={m.users_label_name()}
+						name="name"
+						bind:value={formName}
+						placeholder={m.users_placeholder_name()}
+						required
+					/>
+					<Input
+						label={m.users_label_email()}
+						name="email"
+						type="email"
+						bind:value={formEmail}
+						placeholder={m.users_placeholder_email()}
+						required
+					/>
 					{#if modal === 'create'}
-						<Input label={m.users_label_password()} name="password" type="password" bind:value={formPassword} placeholder={m.common_min_chars()} required />
+						<Input
+							label={m.users_label_password()}
+							name="password"
+							type="password"
+							bind:value={formPassword}
+							placeholder={m.common_min_chars()}
+							required
+						/>
 					{/if}
 					<div class="flex justify-end gap-2 pt-2">
 						<Button variant="ghost" type="button" onclick={closeModal}>{m.common_cancel()}</Button>
 						<Button type="submit">{modal === 'create' ? m.users_create() : m.common_save()}</Button>
 					</div>
 				</form>
+			{:else if modal === 'invite'}
+				<p class="mb-4 text-sm text-surface-500">{m.users_invite_desc()}</p>
+				<form method="POST" action="?/invite" use:enhance={submitEnhance} class="space-y-4">
+					<Input
+						label={m.users_label_email()}
+						name="email"
+						type="email"
+						bind:value={formEmail}
+						placeholder={m.users_placeholder_email()}
+						required
+					/>
+					<div class="flex justify-end gap-2 pt-2">
+						<Button variant="ghost" type="button" onclick={closeModal}>{m.common_cancel()}</Button>
+						<Button type="submit">{m.users_invite_btn()}</Button>
+					</div>
+				</form>
 			{:else if modal === 'status' && statusTarget}
 				<p class="mb-4 text-surface-500">
-					{statusTarget.disabled ? m.users_reactivate_confirm({ name: statusTarget.name }) : m.users_deactivate_confirm({ name: statusTarget.name })}
+					{statusTarget.disabled
+						? m.users_reactivate_confirm({ name: statusTarget.name })
+						: m.users_deactivate_confirm({ name: statusTarget.name })}
 				</p>
 				<form method="POST" action="?/toggleStatus" use:enhance={submitEnhance}>
 					<input type="hidden" name="id" value={statusTarget.id} />
 					<input type="hidden" name="disabled" value={String(!statusTarget.disabled)} />
 					<div class="flex justify-end gap-2">
 						<Button variant="ghost" type="button" onclick={closeModal}>{m.common_cancel()}</Button>
-						<Button color={statusTarget.disabled ? 'success' : 'warning'} type="submit">{statusTarget.disabled ? m.users_reactivate_btn() : m.users_deactivate_btn()}</Button>
+						<Button color={statusTarget.disabled ? 'success' : 'warning'} type="submit"
+							>{statusTarget.disabled ? m.users_reactivate_btn() : m.users_deactivate_btn()}</Button
+						>
 					</div>
 				</form>
 			{/if}

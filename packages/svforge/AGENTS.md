@@ -16,7 +16,7 @@ templates/base/
 templates/dashboard/                 ← overlay : base + auth + admin + DB
 ├── src/lib/server/                  ← auth (better-auth), db (drizzle/postgres), schemas (zod), admin.ts
 ├── src/routes/(app)/admin/          ← users CRUD, settings, dashboard
-├── src/routes/login/ setup/         ← setup = création 1er admin (dev-only, 1er user = admin)
+├── src/routes/login/ setup/         ← setup = bootstrap 1er admin (dev-only, atomique — la prod passe par `bun run admin:create`)
 ├── src/hooks.server.ts              ← session better-auth → locals
 ├── e2e/ + playwright.config.ts      ← profil playwright opt-in (⚠️ #186 : écrit dans src/)
 └── vitest.config.ts                 ← ⚠️ racine du template = jamais embarqué (#186)
@@ -32,7 +32,7 @@ Le scaffold reste volontairement minimal :
 - Pour le layout/whitespace local, utiliser les utilities Tailwind standard (`p-4`, `gap-6`, `max-w-7xl`, etc.).
 - Une couche de tokens/effets spécifique au produit ne se crée que plus tard, si un besoin concret et répété n'est pas couvert par Skeleton/Tailwind.
 
-Le pattern admin : **premier utilisateur = admin** (`src/lib/server/admin.ts`, tri par `createdAt`). Multi-rôles = ajouter une colonne `role`.
+Le pattern admin (#318) : **rôle explicite persisté** — colonne `user.role` (`admin` | `user`), accordée UNIQUEMENT par le bootstrap atomique `bootstrapFirstAdmin` (`src/lib/server/first-admin.ts`, verrou consultatif + vérification « aucun admin existant » dans la transaction ; CLI `bun run admin:create`). `isAdmin()` (`src/lib/server/admin.ts`) vérifie le rôle côté serveur — JAMAIS de dérivation par ordre (`createdAt`). L'inscription publique est **fermée par défaut** (`SIGNUP_MODE` : `closed` | `invite-only` | `self-service`, résolu dans `src/lib/server/signup-mode.ts`, inconnu ⇒ fermé).
 
 ## Modes (`src/modes/`)
 

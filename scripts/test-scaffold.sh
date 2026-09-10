@@ -24,7 +24,16 @@ TMP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/sf-scaffold-$TEMPLATE-XXXXXX")"
 echo "Testing svforge scaffold: template=$TEMPLATE (local addon)"
 
 # Clean up on exit
-trap "rm -rf $TMP_DIR" EXIT
+# rm -rf robuste pour node_modules: les fichiers d'un install concurrent
+# peuvent être read-only ou disparaître pendant le unlink — on force les
+# perms et on retente une fois avant d'abandonner (le test a déjà PASSÉ à
+# ce stade: un cleanup raté ne doit pas rendre la CI rouge).
+cleanup_tmp() {
+	[ -d "$TMP_DIR" ] || return 0
+	chmod -R u+w "$TMP_DIR" 2>/dev/null || true
+	rm -rf "$TMP_DIR" 2>/dev/null || { sleep 2; rm -rf "$TMP_DIR" 2>/dev/null || true; }
+}
+trap cleanup_tmp EXIT
 
 # 0. Build the local addon (prebuild regenerates src/templates.ts + tsdown dist)
 cd "$REPO_ROOT/packages/svforge"
@@ -501,8 +510,9 @@ if [ "$TEMPLATE" = "dashboard" ]; then
 	fi
 
 	# 5f.c Runtime HTTP smoke against the dev server (the /setup route is
-	# dev-only). Reset the users table first so the first-user-is-admin
-	# pattern makes the smoke admin deterministic. SvelteKit form-action
+	# dev-only). Reset the users table first so the bootstrap is
+	# deterministic: /setup grants the EXPLICIT admin role (role column,
+	# #318) — never an ordering-based rule. SvelteKit form-action
 	# CSRF: POSTs need a matching `origin` header (no token/cookie dance).
 	# Action responses may carry `"type":"failure"` bodies over HTTP 200 —
 	# assert bodies, not just status codes.
@@ -536,6 +546,18 @@ if [ "$TEMPLATE" = "dashboard" ]; then
 			fail "POST /setup failed: $setup_body"
 		fi
 
+		# SECURITY (#318): sign-up is CLOSED by default — the public Better Auth
+		# endpoint must refuse registration (HTTP 400) and create NO user row.
+		signup_status=$(curl -s -o "${TMPDIR:-/tmp}/sf-smoke-signup.json" -w '%{http_code}' \
+			-H "origin: $ORIGIN" -H 'content-type: application/json' \
+			--data '{"name":"Attacker","email":"attacker@example.com","password":"attackerpass123"}' \
+			"$ORIGIN/api/auth/sign-up/email") || fail "sign-up probe errored"
+		[ "$signup_status" = "400" ] || fail "public sign-up was NOT rejected in closed mode (HTTP $signup_status)"
+		grep -q 'EMAIL_PASSWORD_SIGN_UP_DISABLED' "${TMPDIR:-/tmp}/sf-smoke-signup.json" \
+			|| fail "sign-up rejection missing the EMAIL_PASSWORD_SIGN_UP_DISABLED code"
+		attacker_count=$(bun -e 'const { default: postgres } = await import("postgres"); const { readFileSync } = await import("node:fs"); const url = readFileSync(".env", "utf8").match(/^DATABASE_URL="?([^"\n]+)"?$/m)?.[1]; const sql = postgres(url, { max: 1 }); const rows = await sql`SELECT count(*)::int AS n FROM "user" WHERE email = ${"attacker@example.com"}`; console.log(rows[0].n); await sql.end();')
+		[ "$attacker_count" = "0" ] || fail "the anonymous sign-up probe created a user row"
+
 		# Admin login through the real Better Auth credential flow.
 		curl -sf -o /dev/null -b "$ADMIN_JAR" -c "$ADMIN_JAR" -H "origin: $ORIGIN" \
 			--data 'email=smoke-admin@example.com&password=smokepass123' \
@@ -567,8 +589,13 @@ if [ "$TEMPLATE" = "dashboard" ]; then
 			"$ORIGIN/login" || fail "created user B could not sign in"
 		grep -q better-auth.session_token "$USER_JAR" || fail "user B login did not set a session cookie"
 
+		# SECURITY (#318): the explicit role decides — non-admin B is redirected
+		# away from the users page and the admin keeps full access.
+		user_status=$(curl -s -o /dev/null -w '%{http_code}' -b "$USER_JAR" "$ORIGIN/admin/users")
+		[ "$user_status" = "302" ] || fail "non-admin B was not redirected from /admin/users (HTTP $user_status)"
+
 		kill "$DEV_PID" 2>/dev/null || true
-		echo "✓ Better Auth runtime smoke: setup → admin login → admin CRUD → user B sign-in (#319)"
+		echo "✓ Better Auth runtime smoke: setup → closed sign-up rejected → admin login → admin CRUD → user B sign-in → B denied admin (#319, #318)"
 	)
 fi
 

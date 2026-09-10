@@ -9,6 +9,7 @@ if [ ! -f .env ]; then
 DATABASE_URL="postgres://postgres:postgres@localhost:5432/sf_dashboard"
 ORIGIN=http://localhost:5173
 BETTER_AUTH_SECRET=
+SIGNUP_MODE=closed
 ENV
 	echo "Created .env"
 else
@@ -28,5 +29,8 @@ bunx drizzle-kit push --force 2>&1 || echo "Warning: drizzle-kit push failed (is
 
 echo ""
 echo "Done! Next steps:"
-echo "  1. bun dev"
-echo "  2. http://localhost:5173/setup (dev only, creates first admin)"
+echo "  1. Create the first administrator (atomic, refuses if one exists):"
+echo "       bun run admin:create -- --name 'Admin' --email admin@example.com --password '…'"
+echo "     (dev alternative: http://localhost:5173/setup — dev-only route)"
+echo "  2. bun dev"
+echo "  3. Sign-up is CLOSED by default (SIGNUP_MODE in .env): closed | invite-only | self-service"

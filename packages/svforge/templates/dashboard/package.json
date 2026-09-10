@@ -16,6 +16,7 @@
 		"db:generate": "drizzle-kit generate",
 		"db:migrate": "drizzle-kit migrate",
 		"db:studio": "drizzle-kit studio",
+		"admin:create": "bun scripts/create-admin.ts",
 		"auth:schema": "bunx @better-auth/cli@1.4.21 generate --config src/lib/server/auth.ts --output src/lib/server/db/auth.schema.ts --yes"
 	},
 	"devDependencies": {

@@ -44,12 +44,14 @@ export function applyDashboardMode(
 		sv.devDependency('@playwright/test', '^1.52.0');
 	}
 
-	// Add runnable test scripts to the generated dashboard.
+	// Add runnable test scripts to the generated dashboard, plus the atomic
+	// first-admin bootstrap command (#318).
 	sv.file('package.json', (content: string) => {
 		const pkg = JSON.parse(content);
 		pkg.scripts = {
 			...pkg.scripts,
 			test: 'vitest run',
+			'admin:create': 'bun scripts/create-admin.ts',
 			...(testing === 'playwright' ? { 'test:e2e': 'playwright test' } : {})
 		};
 		return `${JSON.stringify(pkg, null, 2)}\n`;

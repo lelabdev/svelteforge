@@ -127,7 +127,7 @@ function runtimeSchemaFixture(): Record<string, { fields: Record<string, Runtime
 	};
 }
 
-const ALLOW = { user: ['disabled'] };
+const ALLOW = { user: ['disabled', 'role'] };
 
 describe('better-auth runtime schema ↔ committed schema gate (#319, #319 review)', () => {
 	describe('parseDrizzleTables', () => {
@@ -206,8 +206,10 @@ describe('better-auth runtime schema ↔ committed schema gate (#319, #319 revie
 		it('reports a committed column the runtime does not know (allowlist respected)', () => {
 			const model = normalizeRuntimeSchema(runtimeSchemaFixture());
 			const withoutAllow = compareSchemas(model, committedSource(), {} as Record<string, string[]>);
+			// #337 `disabled` + #318 `role`: template app-level columns, runtime-unknown.
 			expect(withoutAllow.drift).toEqual([
-				expect.objectContaining({ kind: 'column', table: 'user', column: 'disabled' })
+				expect.objectContaining({ kind: 'column', table: 'user', column: 'disabled' }),
+				expect.objectContaining({ kind: 'column', table: 'user', column: 'role' })
 			]);
 			const withAllow = compareSchemas(model, committedSource(), ALLOW);
 			expect(withAllow.drift).toEqual([]);

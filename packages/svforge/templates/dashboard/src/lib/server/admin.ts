@@ -1,20 +1,31 @@
 import { db } from '$lib/server/db';
 import { user } from '$lib/server/db/schema';
-import { asc } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 
 /**
- * Check if a user is an admin.
- * 
- * This template uses the "first-user-is-admin" pattern.
- * For multi-user scenarios, add a `role` column to the user schema
- * and check it here instead.
+ * The persisted authorization role (#318).
+ *
+ * Admin status is an EXPLICIT column on the user row — never derived from row
+ * ordering. The value is granted exclusively by `bootstrapFirstAdmin`
+ * (first-admin.ts); every other creation path (admin UI, self-service or
+ * invite-only sign-up) produces `role = 'user'`, the column default.
  */
-// Pattern: first-user-is-admin. The oldest user (by createdAt) is the admin.
-// For multi-role scenarios, add a `role` column to the user table and check it here.
+export const ADMIN_ROLE = 'admin';
+
+/**
+ * Check if a user is an administrator (#318).
+ *
+ * The answer depends ONLY on the persisted role and the lifecycle flag: any
+ * ordering (createdAt, insertion race, deletions of earlier users) yields the
+ * same decision, server-side. The previous "oldest user is admin" pattern was
+ * removed: on a fresh deployment it let an anonymous sign-up take over the
+ * administrator role.
+ */
 export async function isAdmin(userId: string): Promise<boolean> {
-	const [firstUser] = await db.select({ id: user.id, disabled: user.disabled })
+	const [identity] = await db
+		.select({ role: user.role, disabled: user.disabled })
 		.from(user)
-		.orderBy(asc(user.createdAt))
+		.where(eq(user.id, userId))
 		.limit(1);
-	return firstUser?.id === userId && !firstUser.disabled;
+	return identity?.role === ADMIN_ROLE && !identity.disabled;
 }

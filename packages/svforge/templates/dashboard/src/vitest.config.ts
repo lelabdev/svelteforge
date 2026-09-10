@@ -14,6 +14,10 @@ export default defineConfig({
 	},
 	test: {
 		include: ['src/**/*.test.ts'],
-		environment: 'node'
+		environment: 'node',
+		// The dashboard baseline runs against ONE shared PostgreSQL database
+		// (credential lifecycle + bootstrap suites). Parallel files would race
+		// on each other's user rows — run test files sequentially (#318).
+		fileParallelism: false
 	}
 });
