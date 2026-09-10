@@ -731,6 +731,60 @@ export async function checkDesignSystem(
 		}
 	}
 
+	// ── 7. CSS drift outside Skeleton (#314) ─────────────────────
+	if (fs.existsSync(srcDir)) {
+		const cssFiles: string[] = [];
+		const walkCss = (dir: string) => {
+			if (!fs.existsSync(dir)) return;
+			for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+				const full = path.join(dir, entry.name);
+				if (entry.isDirectory()) walkCss(full);
+				else if (entry.name.endsWith('.css')) cssFiles.push(full);
+			}
+		};
+		walkCss(srcDir);
+		const themeFiles = new Set(
+			cssFiles.filter((file) => isSkeletonThemeCss(fs.readFileSync(file, 'utf-8')))
+		);
+		for (const file of cssFiles) {
+			const rel = path.relative(projectRoot, file).split(path.sep).join('/');
+			const content = fs.readFileSync(file, 'utf-8');
+			const findings =
+				rel === 'src/routes/layout.css'
+					? checkLayoutCss(content)
+					: checkCssVariables(rel, content, themeFiles.has(file));
+			for (const finding of findings) {
+				results.push({ module: 'ds', status: finding.severity, message: `[svforge/${finding.rule}] ${finding.message}` });
+			}
+		}
+		// Wrappers stay thin: <style> blocks with literal colors/radii drift.
+		// Same exact-path exemption as the other wrappers checks (#361/#345):
+		// the canonical implementation at its catalog path (and installed addon
+		// component paths) never warns — a new component in the same directory
+		// still does.
+		if (fs.existsSync(componentsDir)) {
+			const approvedPaths = new Set(Object.values(SVFORGE_CATALOG).map((entry) => entry.path));
+			const installedModules = readManifestModules(fs, path, projectRoot);
+			const walkSvelte = (dir: string, out: string[] = []): string[] => {
+				for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+					const full = path.join(dir, entry.name);
+					if (entry.isDirectory()) walkSvelte(full, out);
+					else if (entry.name.endsWith('.svelte')) out.push(full);
+				}
+				return out;
+			};
+			for (const file of walkSvelte(componentsDir)) {
+				// Exemption paths are componentsDir-relative (catalog + addon mapping).
+				const relPosix = path.relative(componentsDir, file).split(path.sep).join('/');
+				if (approvedPaths.has(relPosix) || isApprovedAddonComponent(relPosix, installedModules)) continue;
+				const rel = path.relative(projectRoot, file).split(path.sep).join('/');
+				for (const finding of checkStyleBlockDrift(fs.readFileSync(file, 'utf-8'))) {
+					results.push({ module: 'ds', status: finding.severity, message: `${rel}: [svforge/${finding.rule}] ${finding.message}` });
+				}
+			}
+		}
+	}
+
 	return results;
 }
 
@@ -1007,4 +1061,173 @@ function collectProjectUtilities(fs: typeof import('node:fs'), path: typeof impo
 	};
 	walk(srcDir);
 	return names;
+}
+
+// ── CSS drift outside Skeleton (#314) ─────────────────────────
+
+export interface CssDriftFinding {
+	rule: string;
+	severity: 'warn' | 'error';
+	message: string;
+}
+
+/** Every custom property declaration in CSS text (comments stripped). */
+export function parseCssVariables(css: string): Map<string, string> {
+	const code = css.replace(/\/\*[\s\S]*?\*\//g, '');
+	const vars = new Map<string, string>();
+	for (const match of code.matchAll(/(--[a-zA-Z0-9-]+)\s*:\s*([^;{}]+)[;}]?/g)) {
+		vars.set(match[1], match[2].trim());
+	}
+	return vars;
+}
+
+/** Skeleton v5 namespaces that must have exactly ONE source of truth: the theme. */
+export const SKELETON_CSS_NAMESPACES: ReadonlyArray<[RegExp, string]> = [
+	[/^--typo-/, 'typography (--typo-*)'],
+	[/^--text-scaling$/, 'the typographic scale (--text-scaling)'],
+	[/^--radius-(?:base|container)$/, 'theme radii (--radius-base / --radius-container)'],
+	[/^--corner-shape-/, 'corner shapes (--corner-shape-*)'],
+	[/^--default-(?:border|outline|ring)-width$/, 'default edge widths'],
+	[/^--color-root-bg-/, 'root backgrounds (--color-root-bg-*)'],
+	[/^--color-brand-/, 'brand colors (--color-brand-*)']
+];
+
+const SKELETON_THEME_HINT =
+	/--(?:color-(?:primary|secondary|tertiary|success|warning|error|surface)-\d{3}|typo-[a-z]+--|radius-(?:base|container)|corner-shape-[a-z])/g;
+
+/**
+ * Recognize the project's Skeleton theme file by CONTENT, not filename
+ * (#314): a `[data-theme='…']` block carrying several Skeleton variables.
+ * A consumer may rename `svelteforge-theme.css` to `acme-theme.css`.
+ */
+export function isSkeletonThemeCss(css: string): boolean {
+	if (!/\[data-theme=/.test(css)) return false;
+	const hints = css.match(SKELETON_THEME_HINT);
+	return (hints?.length ?? 0) >= 5;
+}
+
+/**
+ * `src/routes/layout.css` is WIRING (#313): Tailwind/Skeleton imports, font
+ * imports, plugins, the dark variant and font tokens. Global visual overrides
+ * or theme variables defined here create a second source of truth.
+ */
+export function checkLayoutCss(css: string): CssDriftFinding[] {
+	const findings: CssDriftFinding[] = [];
+	const code = css.replace(/\/\*[\s\S]*?\*\//g, '');
+	// Allowed single-line at-rules: imports, plugins, the dark variant, sources.
+	let rest = code.replace(/^[ \t]*@(?:import|plugin|custom-variant|source)[^\n{]*;?[ \t]*$/gm, '');
+	// @theme blocks may carry font tokens only — the ONLY font mechanism since
+	// #317 removed the global code/pre rule (--font-mono feeds Skeleton's own
+	// code/pre/kbd styles and Tailwind's font-mono utility).
+	rest = rest.replace(/@theme\s*\{([^}]*)\}/g, (_m, body: string) => {
+		for (const decl of body.split(';').map((s) => s.trim()).filter(Boolean)) {
+			if (!/^--(?:font-|typo-)/.test(decl)) {
+				findings.push({
+					rule: 'layout-theme-token',
+					severity: 'error',
+					message: `layout.css @theme may only define font tokens (found: ${decl.split(':')[0].trim()}) — colors, radii and palettes belong to the theme file.`
+				});
+			}
+		}
+		return '';
+	});
+	// Any remaining variable declaration creates a parallel token layer.
+	for (const match of rest.matchAll(/--[a-zA-Z0-9-]+\s*:/g)) {
+		findings.push({
+			rule: 'layout-variable',
+			severity: 'error',
+			message: `layout.css must stay wiring: define ${match[0].replace(/[:\s]+$/, '')} in the Skeleton theme file, not here.`
+		});
+	}
+	// Any remaining rule block is a global visual override — INCLUDING
+	// code/pre: since #317 the only sanctioned mechanism is @theme --font-mono
+	// (Skeleton styles code/pre/kbd itself); a global code/pre rule would
+	// resurrect the parallel styling layer #317 removed.
+	for (const match of rest.matchAll(/(^|\n)(?!\s*@)([^\n{}@]+)\{/g)) {
+		const selector = match[2].trim();
+		findings.push({
+			rule: 'layout-override',
+			severity: 'error',
+			message: `layout.css must stay wiring. Global override "${selector} { … }" belongs in the theme file or a component.`
+		});
+	}
+	return findings;
+}
+
+/**
+ * CSS files added around the theme: recreating a Skeleton namespace is an
+ * ERROR (one source of truth); parallel palette tokens are a strong WARN —
+ * a product-specific abstraction may be legitimate, Skeleton-first stays the
+ * default (#240 severity model).
+ */
+export function checkCssVariables(cssPath: string, css: string, isThemeFile: boolean): CssDriftFinding[] {
+	if (isThemeFile) return [];
+	const findings: CssDriftFinding[] = [];
+	for (const name of parseCssVariables(css).keys()) {
+		for (const [pattern, label] of SKELETON_CSS_NAMESPACES) {
+			if (pattern.test(name)) {
+				findings.push({
+					rule: 'skeleton-namespace',
+					severity: 'error',
+					message: `${cssPath}: ${name} recreates a Skeleton namespace (${label}) outside the theme file — keep ONE source of truth.`
+				});
+			}
+		}
+	}
+	for (const name of parseCssVariables(css).keys()) {
+		if (/^--color-(?!root-bg-|brand-)/.test(name)) {
+			findings.push({
+				rule: 'parallel-palette',
+				severity: 'warn',
+				message: `${cssPath}: ${name} looks like a parallel palette variable. If it duplicates a Skeleton token, use the theme; keep product colors to a real, documented need.`
+			});
+		} else if (/^--radius-/.test(name) && !/^--radius-(?:base|container)$/.test(name)) {
+			findings.push({
+				rule: 'parallel-palette',
+				severity: 'warn',
+				message: `${cssPath}: ${name} looks like a parallel radius token. Use the Tailwind scale or the theme radii (--radius-base / --radius-container).`
+			});
+		}
+	}
+	return findings;
+}
+
+/** Properties whose literal values drift from the token system in <style>. */
+const STYLE_DRIFT_PROPERTIES =
+	/\b(background-color|background|color|border-color|border-radius|box-shadow|fill|stroke)\s*:\s*([^;{}]+)/g;
+
+/**
+ * SVForge wrappers stay thin (#314): a <style> block recreating visual
+ * styling with literal colors or radii drifts from Skeleton/Tailwind tokens.
+ * Token-based values (var(…), relative colors from var(…)) pass, as do
+ * structural declarations (opacity, transforms, spacing, fonts).
+ */
+export function checkStyleBlockDrift(source: string): CssDriftFinding[] {
+	const findings: CssDriftFinding[] = [];
+	for (const block of source.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/g)) {
+		const css = block[1].replace(/\/\*[\s\S]*?\*\//g, '');
+		for (const match of css.matchAll(STYLE_DRIFT_PROPERTIES)) {
+			const [, property, rawValue] = match;
+			const value = rawValue.trim();
+			const tokenBased =
+				/^var\(/.test(value) ||
+				value.includes('from var(') ||
+				/^(?:transparent|inherit|currentcolor|none)$/i.test(value);
+			if (tokenBased) continue;
+			if (/^#[0-9a-f]{3,8}\b|^(?:rgb|hsl|oklch)\(/i.test(value)) {
+				findings.push({
+					rule: 'style-block-color',
+					severity: 'warn',
+					message: `<style> sets ${property} to a literal color ("${value}") — compose theme tokens or Tailwind utilities instead.`
+				});
+			} else if (property === 'border-radius') {
+				findings.push({
+					rule: 'style-block-radius',
+					severity: 'warn',
+					message: `<style> sets border-radius to a literal value ("${value}") — use rounded-* utilities or the theme radii.`
+				});
+			}
+		}
+	}
+	return findings;
 }
