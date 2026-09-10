@@ -649,7 +649,8 @@ const checkLayoutCss = (css) => {
 	}
 	for (const match of rest.matchAll(/(^|\n)(?!\s*@)([^\n{}@]+)\{/g)) {
 		const selector = match[2].trim();
-		if (/^(?:code|pre)\b|^\s*(?:code|pre)\s*,/.test(selector)) continue;
+		// code/pre included: since #317, @theme --font-mono is the ONLY sanctioned
+		// mechanism — a global code/pre rule resurrects the parallel styling layer.
 		findings.push({ rule: 'layout-override', severity: 'error', message: `layout.css must stay wiring. Global override "${selector} { … }" belongs in the theme file or a component.` });
 	}
 	return findings;

@@ -1116,7 +1116,9 @@ export function checkLayoutCss(css: string): CssDriftFinding[] {
 	const code = css.replace(/\/\*[\s\S]*?\*\//g, '');
 	// Allowed single-line at-rules: imports, plugins, the dark variant, sources.
 	let rest = code.replace(/^[ \t]*@(?:import|plugin|custom-variant|source)[^\n{]*;?[ \t]*$/gm, '');
-	// @theme blocks may carry font tokens only (the Fira Code rule from #313).
+	// @theme blocks may carry font tokens only — the ONLY font mechanism since
+	// #317 removed the global code/pre rule (--font-mono feeds Skeleton's own
+	// code/pre/kbd styles and Tailwind's font-mono utility).
 	rest = rest.replace(/@theme\s*\{([^}]*)\}/g, (_m, body: string) => {
 		for (const decl of body.split(';').map((s) => s.trim()).filter(Boolean)) {
 			if (!/^--(?:font-|typo-)/.test(decl)) {
@@ -1137,10 +1139,12 @@ export function checkLayoutCss(css: string): CssDriftFinding[] {
 			message: `layout.css must stay wiring: define ${match[0].replace(/[:\s]+$/, '')} in the Skeleton theme file, not here.`
 		});
 	}
-	// Any remaining rule block is a global visual override.
+	// Any remaining rule block is a global visual override — INCLUDING
+	// code/pre: since #317 the only sanctioned mechanism is @theme --font-mono
+	// (Skeleton styles code/pre/kbd itself); a global code/pre rule would
+	// resurrect the parallel styling layer #317 removed.
 	for (const match of rest.matchAll(/(^|\n)(?!\s*@)([^\n{}@]+)\{/g)) {
 		const selector = match[2].trim();
-		if (/^(?:code|pre)\b|^\s*(?:code|pre)\s*,/.test(selector)) continue; // the explicit Fira Code rule (#313)
 		findings.push({
 			rule: 'layout-override',
 			severity: 'error',

@@ -74,6 +74,17 @@ describe('CSS drift outside Skeleton (#314)', () => {
 		expect(findings.every((f) => f.severity === 'error')).toBe(true);
 	});
 
+	it('rejects a global code/pre rule — @theme --font-mono is the only mechanism (#317)', () => {
+		// #317 removed the global Fira Code rule: font styling goes through the
+		// @theme --font-mono token, NOT a parallel code/pre selector.
+		const findings = checkLayoutCss(`${CANONICAL_LAYOUT}\ncode, pre {\n\tfont-family: 'Fira Code Variable', monospace;\n}\n`);
+		const violation = findings.find((f) => f.rule === 'layout-override');
+		expect(violation, 'code/pre global rule must be rejected').toBeDefined();
+		expect(violation!.message).toContain('code, pre');
+		// …while the sanctioned @theme --font-mono mechanism keeps passing.
+		expect(checkLayoutCss(CANONICAL_LAYOUT)).toEqual([]);
+	});
+
 	it('reports a Skeleton variable defined outside the theme as ERROR', async () => {
 		const findings = await violationsFor(
 			{ 'src/lib/styles/extra.css': ':root {\n\t--typo-base--font-family: "X", sans-serif;\n}' },
