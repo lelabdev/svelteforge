@@ -21,22 +21,23 @@ import { createCredentialUser } from './admin-users';
 import { db } from '$lib/server/db';
 import { session, user } from '$lib/server/db/schema';
 import { eq, like } from 'drizzle-orm';
-import { TEST_EMAIL_DOMAIN } from './test-db';
+import { runEmailDomain } from './test-db';
 
 const PASSWORD = 'password123';
+const RUN_DOMAIN = runEmailDomain(crypto.randomUUID().slice(0, 8));
 let userId: string;
 let email: string;
 
-/** Deletes ONLY this run's identities — FK cascades wipe their sessions (#312). */
+/** Deletes ONLY the current run's identities — FK cascades wipe their sessions (#312). */
 async function cleanupRunUsers() {
-	await db.delete(user).where(like(user.email, `%@${TEST_EMAIL_DOMAIN}`));
+	await db.delete(user).where(like(user.email, `%@${RUN_DOMAIN}`));
 }
 
 describe('disabled Better Auth identities (#337)', () => {
 	beforeEach(async () => {
 		// Do not clear the shared scaffold database: Vitest runs this alongside
 		// the credential lifecycle suite, so each test owns a unique identity.
-		email = `disabled-${crypto.randomUUID()}@${TEST_EMAIL_DOMAIN}`;
+		email = `disabled-${crypto.randomUUID()}@${RUN_DOMAIN}`;
 		const identity = await createCredentialUser({ name: 'Disabled', email, password: PASSWORD });
 		userId = identity.id;
 		await db.update(user).set({ disabled: true }).where(eq(user.id, userId));

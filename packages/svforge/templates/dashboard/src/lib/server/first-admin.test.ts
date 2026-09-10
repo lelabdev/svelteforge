@@ -24,11 +24,14 @@ import { createCredentialUser } from './admin-users';
 import { db } from '$lib/server/db';
 import { user, account } from './db/schema';
 import { eq, inArray, like, notLike, sql } from 'drizzle-orm';
-import { TEST_EMAIL_DOMAIN } from './test-db';
+import { runEmailDomain } from './test-db';
 
 const PASSWORD = 'password123';
 const RUN = crypto.randomUUID().slice(0, 8);
-const email = (tag: string) => `${tag}-${RUN}@${TEST_EMAIL_DOMAIN}`;
+// PER-RUN domain (#312 review): cleanup and foreign-row checks never match
+// another concurrently running process's identities.
+const RUN_DOMAIN = runEmailDomain(RUN);
+const email = (tag: string) => `${tag}-${RUN}@${RUN_DOMAIN}`;
 
 /**
  * Refuses to run against a database holding rows this run did NOT create
@@ -40,7 +43,7 @@ async function assertNoForeignUsers(): Promise<void> {
 	const [foreign] = await db
 		.select({ count: sql<number>`count(*)::int`, roles: sql<string>`coalesce(string_agg(${user.role}, ','), '')` })
 		.from(user)
-		.where(notLike(user.email, `%@${TEST_EMAIL_DOMAIN}`));
+		.where(notLike(user.email, `%@${RUN_DOMAIN}`));
 	if (foreign.count > 0) {
 		throw new Error(
 			`[svelteforge:test-db] the dedicated test database is not empty (${foreign.count} foreign row(s), roles: ${foreign.roles}). ` +
@@ -56,7 +59,7 @@ async function assertNoForeignUsers(): Promise<void> {
  * FK cascades wipe their account + session rows (#312).
  */
 async function resetRunState(): Promise<void> {
-	await db.delete(user).where(like(user.email, `%@${TEST_EMAIL_DOMAIN}`));
+	await db.delete(user).where(like(user.email, `%@${RUN_DOMAIN}`));
 }
 
 function signInAs(email: string, password: string): Promise<Response> {
@@ -157,6 +160,8 @@ describe('first-admin bootstrap (#318)', () => {
 
 describe('explicit role authorization (#318)', () => {
 	beforeEach(resetRunState);
+
+	afterAll(resetRunState);
 
 	it('createdAt ordering NEVER decides permissions — the older user with role user is not admin', async () => {
 		// Created FIRST (oldest row) — under the removed first-user-is-admin

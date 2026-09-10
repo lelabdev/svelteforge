@@ -11,11 +11,25 @@
  */
 
 /**
- * Every identity created by an integration suite is namespaced with this
- * email domain. Cleanup only ever deletes `%@sf-test.example` rows —
- * pre-existing data survives the run untouched.
+ * Every identity created by an integration suite is namespaced with a
+ * PER-RUN email domain (see {@link runEmailDomain}). Cleanup only ever
+ * deletes rows of the CURRENT run's domain — a concurrent test process
+ * (another run) is never touched (#312).
  */
 export const TEST_EMAIL_DOMAIN = 'sf-test.example';
+
+/**
+ * The email domain reserved to ONE test run: `'<run>.sf-test.example'`.
+ * Cleanup predicates MUST be built from this (never from the bare
+ * TEST_EMAIL_DOMAIN), otherwise a second concurrently running process would
+ * have its identities deleted by the first run's cleanup (#312 review).
+ */
+export function runEmailDomain(run: string): string {
+	if (!/^[a-z0-9][a-z0-9-]*$/.test(run)) {
+		throw new Error(`[svelteforge:test-db] invalid run marker: ${JSON.stringify(run)}`);
+	}
+	return `${run}.${TEST_EMAIL_DOMAIN}`;
+}
 
 /** A database name counts as a test database when a `test`/`tests` segment appears. */
 const TEST_DB_MARKER = /(^|[_-])tests?([_-]|[0-9]|$)/i;

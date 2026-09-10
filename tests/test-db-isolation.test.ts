@@ -4,6 +4,7 @@ import {
 	assertTestDatabaseUrl,
 	isTestDatabaseUrl,
 	resolveTestDbUrl,
+	runEmailDomain,
 	TEST_EMAIL_DOMAIN
 } from '../packages/svforge/templates/dashboard/src/lib/server/test-db';
 
@@ -85,11 +86,15 @@ describe('shipped suites isolation contract (#312 — structural)', () => {
 		for (const [name, content] of Object.entries({ adminSuite, firstAdminSuite, authSuite, signupSuite, jobsSuite })) {
 			expect(content, name).not.toMatch(/db\.delete\((?:user|account|session|jobs)\)\s*;/);
 		}
-		// every shipped cleanup deletes through the per-run marker
-		expect(adminSuite).toMatch(/delete\(user\)\.where\(like\(user\.email/);
-		expect(firstAdminSuite).toMatch(/delete\(user\)\.where\(like\(user\.email/);
-		expect(authSuite).toMatch(/delete\(user\)\.where\(like\(user\.email/);
-		expect(signupSuite).toMatch(/delete\(user\)\.where\(like\(user\.email/);
+		// every shipped cleanup deletes through the PER-RUN domain — the bare
+		// test domain would let a concurrent run delete another run's rows
+		// (#312 review)
+		for (const [name, content] of Object.entries({ adminSuite, firstAdminSuite, authSuite, signupSuite })) {
+			expect(content, name).toContain('runEmailDomain');
+			expect(content, name).toMatch(/RUN_DOMAIN = runEmailDomain\(/);
+			expect(content, name).toMatch(/like\(user\.email, `%@\$\{RUN_DOMAIN\}`\)/);
+			expect(content, name).not.toContain('`%@${TEST_EMAIL_DOMAIN}`');
+		}
 		expect(jobsSuite).toMatch(/delete\(jobs\)\.where\(like\(jobs\.type/);
 	});
 
@@ -109,9 +114,9 @@ describe('shipped suites isolation contract (#312 — structural)', () => {
 		expect(authSuite).toContain('crypto.randomUUID()');
 		expect(signupSuite).toContain('crypto.randomUUID()');
 		expect(jobsSuite).toMatch(/TEST_PREFIX = `claimtest-\$\{crypto\.randomUUID\(\)/);
-		// shared marker domain — cleanup can only ever match it
+		// shared per-run domain builder — cleanup can only ever match it
 		for (const content of [adminSuite, firstAdminSuite, authSuite, signupSuite]) {
-			expect(content).toContain('TEST_EMAIL_DOMAIN');
+			expect(content).toContain('runEmailDomain');
 		}
 		// no shipped identity may target the bare example.com anymore
 		for (const [name, content] of Object.entries({ adminSuite, firstAdminSuite, authSuite, signupSuite })) {
@@ -165,5 +170,27 @@ describe('marker semantics stay strict', () => {
 	it('the shipped marker regex matches exactly the documented examples', () => {
 		// keep helper + suite in sync: the domain used for cleanup markers
 		expect(TEST_EMAIL_DOMAIN).toBe('sf-test.example');
+	});
+
+	describe('per-run email domain (#312 review — parallel-safe cleanup)', () => {
+		it('namespaces the domain with the run marker', () => {
+			expect(runEmailDomain('abc123')).toBe('abc123.sf-test.example');
+		});
+
+		it('rejects markers that could break the LIKE predicate', () => {
+			expect(() => runEmailDomain('')).toThrow(/invalid run marker/);
+			expect(() => runEmailDomain('a b')).toThrow(/invalid run marker/);
+			expect(() => runEmailDomain('%@sf-test.example')).toThrow(/invalid run marker/);
+		});
+
+		it('two different runs never match each other\'s cleanup predicate', () => {
+			const runA = runEmailDomain('run-a');
+			const runB = runEmailDomain('run-b');
+			const runBIdentity = `admin@${runB}`;
+			// the LIKE predicate run A builds cannot match run B's identity
+			expect(runBIdentity.endsWith(`@${runA}`)).toBe(false);
+			// …while its own identities always match
+			expect(`admin@${runA}`.endsWith(`@${runA}`)).toBe(true);
+		});
 	});
 });

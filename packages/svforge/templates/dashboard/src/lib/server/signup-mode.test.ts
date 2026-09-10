@@ -56,21 +56,19 @@ import { createInvitation, findValidInvitation } from './invitations';
 import { db } from '$lib/server/db';
 import { user } from './db/schema';
 import { eq, like } from 'drizzle-orm';
-import { TEST_EMAIL_DOMAIN } from './test-db';
+import { runEmailDomain } from './test-db';
 
 afterAll(function cleanupRunUsers() {
-	// Deletes ONLY this suite's identities — every identity here carries the
-	// run marker; FK cascades wipe their accounts/sessions (#312).
-	return db.delete(user).where(like(user.email, `%@${TEST_EMAIL_DOMAIN}`));
+	// Deletes ONLY this suite's CURRENT-RUN identities — the predicate is
+	// built from the per-run domain, so a second concurrently running
+	// process is never touched; FK cascades wipe their accounts/sessions
+	// (#312 review).
+	return db.delete(user).where(like(user.email, `%@${RUN_DOMAIN}`));
 });
 
 const ORIGIN = envModule.env.ORIGIN ?? 'http://localhost:5173';
-const uniqueEmail = (tag: string) => `signup-${tag}-${crypto.randomUUID()}@${TEST_EMAIL_DOMAIN}`;
-
-/** Deletes ONLY this run's identities — every identity here carries the marker (#312). */
-async function cleanupRunUsers() {
-	await db.delete(user).where(like(user.email, `%@${TEST_EMAIL_DOMAIN}`));
-}
+const RUN_DOMAIN = runEmailDomain(crypto.randomUUID().slice(0, 8));
+const uniqueEmail = (tag: string) => `signup-${tag}-${crypto.randomUUID()}@${RUN_DOMAIN}`;
 
 /** Re-imports ./auth with SIGNUP_MODE resolved from the given raw value. */
 async function authWithMode(mode?: string) {

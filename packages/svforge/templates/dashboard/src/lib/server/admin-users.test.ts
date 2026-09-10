@@ -26,7 +26,7 @@ import { auth } from './auth';
 import { db } from '$lib/server/db';
 import { user, account, session } from '$lib/server/db/schema';
 import { eq, like, notLike, sql } from 'drizzle-orm';
-import { TEST_EMAIL_DOMAIN } from './test-db';
+import { runEmailDomain } from './test-db';
 
 /**
  * Better Auth credential lifecycle (#292) — runs inside the dashboard
@@ -48,15 +48,19 @@ import { TEST_EMAIL_DOMAIN } from './test-db';
  * must survive the creation).
  */
 const RUN = crypto.randomUUID().slice(0, 8);
-const runEmail = (local: string) => `${local}.${RUN}@${TEST_EMAIL_DOMAIN}`;
+// Cleanup predicates are built from the PER-RUN domain, never from the bare
+// test domain: a second concurrently running process must never have its
+// identities deleted by this suite's cleanup (#312 review).
+const RUN_DOMAIN = runEmailDomain(RUN);
+const runEmail = (local: string) => `${local}@${RUN_DOMAIN}`;
 const PASSWORD = 'password123';
 
-/** Deletes ONLY this run's identities — FK cascades wipe their account + session rows. */
+/** Deletes ONLY the CURRENT run's identities — FK cascades wipe their account + session rows. */
 async function cleanupRunUsers() {
-	await db.delete(user).where(like(user.email, `%@${TEST_EMAIL_DOMAIN}`));
+	await db.delete(user).where(like(user.email, `%@${RUN_DOMAIN}`));
 }
 
-/** Rows this run did NOT create — must survive the suite byte-for-byte. */
+/** Rows this run did NOT create (incl. other runs' identities) — must survive byte-for-byte. */
 const foreignRows = () =>
 	db
 		.select({
@@ -64,12 +68,25 @@ const foreignRows = () =>
 			ids: sql<string>`coalesce(string_agg(${user.id}::text, ',' ORDER BY ${user.id}), '')`
 		})
 		.from(user)
-		.where(notLike(user.email, `%@${TEST_EMAIL_DOMAIN}`));
+		.where(notLike(user.email, `%@${RUN_DOMAIN}`));
 
 let foreignBefore: { count: number; ids: string };
+// An identity belonging to a SECOND concurrent run (same test domain, other
+// run marker): the cleanup above must NEVER delete it.
+const OTHER_RUN = crypto.randomUUID().slice(0, 8);
+const otherRunEmail = `other-run@${runEmailDomain(OTHER_RUN)}`;
+let otherRunId: string | undefined;
 
 describe('admin-created credential users (#292)', () => {
 	beforeAll(async () => {
+		// Seed the second-run identity BEFORE the foreign snapshot: it is
+		// foreign data this suite must leave untouched.
+		[otherRunId] = (
+			await db
+				.insert(user)
+				.values({ id: crypto.randomUUID(), name: 'Other Run', email: otherRunEmail })
+				.returning({ id: user.id })
+		).map((r) => r.id);
 		[foreignBefore] = await foreignRows();
 		// Seed a regular user (admin-created users are ALWAYS role 'user' —
 		// the admin role is granted only by bootstrapFirstAdmin, #318).
@@ -78,10 +95,17 @@ describe('admin-created credential users (#292)', () => {
 
 	afterAll(async () => {
 		await cleanupRunUsers();
-		// Pre-existing data survived the run untouched (#312).
+		// The second-run identity SURVIVED our cleanup — asserted while it is
+		// still present, then removed explicitly by id (our own probe, never
+		// through the run-domain predicate).
+		const [survivor] = await db.select({ id: user.id }).from(user).where(eq(user.email, otherRunEmail));
+		expect(survivor?.id).toBe(otherRunId);
+		// Pre-existing data survived the run untouched (#312) — snapshot taken
+		// BEFORE the probe's own id-scoped removal.
 		const [foreignAfter] = await foreignRows();
 		expect(foreignAfter.count).toBe(foreignBefore.count);
 		expect(foreignAfter.ids).toBe(foreignBefore.ids);
+		if (otherRunId) await db.delete(user).where(eq(user.id, otherRunId));
 	});
 
 	/** Signs in through the REAL Better Auth endpoint (same pattern as auth.test.ts #337). */
@@ -132,14 +156,14 @@ describe('admin-created credential users (#292)', () => {
 	});
 
 	it('stores the email lowercased exactly like Better Auth sign-up (#292)', async () => {
-		await createCredentialUser({ name: 'Bob', email: `Bob.${RUN}@SF-TEST.EXAMPLE`, password: PASSWORD });
+		await createCredentialUser({ name: 'Bob', email: `BOB@${RUN.toUpperCase()}.SF-TEST.EXAMPLE`, password: PASSWORD });
 
 		const [byLowerCase] = await db.select({ id: user.id }).from(user).where(eq(user.email, runEmail('bob'))).limit(1);
 		expect(byLowerCase).toBeDefined();
 
 		// Mixed case never matches: signInEmail looks up email.toLowerCase(),
 		// so a stored mixed-case email could never be logged into.
-		const [byMixedCase] = await db.select({ id: user.id }).from(user).where(eq(user.email, `Bob.${RUN}@SF-TEST.EXAMPLE`));
+		const [byMixedCase] = await db.select({ id: user.id }).from(user).where(eq(user.email, `BOB@${RUN.toUpperCase()}.SF-TEST.EXAMPLE`));
 		expect(byMixedCase).toBeUndefined();
 	});
 
@@ -168,7 +192,7 @@ describe('admin-created credential users (#292)', () => {
 
 	it('duplicate email in ANY case is rejected and creates no second user (#292)', async () => {
 		await expect(
-			createCredentialUser({ name: 'Bob Clone', email: `BOB.${RUN}@SF-TEST.EXAMPLE`, password: PASSWORD })
+			createCredentialUser({ name: 'Bob Clone', email: `BOB@${RUN.toUpperCase()}.SF-TEST.EXAMPLE`, password: PASSWORD })
 		).rejects.toBeInstanceOf(DuplicateEmailError);
 
 		const count = await db.select({ id: user.id }).from(user).where(eq(user.email, runEmail('bob')));
@@ -212,5 +236,14 @@ describe('admin-created credential users (#292)', () => {
 		await createCredentialUser({ name: 'Grace', email: runEmail('grace'), password: PASSWORD });
 		expect(txSpy).toHaveBeenCalled();
 		txSpy.mockRestore();
+	});
+
+	it('cleanup NEVER deletes identities from another concurrent run (#312 review)', async () => {
+		// otherRunEmail belongs to a DIFFERENT run marker (seeded in beforeAll,
+		// before the foreign snapshot). The old domain-wide cleanup deleted it;
+		// the per-run predicate must leave it standing.
+		await cleanupRunUsers();
+		const [survivor] = await db.select({ id: user.id }).from(user).where(eq(user.email, otherRunEmail));
+		expect(survivor?.id).toBe(otherRunId);
 	});
 });
