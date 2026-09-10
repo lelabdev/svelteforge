@@ -244,14 +244,13 @@ export function checkPublishAccess(plan, root = SCRIPT_ROOT, npm = runNpm) {
 	const canPublish = (permission) => typeof permission === 'string'
 		? /write|admin/i.test(permission)
 		: permission === true;
-	if (accessLookup && Object.keys(access).length) {
+	if (accessLookup) {
 		const denied = existing.filter((pkg) => !canPublish(access[pkg.name])).map((pkg) => pkg.name);
 		if (denied.length) {
 			throw new Error(`Authenticated npm account cannot publish: ${denied.join(', ')}.`);
 		}
-	} else if (!accessLookup) {
+	} else {
 		console.log('npm access list unavailable — publish access will be validated by the publish itself.');
-		return plan;
 	}
 	if (notYetPublished.length) {
 		console.log(`Skipping npm access lookup for ${notYetPublished.length} not-yet-published package(s).`);
