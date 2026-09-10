@@ -17,7 +17,7 @@
 <div class="space-y-8">
 	<div class="flex items-center justify-between">
 		<div>
-			<h2 class="text-2xl font-bold">{m.admin_dashboard()}</h2>
+			<h2 class="h2">{m.admin_dashboard()}</h2>
 			<p class="text-surface-500">{m.admin_welcome_back({ name: data.user.name })}</p>
 		</div>
 		<Button href="/admin/users" size="sm">
@@ -27,37 +27,39 @@
 	</div>
 
 	<!-- Stats -->
+	<!-- #317: icon chips use the Skeleton tonal presets — the preset owns the
+	     semantic bg+fg pair (children inherit), no hand-paired bg-*/text-*. -->
 	<div class="grid grid-cols-1 gap-6 sm:grid-cols-3">
 		<Card variant="elevated">
 			<div class="flex items-center gap-3">
-				<div class="rounded-container bg-primary-100-900 p-3">
-					<Users size={24} class="text-primary-600-400" />
+				<div class="preset-tonal-primary rounded-container p-3">
+					<Users size={24} />
 				</div>
 				<div>
 					<p class="text-sm text-surface-500">{m.admin_total_users()}</p>
-					<p class="text-2xl font-bold">{data.stats.totalUsers}</p>
+					<p class="h3">{data.stats.totalUsers}</p>
 				</div>
 			</div>
 		</Card>
 		<Card variant="elevated">
 			<div class="flex items-center gap-3">
-				<div class="rounded-container bg-success-100-900 p-3">
-					<Clock size={24} class="text-success-600" />
+				<div class="preset-tonal-success rounded-container p-3">
+					<Clock size={24} />
 				</div>
 				<div>
 					<p class="text-sm text-surface-500">{m.admin_active_sessions()}</p>
-					<p class="text-2xl font-bold">{data.stats.activeSessions}</p>
+					<p class="h3">{data.stats.activeSessions}</p>
 				</div>
 			</div>
 		</Card>
 		<Card variant="elevated">
 			<div class="flex items-center gap-3">
-				<div class="rounded-container bg-secondary-100-900 p-3">
-					<ChartBar size={24} class="text-secondary-600-400" />
+				<div class="preset-tonal-secondary rounded-container p-3">
+					<ChartBar size={24} />
 				</div>
 				<div>
 					<p class="text-sm text-surface-500">{m.admin_this_week()}</p>
-					<p class="text-2xl font-bold">{data.stats.newThisWeek}</p>
+					<p class="h3">{data.stats.newThisWeek}</p>
 				</div>
 			</div>
 		</Card>
@@ -66,7 +68,7 @@
 	<!-- Recent Users -->
 	<Card>
 		{#snippet header()}
-			<h3 class="font-bold">{m.admin_recent_users()}</h3>
+			<h3 class="h3">{m.admin_recent_users()}</h3>
 		{/snippet}
 
 		<div class="space-y-3">

@@ -16,7 +16,7 @@
 <main class="flex min-h-screen items-center justify-center p-4">
 	<div class="w-full max-w-sm space-y-6">
 		<div class="space-y-2 text-center">
-			<h1 class="text-2xl font-bold">{m.setup_create_admin()}</h1>
+			<h1 class="h1">{m.setup_create_admin()}</h1>
 			<p class="text-sm text-surface-500">{m.setup_hint()}</p>
 		</div>
 

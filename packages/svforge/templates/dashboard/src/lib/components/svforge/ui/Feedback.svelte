@@ -16,7 +16,11 @@
 </script>
 
 {#if message}
-	<div class={cn('flex items-center gap-2 rounded-container p-3', type === 'success' ? 'bg-success-100-900 text-success-700-300' : 'bg-error-100-900 text-error-300-700', className)}>
+	<!-- #317: the Skeleton tonal presets own the semantic bg+fg pairing —
+	     never hand-pair bg-*-100-900 with text-*-700-300 (that re-implements
+	     preset-tonal-*). rounded-container + p-3 stay: plain <div> layout via
+	     Tailwind and the theme radius token. -->
+	<div class={cn('flex items-center gap-2 rounded-container p-3', type === 'success' ? 'preset-tonal-success' : 'preset-tonal-error', className)}>
 		{#if type === 'success'}<Check size={18} />{:else}<Warning size={18} />{/if}
 		<span class="text-sm">{message}</span>
 		{#if ondismiss}

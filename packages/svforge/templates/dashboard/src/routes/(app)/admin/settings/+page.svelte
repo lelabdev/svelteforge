@@ -20,12 +20,12 @@
 </svelte:head>
 
 <div class="max-w-2xl space-y-8">
-	<h2 class="text-2xl font-bold">{m.settings_heading()}</h2>
+	<h2 class="h2">{m.settings_heading()}</h2>
 
 	<!-- Profile info -->
 	<Card>
 		{#snippet header()}
-			<h3 class="font-bold">{m.settings_profile()}</h3>
+			<h3 class="h3">{m.settings_profile()}</h3>
 		{/snippet}
 		<div class="space-y-3">
 			<div class="flex items-center gap-4">
@@ -43,7 +43,7 @@
 		{#snippet header()}
 			<div class="flex items-center gap-2">
 				<Lock size={18} />
-				<h3 class="font-bold">{m.settings_change_password()}</h3>
+				<h3 class="h3">{m.settings_change_password()}</h3>
 			</div>
 		{/snippet}
 
@@ -51,9 +51,9 @@
 			<Feedback type={form.success ? 'success' : 'error'} message={form.message} class="mb-4" />
 		{/if}
 		{#if validationError}
-			<div class="mb-4 rounded-container bg-error-100-900 p-3 text-sm text-error-300-700">
-				{validationError}
-			</div>
+			<!-- #317: reuse the Feedback component — the hand-rolled bg-error-100-900
+			     strip re-implemented what Feedback (preset-tonal-error) already owns. -->
+			<Feedback type="error" message={validationError} class="mb-4" />
 		{/if}
 
 		<form method="POST" action="?/changePassword" onsubmit={(e) => {

@@ -36,15 +36,30 @@ NOT a component library and NOT a shadcn clone.
   (${primitives}) is protected by \`svforge check\`.
 - Do not invent a new design system — build on what's here.
 
-## Valid Skeleton v5 classes (IMPORTANT — LLM knowledge is stale)
+## Skeleton v5 classes — search the LOCAL docs first (LLM knowledge is stale)
 
-This project ships with Skeleton ${versions.css} / Skeleton Svelte ${versions.svelte}.
-Skeleton v5 utilities are exclusively:
+This project ships with Skeleton ${versions.css} / Skeleton Svelte ${versions.svelte}
+PLUS vendored, version-matched references under \`docs/\`:
+
+- \`docs/llms-skeleton.txt\` — the full Skeleton reference (theme, tokens, utilities, components)
+- \`docs/llms-svelte.txt\` — the Svelte 5 / SvelteKit reference
+
+**Before changing Skeleton UI, theme tokens, presets, radius, typography or global CSS:**
+
+1. search docs/llms-skeleton.txt (and \`docs/llms-svelte.txt\` for framework behavior)
+2. trust the vendored docs over training memory
+3. inspect the primitive/utility there BEFORE adding styling around it
+
+The utility families below are examples — they are NOT exhaustive (Skeleton also
+ships typography utilities such as \`h1\`…\`h6\`, \`anchor\`, \`pre\`, \`kbd\`, and the
+inventory evolves between releases). Search docs/llms-skeleton.txt before recreating
+behavior with Tailwind or custom CSS.
 
 - \`preset-filled-*\` / \`preset-tonal-*\` / \`preset-outlined-*\` (+ color suffixes like \`-primary-500\`, \`-surface-400-600\`)
 - component classes: \`btn\`, \`btn-icon\`, \`badge\`, \`chip\`, \`card\`, \`input\`, \`select\`, \`textarea\`, \`checkbox\`, \`table\`, \`label\`
+- typography: \`h1\`…\`h6\`, \`anchor\`, \`pre\`, \`kbd\` — driven by the theme's \`--typo-*\` / \`--font-mono\` tokens
 - radius/shape: \`corner-shape-*\` — NOT \`rounded-container\` / custom radii
-- sizes: \`btn-xs…btn-9xl\`, \`btn-icon-*\` — NOT \`btn-md\`, NOT \`badge-sm\`
+- sizes: \`btn-xs…btn-9xl\`, \`btn-icon-*\` — NOT invented medium sizes
 
 **BLACKLIST — these do NOT exist in v5 (nor v4):**
 
@@ -197,13 +212,16 @@ Extending locales (a default change, not an architecture change):
 Static UI copy belongs in the catalogs. Long-form editorial, business and CMS
 content (blog/MDsveX, database) does NOT belong in \`messages/\`.
 
-## LLM resources (offline knowledge is likely stale)
+## LLM resources (vendored, version-matched — offline)
 
-If you need Skeleton or Svelte specifics, fetch the FRESH docs rather than
-trusting training memory:
+The fresh Skeleton/Svelte references are vendored IN this project — search them
+locally instead of fetching remote docs or trusting training memory:
 
-- \`https://skeleton.dev/llms-full.txt\`
-- \`https://svelte.dev/llms-full.txt\`
+- \`docs/llms-skeleton.txt\`
+- \`docs/llms-svelte.txt\`
+
+They are generated from the upstream sources at scaffold time and guarded against
+staleness — trust them over training memory.
 `;
 
 const DASHBOARD = `

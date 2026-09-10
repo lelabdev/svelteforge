@@ -148,7 +148,7 @@
 
 <div class="space-y-6">
 	<div class="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
-		<h2 class="text-2xl font-bold">{m.users_heading()}</h2>
+		<h2 class="h2">{m.users_heading()}</h2>
 		<Button onclick={openCreate}>
 			<UserPlus size={16} class="mr-1" />
 			{m.users_add()}
@@ -211,7 +211,7 @@
 	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" role="presentation" onclick={closeModal}>
 		<Card class="w-full max-w-md" onclick={(e: Event) => e.stopPropagation()}>
 			<div class="mb-4 flex items-center justify-between">
-				<h3 class="text-lg font-bold">
+				<h3 class="h3">
 					{modal === 'create' ? m.users_modal_create() : modal === 'edit' ? m.users_modal_edit() : statusTarget?.disabled ? m.users_modal_reactivate() : m.users_modal_deactivate()}
 				</h3>
 				<button class="btn p-1 preset-tonal-surface" onclick={closeModal} aria-label={m.users_close()}>

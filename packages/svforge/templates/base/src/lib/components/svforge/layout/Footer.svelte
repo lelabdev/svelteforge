@@ -22,7 +22,7 @@
 			{#if links.length}
 				<div class="flex flex-col gap-2">
 					{#each links as link}
-						<a href={link.href} class="text-sm transition-colors hover:text-primary-500">
+						<a href={link.href} class="anchor text-sm">
 							{link.label}
 						</a>
 					{/each}
