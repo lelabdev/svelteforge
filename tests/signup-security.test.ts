@@ -128,7 +128,10 @@ describe('first-admin bootstrap is atomic and controlled (#318)', () => {
 		// client.ts must stay SvelteKit-free so the CLI can import the factory
 		expect(read(CLIENT)).not.toMatch(/\$env\//);
 		const mode = read(join(ROOT, 'packages/svforge/src/modes/dashboard.ts'));
-		expect(mode).toMatch(/'admin:create':\s*'bun scripts\/create-admin\.ts'/);
+		// #325: the runner is PM-aware (bun runs the TS script natively, other
+		// package managers get tsx through their dlx runner) — the script must
+		// stay exposed and point at the delivered create-admin.ts.
+		expect(mode).toMatch(/'admin:create':\s*`\$\{runTs\} scripts\/create-admin\.ts`/);
 	});
 });
 

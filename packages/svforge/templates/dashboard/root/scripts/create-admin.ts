@@ -9,7 +9,7 @@
  * concurrent invocations can never create two admins.
  *
  * Usage:
- *   bun run admin:create -- --name "Admin" --email admin@example.com --password '…'
+ *   <package manager> run admin:create -- --name "Admin" --email admin@example.com --password '…' (npm/bun/pnpm/…)
  *   (or ADMIN_NAME / ADMIN_EMAIL / ADMIN_PASSWORD environment variables)
  *
  * Exits non-zero when an administrator already exists or the arguments are
@@ -51,7 +51,7 @@ const email = values.email ?? env('ADMIN_EMAIL');
 const password = values.password ?? env('ADMIN_PASSWORD');
 
 const usage =
-	'Usage: bun run admin:create -- --name "Admin" --email admin@example.com --password \'…\'';
+	'Usage: <package manager> run admin:create -- --name "Admin" --email admin@example.com --password \'…\'';
 
 if (!name || !email || !password) {
 	console.error(

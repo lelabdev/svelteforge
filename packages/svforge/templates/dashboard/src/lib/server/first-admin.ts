@@ -13,7 +13,7 @@ import type * as schema from './db/schema';
  * (`SIGNUP_MODE`, see signup-mode.ts) and the `admin` role is an explicit
  * persisted column that NO sign-up flow can set. The initial administrator
  * is created exclusively here — by the operator command
- * (`bun run admin:create`) or the dev-only `/setup` route — under an
+ * (`<pm> run admin:create`) or the dev-only `/setup` route — under an
  * ATOMIC invariant:
  *
  *   1. a transaction-scoped PostgreSQL advisory lock serializes concurrent

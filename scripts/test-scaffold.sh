@@ -21,7 +21,8 @@ REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 # Respect TMPDIR when set (small /tmp tmpfs machines); CI runners use /tmp.
 TMP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/sf-scaffold-$TEMPLATE-XXXXXX")"
 
-echo "Testing svforge scaffold: template=$TEMPLATE (local addon)"
+SF_PM="${SF_PM:-bun}"
+echo "Testing svforge scaffold: template=$TEMPLATE pm=$SF_PM (local addon)"
 
 # Clean up on exit
 # rm -rf robuste pour node_modules: les fichiers d'un install concurrent
@@ -62,7 +63,7 @@ if [ "$TEMPLATE" = "dashboard-foundations" ]; then
 		"file:$REPO_ROOT/packages/jobs" \
 		"file:$REPO_ROOT/packages/chat" \
 		"file:$REPO_ROOT/packages/realtime" \
-		--install bun --no-download-check
+		--install "$SF_PM" --no-download-check
 elif [ "$TEMPLATE" = "dashboard-playwright" ]; then
 	ADD_SPEC="file:$REPO_ROOT/packages/svforge=template:dashboard+testing:playwright+hooks:none"
 elif [ "$TEMPLATE" = "dashboard" ]; then
@@ -74,13 +75,13 @@ elif [ "$TEMPLATE" = "dashboard-integrations" ]; then
 fi
 if [ "$TEMPLATE" != "base-modules" ] && [ "$TEMPLATE" != "dashboard-foundations" ]; then
 	ADD_SPEC="${ADD_SPEC:-file:$REPO_ROOT/packages/svforge=template:base+testing:vitest+hooks:none}"
-	$SV_CMD add "$ADD_SPEC" --install bun --no-download-check
+	$SV_CMD add "$ADD_SPEC" --install "$SF_PM" --no-download-check
 fi
 
 # Blog module on top of base (#185): mdsvex must integrate via vite.config.ts
 # (no svelte.config.js in modern sv create) and the scaffold must build.
 if [ "$TEMPLATE" = "base-blog" ]; then
-	$SV_CMD add "file:$REPO_ROOT/packages/blog" --install bun --no-download-check
+	$SV_CMD add "file:$REPO_ROOT/packages/blog" --install "$SF_PM" --no-download-check
 	# mdsvex wired in vite.config.ts?
 	grep -q "mdsvex" vite.config.ts || { echo "❌ mdsvex missing in vite.config.ts (#185)"; exit 1; }
 	grep -q "extensions: \['.svelte', '.md'\]" vite.config.ts || { echo "❌ .md extension missing (#185)"; exit 1; }
@@ -96,7 +97,7 @@ fi
 # scaffold — dnd, tiptap (with the pure renderer), graph, ui_toast.
 if [ "$TEMPLATE" = "base-ui-modules" ]; then
 	for mod in dnd tiptap graph ui_toast; do
-		$SV_CMD add "file:$REPO_ROOT/packages/$mod" --install bun --no-download-check
+		$SV_CMD add "file:$REPO_ROOT/packages/$mod" --install "$SF_PM" --no-download-check
 	done
 	# delivered components
 	test -f src/lib/components/svforge/dnd/SortableList.svelte || { echo "❌ dnd SortableList.svelte missing (#284)"; exit 1; }
@@ -112,9 +113,9 @@ fi
 # the presign contract (filename/contentType/size) that #279 fixed, and runs
 # inside the scaffold via `bun run test`.
 if [ "$TEMPLATE" = "dashboard-integrations" ]; then
-	$SV_CMD add "file:$REPO_ROOT/packages/oauth" --install bun --no-download-check
-	$SV_CMD add "file:$REPO_ROOT/packages/email" --install bun --no-download-check
-	$SV_CMD add "file:$REPO_ROOT/packages/uploads=testpack:yes" --install bun --no-download-check
+	$SV_CMD add "file:$REPO_ROOT/packages/oauth" --install "$SF_PM" --no-download-check
+	$SV_CMD add "file:$REPO_ROOT/packages/email" --install "$SF_PM" --no-download-check
+	$SV_CMD add "file:$REPO_ROOT/packages/uploads=testpack:yes" --install "$SF_PM" --no-download-check
 	# delivered endpoints/components
 	test -f src/routes/api/upload/+server.ts || { echo "❌ upload endpoint missing (#284)"; exit 1; }
 	test -f src/lib/components/svforge/uploads/FileUpload.svelte || { echo "❌ FileUpload.svelte missing (#284)"; exit 1; }
@@ -130,24 +131,24 @@ if [ "$TEMPLATE" = "base-modules" ]; then
 	# 1. graph on bare project → refused (missing capability ui.svforge).
 	# The refusal makes sv exit non-zero, so capture output separately from
 	# the exit code (set -o pipefail would otherwise fail the check).
-	graph_output=$($SV_CMD add "file:$REPO_ROOT/packages/graph" --install bun --no-download-check 2>&1 || true)
+	graph_output=$($SV_CMD add "file:$REPO_ROOT/packages/graph" --install "$SF_PM" --no-download-check 2>&1 || true)
 	if printf '%s' "$graph_output" | grep -q "ui.svforge"; then
 		echo "✅ graph refused on bare project (missing ui.svforge, #323)"
 	else
 		echo "❌ graph was not refused on bare project (#323)"; exit 1
 	fi
 	# 2. ui_toast on bare project → refused (missing capability ui.skeleton, #323)
-	toast_output=$($SV_CMD add "file:$REPO_ROOT/packages/ui_toast" --install bun --no-download-check 2>&1 || true)
+	toast_output=$($SV_CMD add "file:$REPO_ROOT/packages/ui_toast" --install "$SF_PM" --no-download-check 2>&1 || true)
 	if printf '%s' "$toast_output" | grep -q "ui.skeleton"; then
 		echo "✅ ui_toast refused on bare project (missing ui.skeleton, #323)"
 	else
 		echo "❌ ui_toast was not refused on bare project (#323)"; exit 1
 	fi
 	# 3. both modules on svforge base → the template provides the capabilities
-	$SV_CMD add "file:$REPO_ROOT/packages/svforge=template:base+testing:vitest+hooks:none" --install bun --no-download-check
-	$SV_CMD add "file:$REPO_ROOT/packages/graph" --install bun --no-download-check
+	$SV_CMD add "file:$REPO_ROOT/packages/svforge=template:base+testing:vitest+hooks:none" --install "$SF_PM" --no-download-check
+	$SV_CMD add "file:$REPO_ROOT/packages/graph" --install "$SF_PM" --no-download-check
 	test -f src/lib/components/svforge/graph/KnowledgeGraph.svelte || { echo "❌ graph files missing on base (#190)"; exit 1; }
-	$SV_CMD add "file:$REPO_ROOT/packages/ui_toast" --install bun --no-download-check
+	$SV_CMD add "file:$REPO_ROOT/packages/ui_toast" --install "$SF_PM" --no-download-check
 	grep -q "skeleton-svelte" package.json || { echo "❌ skeleton-svelte not declared (#190)"; exit 1; }
 fi
 
@@ -262,6 +263,23 @@ if [ "$TEMPLATE" = "base" ] || [ "$TEMPLATE" = "dashboard" ]; then
 	done
 	grep -q "svforge/no-design-violations" /tmp/sf-eslint.log || { cat /tmp/sf-eslint.log; echo "❌ ESLint missing svforge rule identifier (#346)"; exit 1; }
 	rm -rf src/lib/lint-probe
+fi
+
+# Favicon + static assets (#325): the app.html-referenced /favicon.ico must
+# resolve (prerendered route) and the primary SVG icon must ship.
+test -f src/routes/favicon.ico/+server.ts || { echo "❌ favicon route missing at src/routes/favicon.ico/+server.ts (#325)"; exit 1; }
+test -f static/favicon.svg || { echo "❌ static/favicon.svg missing (#325)"; exit 1; }
+test -f static/robots.txt || { echo "❌ static/robots.txt missing (#325)"; exit 1; }
+
+# Destinations contract (#325): known root files must exist EXACTLY once —
+# never duplicated under src/ by a destination-resolution drift.
+for root_file in vitest.config.ts playwright.config.ts drizzle.config.ts .env.example eslint.config.js svforge-check.mjs svforge-modules.json; do
+	if [ -f "src/$root_file" ]; then
+		echo "❌ root file $root_file was ALSO written under src/ (#325 destination drift)"; exit 1
+	fi
+done
+if [ "$TEMPLATE" != "base" ] && [ "$TEMPLATE" != "base-ui-modules" ] && [ -f src/vitest.config.ts ]; then
+	echo "❌ src/vitest.config.ts resurrection — one Vitest config, at the root (#325)"; exit 1
 fi
 
 # Baseline Vitest (#235): vitest.config.ts must land at the PROJECT ROOT on
@@ -547,6 +565,10 @@ if [ "$TEMPLATE" = "dashboard" ]; then
 			sleep 2
 		done
 		curl -sf -o /dev/null "$ORIGIN/login" || fail "dev server never became ready on :$SMOKE_PORT"
+
+		# Favicon (#325): /favicon.ico must resolve over HTTP (never 404).
+		favicon_status=$(curl -s -o /dev/null -w '%{http_code}' "$ORIGIN/favicon.ico")
+		[ "$favicon_status" = "200" ] || fail "/favicon.ico returned HTTP $favicon_status (#325)"
 
 		ADMIN_JAR="${TMPDIR:-/tmp}/sf-smoke-admin-jar.txt"
 		USER_JAR="${TMPDIR:-/tmp}/sf-smoke-user-jar.txt"

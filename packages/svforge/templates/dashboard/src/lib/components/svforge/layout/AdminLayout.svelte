@@ -66,7 +66,7 @@
 		</div>
 
 		<nav class="flex-1 space-y-1 p-2" aria-label={m.layout_menu()}>
-			{#each items as item}
+			{#each items as item (item.href)}
 				{@const Icon = item.icon}
 				<a
 					href={item.href}
@@ -116,7 +116,7 @@
 				onclick={() => (mobileOpen = false)}
 			></button>
 			<aside class="fixed left-0 top-0 z-50 h-full w-56 space-y-1 border-r border-surface-200-800 bg-surface-50-950 p-3 shadow-xl lg:hidden" aria-label={m.layout_menu()}>
-				{#each items as item}
+				{#each items as item (item.href)}
 					{@const Icon = item.icon}
 					<a
 						href={item.href}

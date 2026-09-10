@@ -76,6 +76,12 @@ describe('scaffolded ESLint configuration (#346)', () => {
 		expect(config).toContain("import svforge from './eslint-plugin-svforge.mjs';");
 		expect(config).toContain("'svforge/no-design-violations': 'error'");
 		expect(config).not.toContain('try {');
-		expect(JSON.parse(scaffoldFiles(template).get('package.json')!).scripts.lint).toBe('eslint .');
+		// #325: the advertised lint chain — prettier check runs BEFORE eslint,
+		// and the .prettierignore (prebuild-generated from the delivery
+		// manifests) keeps both tools off the upgrade-baseline-tracked files.
+		expect(JSON.parse(scaffoldFiles(template).get('package.json')!).scripts.lint).toBe(
+			'prettier --check . && eslint .'
+		);
+		expect(scaffoldFiles(template).get('.prettierignore')).toBeTruthy();
 	});
 });

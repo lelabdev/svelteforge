@@ -21,7 +21,7 @@
 
 			{#if links.length}
 				<div class="flex flex-col gap-2">
-					{#each links as link}
+					{#each links as link (link.href)}
 						<a href={link.href} class="anchor text-sm">
 							{link.label}
 						</a>

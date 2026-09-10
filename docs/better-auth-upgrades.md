@@ -73,8 +73,9 @@ an export named 'APIError'`.
 
 Therefore:
 
-- the generator runs via **`bunx @better-auth/cli@<pinned> generate`** (the
-  bunx cache is isolated from the project's `node_modules`),
+- the generator runs via the SELECTED package manager's on-demand runner
+  (`bunx` for bun scaffolds, `npx --yes` for npm, `pnpm dlx` for pnpm —
+  #325): the dlx cache is isolated from the project's `node_modules`,
 - the CLI version is pinned in the scaffold gate and in the template's
   `auth:schema` source,
 - **do not add `@better-auth/cli` to the scaffold's dependencies** until its
@@ -89,7 +90,11 @@ Therefore:
 
 Gotchas encoded in the gate (verified against the CLI): the `--output` path
 must **not already exist** (existing files are overwritten to 0 bytes) and
-must be **relative**.
+must be **relative**. #325 additionally ships the scaffold's `auth:schema`
+as a REVIEW copy (`--output auth-schema.review.ts`): regenerating directly
+over `src/lib/server/db/auth.schema.ts` wipes runtime-only columns
+(`user.role`, `user.disabled`) and breaks the build until hand-merged. The
+committed schema stays the runtime-gated source of truth.
 
 ## 1.7.x migration notes (applied in #319)
 

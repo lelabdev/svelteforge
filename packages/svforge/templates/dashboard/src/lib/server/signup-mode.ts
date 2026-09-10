@@ -5,7 +5,7 @@
  * Modes:
  * - `closed` (DEFAULT): no public sign-up at all (`disableSignUp`). Users are
  *   created by an admin from `/admin/users` (always role `user`), and the very
- *   first administrator by the bootstrap (`bun run admin:create` or the
+ *   first administrator by the bootstrap (`<pm> run admin:create` — see package.json — or the
  *   dev-only `/setup` route).
  * - `invite-only`: `POST /api/auth/sign-up/email` is allowed ONLY for a
  *   pre-approved email (an unexpired, unaccepted row in the `invitation`

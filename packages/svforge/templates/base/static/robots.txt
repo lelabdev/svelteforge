@@ -1,5 +1,0 @@
-# allow crawling everything by default
-User-agent: *
-Disallow:
-
-Sitemap: https://yourdomain.com/sitemap.xml

@@ -9,7 +9,7 @@ import type { Actions, PageServerLoad } from './$types';
  * First-admin bootstrap — DEV-ONLY convenience (#318).
  *
  * The PRODUCTION path is the operator command:
- *   bun run admin:create -- --name "Admin" --email you@example.com --password '…'
+ *   <package manager> run admin:create -- --name "Admin" --email you@example.com --password '…'
  * Both share the SAME atomic bootstrap (first-admin.ts): a transaction-scoped
  * advisory lock + an in-lock verification that NO administrator exists, so
  * two concurrent bootstraps can never create two admins.

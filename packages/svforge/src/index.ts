@@ -119,10 +119,13 @@ export default defineAddon({
 		if (!isKit) unsupported('SvelteForge requires SvelteKit');
 	},
 
-	run: ({ sv, options }) => {
+	run: ({ sv, options, packageManager }) => {
 		const template = options.template as 'base' | 'dashboard';
 		const testing = options.testing as 'vitest' | 'playwright';
 		const hooks = options.hooks as 'none' | 'lefthook';
+		// The PM the user selected in `sv` (#325) — scaffolded scripts and the
+		// setup docs must never invoke an unselected package manager.
+		const pm = packageManager.split('@')[0];
 
 		// ── Shared dependencies ──
 		// Pinned major ranges (#197): `latest` would silently resolve the next
@@ -168,10 +171,10 @@ export default defineAddon({
 			// Dashboard inherits base: root files (Paraglide messages/),
 			// vite.config plugin wiring, deps and test script come from the
 			// base mode first, then dashboard-specific files overlay (#239).
-			applyBaseMode(sv, {}, baseRootFiles, hooks);
-			applyDashboardMode(sv, baseFiles, dashboardFiles, testing, dashboardRootFiles);
+			applyBaseMode(sv, {}, baseRootFiles, hooks, pm);
+			applyDashboardMode(sv, baseFiles, dashboardFiles, testing, dashboardRootFiles, pm);
 		} else {
-			applyBaseMode(sv, baseFiles, baseRootFiles, hooks);
+			applyBaseMode(sv, baseFiles, baseRootFiles, hooks, pm);
 		}
 	},
 

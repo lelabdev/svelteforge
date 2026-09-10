@@ -6,7 +6,7 @@ export function normalizeInternalCallback(callback: string | null): string | nul
 		return null;
 	}
 
-	let decoded = callback;
+	let decoded: string;
 	try {
 		// Decode twice so both encoded and double-encoded protocol-relative paths are rejected.
 		decoded = decodeURIComponent(decodeURIComponent(callback));

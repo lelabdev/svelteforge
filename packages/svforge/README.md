@@ -17,17 +17,17 @@ Create a SvelteKit project, then apply a template:
 npx sv create my-app
 cd my-app
 npx sv add svforge=template:base+testing:vitest
-bun dev
+npm run dev  # or your package manager's dev command
 
 # Dashboard template (base + auth + DB + admin)
 npx sv create my-app
 cd my-app
 npx sv add svforge=template:dashboard+testing:vitest
-bash scripts/setup.sh && bun dev
+bash scripts/setup.sh && npm run dev  # or your package manager's dev command
 
 # Dashboard with the opt-in Playwright browser profile
 npx sv add svforge=template:dashboard+testing:playwright
-npx playwright install && bun run test:e2e
+npx playwright install && npm run test:e2e  # or your package manager's equivalent
 ```
 
 `sv create` also accepts the addon at creation time:
