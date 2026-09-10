@@ -1,5 +1,5 @@
 import { defineAddon, defineAddonOptions } from 'sv';
-import { checkModuleCapabilities, planAddonContext } from '@svforge/addon-kit';
+import { checkModuleCapabilities, planAddonContext, hasPatchApplied } from '@svforge/addon-kit';
 import { files } from './templates';
 
 
@@ -34,8 +34,8 @@ export default defineAddon({
 
 		// Register the schema in the Drizzle barrel.
 		sv.file('src/lib/server/db/schema.ts', (content) => {
-			if (!content || content.includes('jobs')) return content;
-			return `import { jobs } from '$lib/server/jobs/schema';\n${content}\nexport { jobs };\n`;
+			if (hasPatchApplied(content, 'jobs-schema', ["from '$lib/server/jobs/schema'"])) return content;
+			return `import { jobs } from '$lib/server/jobs/schema'; // svforge:patch:jobs-schema\n${content}\nexport { jobs }; // svforge:patch:jobs-schema\n`;
 		});
 
 		// Start the runner in the SvelteKit server hooks.

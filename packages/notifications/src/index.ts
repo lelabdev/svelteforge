@@ -1,5 +1,5 @@
 import { defineAddon, defineAddonOptions } from 'sv';
-import { checkModuleCapabilities, planCatalogMerges, planAddonContext } from '@svforge/addon-kit';
+import { checkModuleCapabilities, planCatalogMerges, planAddonContext, hasPatchApplied } from '@svforge/addon-kit';
 import { files } from './templates';
 
 
@@ -60,10 +60,11 @@ export default defineAddon({
 			sv.file(`src${path}`, () => content);
 		}
 
-		// Register the schema in the Drizzle barrel.
+		// Register the schema in the Drizzle barrel (#331: named marker, not a
+		// loose includes() that a consumer comment could false-match).
 		sv.file('src/lib/server/db/schema.ts', (content) => {
-			if (!content || content.includes('notifications')) return content;
-			return `import { notifications } from '$lib/server/notifications/schema';\n${content}\nexport { notifications };\n`;
+			if (hasPatchApplied(content, 'notifications-schema', ["from '$lib/server/notifications/schema'"])) return content;
+			return `import { notifications } from '$lib/server/notifications/schema'; // svforge:patch:notifications-schema\n${content}\nexport { notifications }; // svforge:patch:notifications-schema\n`;
 		});
 
 		// Paraglide messages (#239) + manifest (#234): PLANNED in memory before

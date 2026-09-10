@@ -1,5 +1,5 @@
 import { defineAddon, defineAddonOptions } from 'sv';
-import { checkModuleCapabilities, planCatalogMerges, planAddonContext } from '@svforge/addon-kit';
+import { checkModuleCapabilities, planCatalogMerges, planAddonContext, hasPatchApplied } from '@svforge/addon-kit';
 import { files } from './templates';
 
 
@@ -81,8 +81,8 @@ export default defineAddon({
 
 		// Audit schema must be registered in the Drizzle schema barrel.
 		sv.file('src/lib/server/db/schema.ts', (content) => {
-			if (!content || content.includes('audit')) return content;
-			return `import { auditLogs } from '$lib/server/audit/schema';\n${content}\nexport { auditLogs };\n`;
+			if (hasPatchApplied(content, 'audit-schema', ["from '$lib/server/audit/schema'"])) return content;
+			return `import { auditLogs } from '$lib/server/audit/schema'; // svforge:patch:audit-schema\n${content}\nexport { auditLogs }; // svforge:patch:audit-schema\n`;
 		});
 
 		// Paraglide messages (#239): audit UI copy merged FR/EN — precomputed

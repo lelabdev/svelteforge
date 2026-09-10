@@ -13,4 +13,5 @@
  */
 export * from './capabilities';
 export * from './json';
+export * from './patch';
 export * from './upgrade';

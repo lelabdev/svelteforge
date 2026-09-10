@@ -1,5 +1,5 @@
 import { defineAddon, defineAddonOptions } from 'sv';
-import { checkModuleCapabilities, planCatalogMerges, planAddonContext } from '@svforge/addon-kit';
+import { checkModuleCapabilities, planCatalogMerges, planAddonContext, hasPatchApplied } from '@svforge/addon-kit';
 import { files } from './templates';
 
 
@@ -68,8 +68,8 @@ export default defineAddon({
 
 		// Register the chat schemas in the Drizzle barrel.
 		sv.file('src/lib/server/db/schema.ts', (content) => {
-			if (!content || content.includes('conversationParticipants')) return content;
-			return `import { conversations, conversationParticipants, messages as chatMessages, messageReads } from '$lib/server/chat/schema';\n${content}\nexport { conversations, conversationParticipants, chatMessages, messageReads };\n`;
+			if (hasPatchApplied(content, 'chat-schema', ["from '$lib/server/chat/schema'"])) return content;
+			return `import { conversations, conversationParticipants, messages as chatMessages, messageReads } from '$lib/server/chat/schema'; // svforge:patch:chat-schema\n${content}\nexport { conversations, conversationParticipants, chatMessages, messageReads }; // svforge:patch:chat-schema\n`;
 		});
 
 		// Paraglide messages (#239) + manifest (#234): PLANNED in memory before
