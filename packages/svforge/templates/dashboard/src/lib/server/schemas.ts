@@ -1,25 +1,25 @@
 import { z } from 'zod';
 
 export const loginSchema = z.object({
-email: z.string().email(),
-password: z.string().min(8)
+	email: z.string().email(),
+	password: z.string().min(8)
 });
 
 export const changePasswordSchema = z.object({
-currentPassword: z.string().min(8),
-newPassword: z.string().min(8)
+	currentPassword: z.string().min(8),
+	newPassword: z.string().min(8)
 });
 
 export const createUserSchema = z.object({
-name: z.string().min(1),
-email: z.string().email(),
-password: z.string().min(8)
+	name: z.string().min(1),
+	email: z.string().email(),
+	password: z.string().min(8)
 });
 
 export const updateUserSchema = z.object({
-id: z.string().min(1),
-name: z.string().min(1),
-email: z.string().email()
+	id: z.string().min(1),
+	name: z.string().min(1),
+	email: z.string().email()
 });
 
 export const toggleUserStatusSchema = z.object({
@@ -28,14 +28,19 @@ export const toggleUserStatusSchema = z.object({
 });
 
 export const toggleVerifySchema = z.object({
-id: z.string().min(1),
-verified: z.boolean()
+	id: z.string().min(1),
+	verified: z.boolean()
 });
 
 export const setupSchema = z.object({
-name: z.string().min(1),
-email: z.string().email(),
-password: z.string().min(8)
+	name: z.string().min(1),
+	email: z.string().email(),
+	password: z.string().min(8)
+});
+
+/** Pre-approves one email for self-registration in `invite-only` mode (#318). */
+export const inviteSchema = z.object({
+	email: z.string().email()
 });
 
 export type LoginSchema = typeof loginSchema;
@@ -45,3 +50,4 @@ export type UpdateUserSchema = typeof updateUserSchema;
 export type ToggleUserStatusSchema = z.infer<typeof toggleUserStatusSchema>;
 export type ToggleVerifySchema = typeof toggleVerifySchema;
 export type SetupSchema = typeof setupSchema;
+export type InviteSchema = typeof inviteSchema;

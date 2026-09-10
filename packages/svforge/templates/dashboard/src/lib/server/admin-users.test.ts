@@ -44,8 +44,8 @@ async function cleanupUsers() {
 describe('admin-created credential users (#292)', () => {
 	beforeAll(async () => {
 		await cleanupUsers();
-		// Seed the admin (first user = admin under the first-user-is-admin
-		// pattern used by the dashboard).
+		// Seed a regular user (admin-created users are ALWAYS role 'user' —
+		// the admin role is granted only by bootstrapFirstAdmin, #318).
 		await createCredentialUser({ name: 'Admin', email: 'admin@example.com', password: PASSWORD });
 	});
 
@@ -138,6 +138,12 @@ describe('admin-created credential users (#292)', () => {
 
 		const count = await db.select({ id: user.id }).from(user).where(eq(user.email, 'bob@example.com'));
 		expect(count).toHaveLength(1);
+	});
+
+	it('admin-created users NEVER hold the admin role (#318)', async () => {
+		await createCredentialUser({ name: 'Plain', email: 'plain@example.com', password: PASSWORD });
+		const [identity] = await db.select({ role: user.role }).from(user).where(eq(user.email, 'plain@example.com')).limit(1);
+		expect(identity.role).toBe('user');
 	});
 
 	it('creates the user and account atomically — a failed insert leaves NO orphan user (#292)', async () => {

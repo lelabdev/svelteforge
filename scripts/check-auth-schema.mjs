@@ -405,7 +405,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
 		const committedSource = readFileSync(committedPath, 'utf8');
 		deriveRuntimeModel(projectDir)
 			.then((runtimeModel) => {
-				const allowColumns = { user: ['disabled'] }; // template's app-level deactivation column
+				const allowColumns = { user: ['disabled', 'role'] }; // template's app-level columns (#337 deactivation, #318 explicit admin role)
 				const { drift } = compareSchemas(runtimeModel, committedSource, allowColumns);
 				if (drift.length) {
 					const lines = [`❌ committed auth.schema.ts does not match the installed better-auth runtime schema (#319):`];

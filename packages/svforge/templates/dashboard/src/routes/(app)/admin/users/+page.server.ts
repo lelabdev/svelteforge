@@ -4,7 +4,14 @@ import { desc, eq } from 'drizzle-orm';
 import { fail, redirect, error, type Actions } from '@sveltejs/kit';
 import { isAdmin } from '$lib/server/admin';
 import { createCredentialUser, DuplicateEmailError } from '$lib/server/admin-users';
-import { createUserSchema, updateUserSchema, toggleUserStatusSchema, toggleVerifySchema } from '$lib/server/schemas';
+import { createInvitation, DuplicateInvitationError } from '$lib/server/invitations';
+import {
+	createUserSchema,
+	updateUserSchema,
+	toggleUserStatusSchema,
+	toggleVerifySchema,
+	inviteSchema
+} from '$lib/server/schemas';
 import type { PageServerLoad } from './$types';
 import type { RequestEvent } from '@sveltejs/kit';
 
@@ -29,15 +36,18 @@ export const load: PageServerLoad = async ({ locals }) => {
 		throw redirect(302, '/login');
 	}
 
-	const users = await db.select({
-		id: user.id,
-		name: user.name,
-		email: user.email,
-		emailVerified: user.emailVerified,
-		image: user.image,
-		disabled: user.disabled,
-		createdAt: user.createdAt
-	}).from(user).orderBy(desc(user.createdAt));
+	const users = await db
+		.select({
+			id: user.id,
+			name: user.name,
+			email: user.email,
+			emailVerified: user.emailVerified,
+			image: user.image,
+			disabled: user.disabled,
+			createdAt: user.createdAt
+		})
+		.from(user)
+		.orderBy(desc(user.createdAt));
 
 	return { users };
 };
@@ -113,11 +123,14 @@ export const actions: Actions = {
 		}
 
 		try {
-			await db.update(user).set({
-				name,
-				email: normalizedEmail,
-				updatedAt: new Date()
-			}).where(eq(user.id, id));
+			await db
+				.update(user)
+				.set({
+					name,
+					email: normalizedEmail,
+					updatedAt: new Date()
+				})
+				.where(eq(user.id, id));
 		} catch {
 			// Generic code — never leak e.message internals to the UI (#188).
 			return fail(500, { code: 'update_failed' });
@@ -140,7 +153,11 @@ export const actions: Actions = {
 		// The only administrator must remain able to administer the project.
 		if (disabled && id === adminId) return fail(400, { code: 'self_deactivate' });
 
-		const [target] = await db.select({ id: user.id, disabled: user.disabled }).from(user).where(eq(user.id, id)).limit(1);
+		const [target] = await db
+			.select({ id: user.id, disabled: user.disabled })
+			.from(user)
+			.where(eq(user.id, id))
+			.limit(1);
 		if (!target) return fail(404, { code: 'not_found' });
 
 		try {
@@ -173,15 +190,49 @@ export const actions: Actions = {
 		const { id, verified } = parsed.data;
 
 		try {
-			await db.update(user).set({
-				emailVerified: !verified,
-				updatedAt: new Date()
-			}).where(eq(user.id, id));
+			await db
+				.update(user)
+				.set({
+					emailVerified: !verified,
+					updatedAt: new Date()
+				})
+				.where(eq(user.id, id));
 		} catch {
 			// Generic code — never leak e.message internals to the UI (#188).
 			return fail(500, { code: 'verify_failed' });
 		}
 
 		return { success: true, code: verified ? 'unverified' : 'verified' };
+	},
+
+	/**
+	 * Pre-approve one email for self-registration (#318) — the `invite-only`
+	 * sign-up mode. In `closed` mode (the default) the invitation is inert:
+	 * the sign-up endpoint is disabled entirely. Either way an invited user
+	 * can never hold the admin role — only bootstrapFirstAdmin grants it.
+	 */
+	invite: async (event) => {
+		await requireAdmin(event);
+		const { request } = event;
+		const formData = await request.formData();
+		const parsed = inviteSchema.safeParse({
+			email: formData.get('email')
+		});
+
+		if (!parsed.success) {
+			return fail(400, { code: 'invalid_input' });
+		}
+
+		try {
+			await createInvitation({ email: parsed.data.email });
+		} catch (error) {
+			if (error instanceof DuplicateInvitationError) {
+				return fail(400, { code: 'already_invited' });
+			}
+			// Generic code — never leak e.message internals to the UI (#188).
+			return fail(500, { code: 'invite_failed' });
+		}
+
+		return { success: true, code: 'invited' };
 	}
 };

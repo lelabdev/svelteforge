@@ -228,13 +228,16 @@ const DASHBOARD = `
 
 ## Dashboard patterns (this project is a SvelteForge dashboard)
 
-- **Auth**: Better Auth. Session in \`locals.user\` / \`locals.session\` (\`src/hooks.server.ts\`). Login via \`src/routes/login\`, first admin via \`/setup\` (dev only).
+- **Auth**: Better Auth. Session in \`locals.user\` / \`locals.session\` (\`src/hooks.server.ts\`). Login via \`src/routes/login\`.
+- **Sign-up is CLOSED by default** (#318): \`SIGNUP_MODE\` in \`.env\` picks the server-enforced mode — \`closed\` (default), \`invite-only\` (pre-approve emails from /admin/users) or \`self-service\`. Unknown values fail closed. Never route sign-up through client-side checks.
+- **First admin**: \`bun run admin:create -- --name … --email … --password …\` — atomic bootstrap (refuses when an admin exists). \`/setup\` is a dev-only convenience sharing the same code path.
+- **Admin role**: explicit persisted \`user.role\` column — granted ONLY by the bootstrap, checked server-side by \`isAdmin()\` (\`src/lib/server/admin.ts\`). Never derive permissions from row ordering (createdAt) and never trust UI protection for authorization.
 - **Admin guard**: \`requireAdmin()\` in \`src/routes/(app)/admin/*/+page.server.ts\` — every action calls it BEFORE touching formData or the db.
 - **SvelteKit action responses**: \`{ type, data }\` — read the message at \`result.data?.message\`, NEVER \`result.message\` (always undefined).
 - **Server errors**: never leak \`e.message\` to the UI — return a generic message.
 - **DB**: Drizzle + PostgreSQL. Schema in \`src/lib/server/db/schema.ts\`, config \`drizzle.config.ts\` at the root (dialect postgresql). Env in \`.env\` (copy \`.env.example\` — local / Docker / managed connection strings).
 - **Validation**: zod schemas in \`src/lib/server/schemas.ts\`.
-- **Setup**: \`bash scripts/setup.sh\` creates \`.env\`, generates \`BETTER_AUTH_SECRET\`, pushes the schema.
+- **Setup**: \`bash scripts/setup.sh\` creates \`.env\`, generates \`BETTER_AUTH_SECRET\`, pushes the schema. Then create the admin: \`bun run admin:create -- --name … --email … --password …\`.
 ### Golden references (#267) — imitate these screens when building new UI
 
 The admin screens are canonical examples agents should copy:

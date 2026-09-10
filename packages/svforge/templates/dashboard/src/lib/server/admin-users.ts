@@ -21,10 +21,11 @@ import { hashPassword } from 'better-auth/crypto';
  * `providerId: 'credential'`, `accountId: user.id`). BUT adopting it pulls
  * the whole admin permission model into the scaffold: the plugin schema adds
  * `role`/`banned`/`banReason`/`banExpires` columns to `user`, permission
- * checks assume a role system, and the template's admin model is deliberately
- * "first user = admin" + a `disabled` deactivation flag. Migrating is a
- * product decision (see docs/better-auth-upgrades.md), not a dependency
- * upgrade — so the isolated adapter below stays.
+ * checks assume a role system. The dashboard now HAS an explicit role model
+ * (#318: persisted `user.role`, granted only by bootstrapFirstAdmin), but
+ * adopting the plugin remains a product decision (see
+ * docs/better-auth-upgrades.md), not a dependency upgrade — so the isolated
+ * adapter below stays.
  *
  * Instead we reproduce the exact credential contract of Better Auth,
  * RE-VERIFIED against the 1.7.x package sources (`api/routes/sign-up.mjs`):
@@ -90,6 +91,9 @@ export async function createCredentialUser({
 				name,
 				email: normalizedEmail,
 				emailVerified: false,
+				// Defense in depth (#318): admin-created users are ALWAYS plain
+				// users — the persisted role never depends on the column default.
+				role: 'user',
 				createdAt: new Date(),
 				updatedAt: new Date()
 			});
@@ -109,7 +113,8 @@ export async function createCredentialUser({
 		if (error instanceof DuplicateEmailError) throw error;
 		// A race on the unique email index or any other DB failure must roll
 		// back BOTH rows — the transaction guarantees the user is not orphaned.
-		throw new Error('failed to create user');
+		// The cause stays server-side; callers expose only generic messages.
+		throw new Error('failed to create user', { cause: error });
 	}
 
 	return { id: userId, email: normalizedEmail };

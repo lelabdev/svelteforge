@@ -1,11 +1,35 @@
 import { dev } from '$app/environment';
 import { fail, redirect } from '@sveltejs/kit';
-import { auth } from '$lib/server/auth';
+import { db } from '$lib/server/db';
 import { setupSchema } from '$lib/server/schemas';
-import type { Actions } from './$types';
+import { adminExists, bootstrapFirstAdmin, AdminExistsError } from '$lib/server/first-admin';
+import type { Actions, PageServerLoad } from './$types';
+
+/**
+ * First-admin bootstrap — DEV-ONLY convenience (#318).
+ *
+ * The PRODUCTION path is the operator command:
+ *   bun run admin:create -- --name "Admin" --email you@example.com --password '…'
+ * Both share the SAME atomic bootstrap (first-admin.ts): a transaction-scoped
+ * advisory lock + an in-lock verification that NO administrator exists, so
+ * two concurrent bootstraps can never create two admins.
+ *
+ * The `dev` gate here is server-side — the page being unreachable in a
+ * production browser is never the actual protection (#318).
+ */
+export const load: PageServerLoad = async () => {
+	if (!dev) {
+		throw redirect(302, '/login');
+	}
+	// Once bootstrapped, stop advertising the setup screen.
+	if (await adminExists(db)) {
+		throw redirect(302, '/login');
+	}
+};
 
 export const actions: Actions = {
 	default: async ({ request }) => {
+		// Server-side gate — never rely on the UI (#318).
 		if (!dev) {
 			throw redirect(302, '/login');
 		}
@@ -24,10 +48,13 @@ export const actions: Actions = {
 		const { name, email, password } = parsed.data;
 
 		try {
-			await auth.api.signUpEmail({
-				body: { name, email, password }
-			});
-		} catch {
+			// Atomic bootstrap: refuses (AdminExistsError) when an admin already
+			// exists and persists role 'admin' — never derivable from ordering.
+			await bootstrapFirstAdmin(db, { name, email, password });
+		} catch (error) {
+			if (error instanceof AdminExistsError) {
+				return fail(400, { error: 'An administrator already exists' });
+			}
 			// Generic message — never leak e.message internals to the UI (#188).
 			return fail(400, { error: 'Failed to create admin' });
 		}
