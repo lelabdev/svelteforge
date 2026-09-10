@@ -16,17 +16,20 @@ import { baseRootFiles } from '../templates';
  * scripts must never invoke a PM the user did not select, so the runner is
  * derived from the `sv` install selection (Workspace.packageManager).
  *
+ * Only PMs the generator actually supports and tests are listed: npm, bun,
+ * pnpm — plus yarn, which falls back to npx (documented behavior: yarn
+ * classic has no `dlx`, and every Node environment ships npx). No other
+ * runtime is advertised (#325 review: Deno support is out of scope).
+ *
  * `@better-auth/cli` must stay on-demand (NEVER a scaffold dependency — its
  * bundled @better-auth/core hoists over the runtime's copy and breaks the
  * SSR build, docs/better-auth-upgrades.md), which is why the dlx runner
- * exists at all. yarn classic has no `dlx`; every Node environment ships
- * npx, so yarn (and any unknown agent) falls back to npx like npm.
+ * exists at all.
  */
 export const DLX_RUNNERS: Record<string, string> = {
 	npm: 'npx --yes',
 	bun: 'bunx',
-	pnpm: 'pnpm dlx',
-	deno: 'deno run -A npm:'
+	pnpm: 'pnpm dlx'
 };
 
 /** Normalize an agent name ("bun", "pnpm@9"…) to its dlx runner (#325). */

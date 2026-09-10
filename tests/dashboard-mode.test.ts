@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { SvApi } from 'sv';
-import { applyDashboardMode } from '../packages/svforge/src/modes/dashboard';
+import { applyDashboardMode, DLX_RUNNERS, resolveDlxRunner } from '../packages/svforge/src/modes/dashboard';
 
 type FakeSv = {
 	dependencies: string[];
@@ -119,5 +119,50 @@ describe('dashboard testing profiles', () => {
 		// #322: parity is defined over every configured locale, not a hard-coded pair.
 		expect(agents).toMatch(/EVERY catalog under .messages\//);
 		expect(agents).toMatch(/never hard-code user-visible text/);
+	});
+});
+
+describe('on-demand PM runners (#325 review) — exact commands, supported managers only', () => {
+	it('maps every supported manager to its exact dlx command', () => {
+		expect(DLX_RUNNERS).toEqual({
+			npm: 'npx --yes',
+			bun: 'bunx',
+			pnpm: 'pnpm dlx'
+		});
+	});
+
+	it('resolves the selected manager, version-qualified names included', () => {
+		expect(resolveDlxRunner('npm')).toBe('npx --yes');
+		expect(resolveDlxRunner('bun')).toBe('bunx');
+		expect(resolveDlxRunner('pnpm')).toBe('pnpm dlx');
+		expect(resolveDlxRunner('pnpm@9')).toBe('pnpm dlx');
+		expect(resolveDlxRunner('bun@1.2')).toBe('bunx');
+	});
+
+	it('falls back to npx for yarn and unknown agents (documented behavior)', () => {
+		expect(resolveDlxRunner('yarn')).toBe('npx --yes');
+		expect(resolveDlxRunner('yarn@4')).toBe('npx --yes');
+		expect(resolveDlxRunner('exotic-pm')).toBe('npx --yes');
+		expect(resolveDlxRunner('')).toBe('npx --yes');
+	});
+
+	it('never advertises untested runtimes (Deno is out of scope, #325 review)', () => {
+		expect(Object.keys(DLX_RUNNERS).map((k) => k.toLowerCase())).not.toContain('deno');
+		expect(resolveDlxRunner('deno')).toBe('npx --yes'); // unknown → npx fallback
+	});
+
+	it('generated scripts use the selected manager runner, never another one', () => {
+		const sv = fakeSv();
+		applyDashboardMode(asSvApi(sv), baseFiles, dashboardFiles, 'vitest', {}, 'pnpm');
+		const pkg = JSON.parse(sv.files.get('package.json') ?? '{}') as Record<string, Record<string, string>>;
+		expect(pkg.scripts['auth:schema']).toContain('pnpm dlx');
+		expect(pkg.scripts['auth:schema']).not.toMatch(/\b(bunx|npx)\b/);
+		expect(pkg.scripts['admin:create']).toContain('pnpm dlx');
+
+		const svBun = fakeSv();
+		applyDashboardMode(asSvApi(svBun), baseFiles, dashboardFiles, 'vitest', {}, 'bun');
+		const pkgBun = JSON.parse(svBun.files.get('package.json') ?? '{}') as Record<string, Record<string, string>>;
+		expect(pkgBun.scripts['auth:schema']).toContain('bunx');
+		expect(pkgBun.scripts['auth:schema']).not.toMatch(/\b(npx|pnpm dlx)\b/);
 	});
 });
