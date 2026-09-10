@@ -98,23 +98,32 @@ async function main() {
 	if (command === 'upgrade') {
 		const moduleName = args.find((a) => !a.startsWith('-'));
 		const force = args.includes('--force');
+		const dryRun = args.includes('--dry-run');
+		const json = args.includes('--json');
 		const targetIndex = args.indexOf('--to');
 		const targetVersion = targetIndex === -1 ? undefined : args[targetIndex + 1];
 		if (targetIndex !== -1 && !targetVersion) {
-			console.error('Usage: svforge upgrade <module> [--to <version>] [--force]');
+			console.error('Usage: svforge upgrade <module> [--to <version>] [--force] [--dry-run] [--json]');
 			process.exitCode = 1;
 			return;
 		}
 		if (!moduleName) {
-			console.error('Usage: svforge upgrade <module> [--to <version>] [--force]');
+			console.error('Usage: svforge upgrade <module> [--to <version>] [--force] [--dry-run] [--json]');
 			console.error(`Available modules: ${Object.keys(api.MODULE_RECIPES ?? {}).join(', ')}`);
 			process.exitCode = 1;
 			return;
 		}
 		try {
-			const result = await api.upgrade(moduleName, projectRoot, { force, targetVersion });
-			api.printUpgradeResult(result);
-			process.exitCode = result.skippedCount > 0 && !force ? 1 : 0;
+			const result = await api.upgrade(moduleName, projectRoot, { force, targetVersion, dryRun });
+			if (json) {
+				// Machine-readable plan/result (#327): the full operation list with
+				// resolutions, diffs and summary — safe to pipe or diff.
+				console.log(JSON.stringify(result, null, 2));
+			} else {
+				api.printUpgradeResult(result);
+			}
+			const conflicts = result.operations.filter((op) => op.resolution === 'conflict').length;
+			process.exitCode = conflicts > 0 && !force ? 1 : 0;
 		} catch (e) {
 			console.error(`Upgrade failed: ${e instanceof Error ? e.message : e}`);
 			process.exitCode = 1;

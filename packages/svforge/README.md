@@ -134,20 +134,39 @@ values. See [the evaluation record](docs/tailwind-linting.md).
 
 ## Upgrade
 
-`svforge upgrade <base|dashboard>` updates the recipe files (`src/**`) of an
-installed project and records per-file checksums in `.svforge-versions.json`.
+`svforge upgrade <base|dashboard|module>` migrates an installed project to the
+latest recipe — src files, ROOT files, dependencies, scripts and JSON — through
+one diffable protocol shared by base, dashboard and the 13 standalone modules.
 
-**First upgrade (no baseline yet):** any existing file that diverges from the
-template is treated as a *potential local modification* and is **skipped** —
-never overwritten. Only files that are absent are created automatically.
+```
+svforge upgrade base                 # apply the migration
+svforge upgrade base --dry-run       # plan + diff, write NOTHING
+svforge upgrade base --json          # machine-readable plan/result
+svforge upgrade blog --force         # overwrite user-modified files (backed up)
+```
 
-**Later upgrades:** a file that exactly matches what svforge last installed is
-updated silently (that's a template evolution, not a user edit); a file whose
-content differs from the recorded baseline is **skipped** with a clear message.
+**How it works (#327):**
 
-In every case, pass `--force` to overwrite — a `.svforge-backup` copy is
-created before any overwrite. The recipe version announced by the command is
-derived from the shipped package version (single canonical source, no drift).
+1. **Install writes the baseline.** A fresh scaffold (or module install)
+   records `.svforge-versions.json`: the recipe version + a SHA-256 checksum of
+   every delivered file. The first upgrade already has a real baseline.
+2. **Plan before any write.** The engine computes the full operation list —
+   `add`, `modify`, `delete`, `move`, `dependency`, `script`, JSON
+   transformation — each with a readable diff, and only then touches disk.
+3. **Conflicts come from the baseline.** A file that still matches what svforge
+   installed is updated; a file that diverges from the baseline is a *user
+   modification* (#283) — reported as a conflict with its diff, never
+   overwritten without `--force`.
+4. **Atomic apply, versioned backups.** Overwritten content is backed up under
+   `.svforge-backup/<recipe>/<timestamp>-<version>/` (successive upgrades never
+   overwrite a previous backup). Any mid-apply failure rolls every write back:
+   applied atomically or not at all.
+
+Recipes are generated from the actually shipped packages (#283): the version
+announced by the command cannot drift from the shipped code, and release notes
+between the installed and target versions come from the structured changelog.
+Legacy `.svforge-versions.json` files (32-bit hashes, pre-#327) degrade safely:
+their entries read as "no baseline", i.e. the conservative skip behavior.
 
 ## License
 

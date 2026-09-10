@@ -50,9 +50,30 @@ export {
 export { enrichManifest } from './ai-context';
 export type { SvforgeManifest } from './ai-context';
 
-// Export upgrade command for programmatic use
-export { upgrade, printUpgradeResult, MODULE_RECIPES } from './upgrade';
-export type { UpgradeFile, UpgradeResult } from './upgrade';
+// Export upgrade command for programmatic use (#327): one diffable protocol
+// for base, dashboard and the 13 standalone modules.
+export {
+	upgrade,
+	printUpgradeResult,
+	hasPlaywright,
+	MODULE_RECIPES,
+	BASE_RECIPE,
+	DASHBOARD_RECIPE,
+	changelogPackageOf,
+	planUpgrade,
+	applyPlan,
+	sha256,
+	resolveDestination,
+	TRACKING_FILE
+} from './upgrade';
+export type {
+	UpgradeFile,
+	UpgradeResult,
+	UpgradePlan,
+	PlannedOperation,
+	ApplyResult,
+	UpgradeRecipe
+} from './upgrade';
 export { RELEASE_NOTES, entriesBetween } from './changelog';
 export type { ChangelogEntry } from './changelog';
 

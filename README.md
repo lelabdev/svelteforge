@@ -243,12 +243,14 @@ svforge check
 # Regenerate llms.txt from the project manifest
 svforge context
 
-# Explicit, reviewable template upgrade
+# Explicit, reviewable template upgrade (plan → diff → apply)
+svforge upgrade base --dry-run
 svforge upgrade base
 svforge upgrade dashboard
+svforge upgrade blog        # every module shares the same protocol
 ```
 
-Upgrades are intentionally conservative: generated files are owned by the consumer project, and locally modified files are not silently overwritten.
+Upgrades are intentionally conservative: generated files are owned by the consumer project, locally modified files are never silently overwritten (conflicts come with a readable diff), and `--dry-run` / `--json` let you inspect the exact plan before anything is written.
 
 
 ## Boring by design
