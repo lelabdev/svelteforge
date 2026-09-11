@@ -80,4 +80,41 @@ describe('chat membership & per-user read state (#281)', () => {
 		expect((chat as any).getLastMessage).toBeUndefined();
 		expect((chat as any).unreadCount).toBeUndefined();
 	});
+
+	describe('#401 — bounded queries & pagination', () => {
+		it('listConversations is bounded-query and paginated (#401)', async () => {
+			// Clean slate — cascade wipes participants/messages/reads left by
+			// the tests above.
+			await db.delete(conversations);
+
+			// Small delays guarantee distinct created_at (ms precision), so
+			// "newest first" and "last message = 2nd" are deterministic.
+			const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+			const expected: { id: string; last: string }[] = [];
+			for (let i = 0; i < 3; i++) {
+				const conv = await chat.createConversation({ participantIds: [A, B], type: 'direct' });
+				await chat.sendMessage({ conversationId: conv.id, authorId: A, content: `conv${i}-first` });
+				await sleep(5);
+				await chat.sendMessage({ conversationId: conv.id, authorId: A, content: `conv${i}-second` });
+				await sleep(5);
+				expected.push({ id: conv.id, last: `conv${i}-second` });
+			}
+
+			const list = await chat.listConversations(A);
+
+			// Exactly the 3 conversations.
+			expect(list).toHaveLength(3);
+
+			// Ordered newest conversation first.
+			expect(list.map((c) => c.id)).toEqual([...expected].reverse().map((c) => c.id));
+
+			// Last message per conversation = the 2nd message;
+			// unread = 2 (no read entry BY A yet — authorship is not a read).
+			for (const conv of list) {
+				const exp = expected.find((e) => e.id === conv.id);
+				expect(conv.lastMessage?.content).toBe(exp!.last);
+				expect(conv.unreadCount).toBe(2);
+			}
+		});
+	});
 });
