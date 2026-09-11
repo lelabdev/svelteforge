@@ -2,6 +2,9 @@
 	import * as m from '$lib/paraglide/messages.js';
 	import { createUploadForm } from '$lib/uploads/post-form';
 
+	/** Marker for the only user-safe error surface: a recognized API error payload. */
+	class UploadError extends Error {}
+
 	/**
 	 * Called once the file has been uploaded to S3/R2, with the PERSISTENT
 	 * object key (`uploads/<uuid>-<name>`).
@@ -43,11 +46,11 @@
 				let message = m.uploads_failed();
 				try {
 					const body = await res.json();
-					if (body?.error) message = body.error;
+					if (typeof body?.error === 'string' && body.error) message = body.error;
 				} catch {
 					// keep the generic message when the body is not JSON
 				}
-				throw new Error(message);
+				throw new UploadError(message);
 			}
 
 			const upload = await res.json();
@@ -70,8 +73,9 @@
 
 			// 4. Deliver the persistent key — never the expiring URL.
 			onUpload?.(key);
-		} catch (err: any) {
-			error = err.message;
+		} catch (err: unknown) {
+			console.error('FileUpload failed:', err);
+			error = err instanceof UploadError ? err.message : m.uploads_failed();
 		} finally {
 			uploading = false;
 		}
@@ -81,5 +85,5 @@
 <div>
 	<input type="file" onchange={handleFile} disabled={uploading} />
 	{#if uploading}<span>{m.uploads_uploading()}</span>{/if}
-	{#if error}<p style="color: red">{error}</p>{/if}
+	{#if error}<p class="text-error-500 mt-1 text-sm" role="alert">{error}</p>{/if}
 </div>
