@@ -41,12 +41,29 @@
 			});
 
 			// 2. Check the response BEFORE parsing: a 4xx body is an error
-			// payload ({ error }), not a presign response ({ url, key }).
+			// payload ({ error: { code } }), not a presign response ({ url, key }).
 			if (!res.ok) {
 				let message = m.uploads_failed();
 				try {
-					const body = await res.json();
-					if (typeof body?.error === 'string' && body.error) message = body.error;
+					const code = (await res.json())?.error?.code;
+					// Privacy: only the KNOWN validation codes of our own endpoint are
+					// surfaced — always through localized copy, never a raw server
+					// string (a 5xx body may carry provider error details).
+					switch (code) {
+						case 'file_type_not_allowed':
+							message = m.uploads_error_invalid_file_type();
+							break;
+						case 'file_too_large':
+							message = m.uploads_error_file_too_large();
+							break;
+						case 'invalid_json':
+						case 'filename_required':
+						case 'content_type_required':
+						case 'invalid_size':
+							message = m.uploads_error_invalid_request();
+							break;
+						// Unknown codes (e.g. a 500 'internal') keep the generic fallback.
+					}
 				} catch {
 					// keep the generic message when the body is not JSON
 				}

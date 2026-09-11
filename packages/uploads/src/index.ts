@@ -47,14 +47,20 @@ export default defineAddon({
 				path: 'messages/fr.json',
 				additions: {
 					uploads_uploading: 'Téléversement…',
-					uploads_failed: 'Échec du téléversement'
+					uploads_failed: 'Échec du téléversement',
+					uploads_error_invalid_file_type: 'Type de fichier non autorisé',
+					uploads_error_file_too_large: 'Fichier trop volumineux',
+					uploads_error_invalid_request: 'Requête de téléversement invalide'
 				}
 			},
 			{
 				path: 'messages/en.json',
 				additions: {
 					uploads_uploading: 'Uploading…',
-					uploads_failed: 'Upload failed'
+					uploads_failed: 'Upload failed',
+					uploads_error_invalid_file_type: 'File type not allowed',
+					uploads_error_file_too_large: 'File too large',
+					uploads_error_invalid_request: 'Invalid upload request'
 				}
 			}
 		]);

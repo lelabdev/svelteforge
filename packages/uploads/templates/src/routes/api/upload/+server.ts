@@ -49,6 +49,9 @@ function sanitizeFilename(name: string): string {
 export const POST: RequestHandler = async ({ request, locals }) => {
 	if (!locals.user) throw error(401, { message: 'Authentication required' });
 
+	// Error contract: stable machine codes under `error.code` — never raw
+	// provider/server strings. FileUpload maps ONLY these known codes to
+	// localized copy; any other payload keeps the client-side generic fallback.
 	let filename: string;
 	let contentType: string;
 	let size: number;
@@ -58,19 +61,19 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		contentType = body.contentType;
 		size = body.size;
 	} catch {
-		return json({ error: 'Invalid JSON body' }, { status: 400 });
+		return json({ error: { code: 'invalid_json' } }, { status: 400 });
 	}
 
-	if (!filename || typeof filename !== 'string') return json({ error: 'Filename required' }, { status: 400 });
-	if (!contentType || typeof contentType !== 'string') return json({ error: 'Content-Type required' }, { status: 400 });
+	if (!filename || typeof filename !== 'string') return json({ error: { code: 'filename_required' } }, { status: 400 });
+	if (!contentType || typeof contentType !== 'string') return json({ error: { code: 'content_type_required' } }, { status: 400 });
 	if (!ALLOWED_MIME_TYPES.includes(contentType as (typeof ALLOWED_MIME_TYPES)[number])) {
-		return json({ error: `File type ${contentType} is not allowed` }, { status: 400 });
+		return json({ error: { code: 'file_type_not_allowed' } }, { status: 400 });
 	}
 	if (typeof size !== 'number' || !Number.isFinite(size) || size <= 0) {
-		return json({ error: 'Valid file size required' }, { status: 400 });
+		return json({ error: { code: 'invalid_size' } }, { status: 400 });
 	}
 	if (size > MAX_FILE_SIZE) {
-		return json({ error: `File exceeds maximum size of ${MAX_FILE_SIZE} bytes` }, { status: 413 });
+		return json({ error: { code: 'file_too_large' } }, { status: 413 });
 	}
 
 	const key = `uploads/${crypto.randomUUID()}-${sanitizeFilename(filename)}`;
