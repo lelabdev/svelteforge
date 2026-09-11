@@ -65,7 +65,7 @@ notes between the installed recipe version and the target recipe version. Use
 Before the first publication, the workflow:
 
 1. installs the pinned Bun and Node versions;
-2. builds all 14 packages and runs the repository tests;
+2. builds all 15 packages and runs the repository tests;
 3. runs the base, dashboard, foundation and integration scaffold gates;
 4. verifies npm authentication with `npm whoami`;
 5. generates and prints the complete commit/version/registry plan;
