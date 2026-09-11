@@ -256,12 +256,43 @@ function exportedPaths(manifest) {
 	return paths.map((path) => path.replace(/^\.\//, ''));
 }
 
+/**
+ * Extract the pack record from `npm pack --dry-run --json` output.
+ *
+ * npm historically returned an array of records, but npm 12+ returns an
+ * object keyed by package name (e.g. { "@svforge/ui_toast": { files: [...] } }).
+ * Accept both shapes: prefer the pkgName entry, falling back to the first own
+ * enumerable entry whose value carries a files array.
+ */
+function extractPackRecord(stdout, pkgName) {
+	let parsed;
+	try {
+		parsed = JSON.parse(stdout);
+	} catch {
+		throw new Error(`npm pack --json returned invalid JSON for ${pkgName}. Raw output: ${stdout.trim().slice(0, 200) || '(empty)'}`);
+	}
+	let record = Array.isArray(parsed)
+		? parsed[0]
+		: (parsed && typeof parsed === 'object' ? parsed[pkgName] : undefined);
+	if (!record || typeof record !== 'object' || !Array.isArray(record.files)) {
+		if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+			record = Object.values(parsed).find((entry) => entry && typeof entry === 'object' && Array.isArray(entry.files));
+		}
+	}
+	if (!record || typeof record !== 'object' || !Array.isArray(record.files)) {
+		throw new Error(
+			`npm pack --json returned an unexpected shape for ${pkgName}: expected an array of records or an object keyed by package name with a "files" array. Raw output: ${stdout.trim().slice(0, 200) || '(empty)'}`
+		);
+	}
+	return record;
+}
+
 export function preflightPackage(pkg, root = SCRIPT_ROOT, npm = runNpm) {
 	const packageDirectory = join(root, pkg.directory);
 	const manifest = JSON.parse(readFileSync(join(packageDirectory, 'package.json'), 'utf8'));
 	const result = npm(['pack', '--dry-run', '--json', '--ignore-scripts'], packageDirectory);
 	if (result.status !== 0) throw new Error(`npm pack failed for ${pkg.name}: ${result.stderr.trim()}`);
-	const pack = JSON.parse(result.stdout)[0];
+	const pack = extractPackRecord(result.stdout, pkg.name);
 	const files = new Set(pack.files.map((file) => file.path));
 	const expectedFiles = [...REQUIRED_FILES, ...exportedPaths(manifest)];
 	for (const file of expectedFiles) {
