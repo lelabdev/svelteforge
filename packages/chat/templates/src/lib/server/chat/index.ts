@@ -85,19 +85,24 @@ export const chat = {
 		if (rows.length === 0) return [];
 		const convIds = rows.map((r) => r.id);
 
-		// 2) Last message per conversation — one query over all the user's
-		// conversations, first row per conversationId kept in JS (no window
-		// functions). Rows are ordered newest first, so the first encounter
-		// of a conversationId IS its last message.
+		// 2) Last message per conversation — ONE query whose row volume is
+		// bounded by the conversation count (≤ page size), never by the size of
+		// the messages table: a DISTINCT ON subquery selects exactly one id per
+		// conversation_id (the newest by created_at) and the outer IN reads only
+		// those rows. No full-message dump, no filtering kept in JS.
 		const lastRows = await db
 			.select()
 			.from(messages)
-			.where(inArray(messages.conversationId, convIds))
-			.orderBy(desc(messages.createdAt));
-		const lastByConv = new Map<string, (typeof lastRows)[number]>();
-		for (const row of lastRows) {
-			if (!lastByConv.has(row.conversationId)) lastByConv.set(row.conversationId, row);
-		}
+			.where(
+				sql`${messages.id} in (
+					select distinct on (${messages.conversationId}) ${messages.id}
+					from ${messages}
+					where ${inArray(messages.conversationId, convIds)}
+					order by ${messages.conversationId}, ${messages.createdAt} desc
+				)`
+			);
+		// The subquery guarantees at most one row per conversation.
+		const lastByConv = new Map(lastRows.map((row) => [row.conversationId, row]));
 
 		// 3) Unread counts in ONE query. Per-user read state (#281) is kept
 		// exact: the left join matches only THIS user's read entries, so a
