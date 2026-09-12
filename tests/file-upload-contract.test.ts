@@ -23,6 +23,10 @@ const COMPILED = join(ROOT, 'tests/__gen__/FileUpload.compiled.js');
  *   payload (a 4xx body is an error object, not { url, key });
  * - the onUpload callback receives the persistent object key (the presigned
  *   URL expires after 60s and must not be treated as a stable reference).
+ *
+ * Error privacy (#400): the endpoint emits stable machine codes
+ * ({ error: { code } }) and the component surfaces ONLY those known codes,
+ * mapped to localized Paraglide copy — raw server strings are never rendered.
  */
 let Component: any;
 
@@ -84,9 +88,9 @@ describe('FileUpload ↔ /api/upload contract (#279)', () => {
 	it('checks res.ok before parsing the presign response', async () => {
 		const fetchMock = vi
 			.fn()
-			// Endpoint rejects: missing/valid-size violation -> 400 with { error }
+			// Endpoint rejects: missing/valid-size violation -> 400 with { error: { code } }
 			.mockResolvedValueOnce(
-				new Response(JSON.stringify({ error: 'Valid file size required' }), {
+				new Response(JSON.stringify({ error: { code: 'invalid_size' } }), {
 					status: 400,
 					headers: { 'Content-Type': 'application/json' }
 				})
@@ -99,10 +103,75 @@ describe('FileUpload ↔ /api/upload contract (#279)', () => {
 
 		attachFile(target, makeFile()).dispatchEvent(new Event('change', { bubbles: true }));
 
-		await vi.waitFor(() => expect(target.textContent).toContain('Valid file size required'));
+		await vi.waitFor(() => expect(target.textContent).toContain('Invalid upload request'));
 
 		// Never a second (PUT) request, never a callback with an undefined key.
 		expect(fetchMock).toHaveBeenCalledTimes(1);
+		expect(onUpload).not.toHaveBeenCalled();
+	});
+
+	it('never surfaces raw server error details from a 500 body', async () => {
+		// A 500 may embed provider details; 'internal' is NOT an endpoint
+		// validation code, so the UI must show the generic fallback only.
+		vi.stubGlobal(
+			'fetch',
+			vi.fn().mockResolvedValueOnce(
+				new Response(JSON.stringify({ error: { code: 'internal', detail: 'S3 bucket secret stuff' } }), {
+					status: 500,
+					headers: { 'Content-Type': 'application/json' }
+				})
+			)
+		);
+
+		const target = document.createElement('div');
+		const onUpload = vi.fn();
+		mount(Component, { target, props: { onUpload } });
+
+		attachFile(target, makeFile()).dispatchEvent(new Event('change', { bubbles: true }));
+
+		await vi.waitFor(() => expect(target.textContent).toContain('Upload failed'));
+		expect(target.textContent).not.toContain('S3 bucket secret stuff');
+		expect(onUpload).not.toHaveBeenCalled();
+	});
+
+	it('falls back to the generic message when a 2xx body is not JSON', async () => {
+		const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+		vi.stubGlobal(
+			'fetch',
+			vi.fn().mockResolvedValueOnce(
+				new Response('not-json', { status: 200, headers: { 'Content-Type': 'application/json' } })
+			)
+		);
+
+		const target = document.createElement('div');
+		const onUpload = vi.fn();
+		mount(Component, { target, props: { onUpload } });
+
+		attachFile(target, makeFile()).dispatchEvent(new Event('change', { bubbles: true }));
+
+		await vi.waitFor(() => expect(target.textContent).toContain('Upload failed'));
+		expect(consoleError).toHaveBeenCalled();
+		expect(onUpload).not.toHaveBeenCalled();
+	});
+
+	it('maps the file_too_large code to localized copy', async () => {
+		vi.stubGlobal(
+			'fetch',
+			vi.fn().mockResolvedValueOnce(
+				new Response(JSON.stringify({ error: { code: 'file_too_large' } }), {
+					status: 413,
+					headers: { 'Content-Type': 'application/json' }
+				})
+			)
+		);
+
+		const target = document.createElement('div');
+		const onUpload = vi.fn();
+		mount(Component, { target, props: { onUpload } });
+
+		attachFile(target, makeFile()).dispatchEvent(new Event('change', { bubbles: true }));
+
+		await vi.waitFor(() => expect(target.textContent).toContain('File too large'));
 		expect(onUpload).not.toHaveBeenCalled();
 	});
 

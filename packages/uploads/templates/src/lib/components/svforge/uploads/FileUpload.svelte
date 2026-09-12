@@ -2,6 +2,9 @@
 	import * as m from '$lib/paraglide/messages.js';
 	import { createUploadForm } from '$lib/uploads/post-form';
 
+	/** Marker for the only user-safe error surface: a recognized API error payload. */
+	class UploadError extends Error {}
+
 	/**
 	 * Called once the file has been uploaded to S3/R2, with the PERSISTENT
 	 * object key (`uploads/<uuid>-<name>`).
@@ -38,16 +41,33 @@
 			});
 
 			// 2. Check the response BEFORE parsing: a 4xx body is an error
-			// payload ({ error }), not a presign response ({ url, key }).
+			// payload ({ error: { code } }), not a presign response ({ url, key }).
 			if (!res.ok) {
 				let message = m.uploads_failed();
 				try {
-					const body = await res.json();
-					if (body?.error) message = body.error;
+					const code = (await res.json())?.error?.code;
+					// Privacy: only the KNOWN validation codes of our own endpoint are
+					// surfaced — always through localized copy, never a raw server
+					// string (a 5xx body may carry provider error details).
+					switch (code) {
+						case 'file_type_not_allowed':
+							message = m.uploads_error_invalid_file_type();
+							break;
+						case 'file_too_large':
+							message = m.uploads_error_file_too_large();
+							break;
+						case 'invalid_json':
+						case 'filename_required':
+						case 'content_type_required':
+						case 'invalid_size':
+							message = m.uploads_error_invalid_request();
+							break;
+						// Unknown codes (e.g. a 500 'internal') keep the generic fallback.
+					}
 				} catch {
 					// keep the generic message when the body is not JSON
 				}
-				throw new Error(message);
+				throw new UploadError(message);
 			}
 
 			const upload = await res.json();
@@ -70,8 +90,9 @@
 
 			// 4. Deliver the persistent key — never the expiring URL.
 			onUpload?.(key);
-		} catch (err: any) {
-			error = err.message;
+		} catch (err: unknown) {
+			console.error('FileUpload failed:', err);
+			error = err instanceof UploadError ? err.message : m.uploads_failed();
 		} finally {
 			uploading = false;
 		}
@@ -81,5 +102,5 @@
 <div>
 	<input type="file" onchange={handleFile} disabled={uploading} />
 	{#if uploading}<span>{m.uploads_uploading()}</span>{/if}
-	{#if error}<p style="color: red">{error}</p>{/if}
+	{#if error}<p class="text-error-500 mt-1 text-sm" role="alert">{error}</p>{/if}
 </div>
