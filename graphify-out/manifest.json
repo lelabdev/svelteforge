@@ -12,7 +12,7 @@
     "semantic_hash": ""
   },
   "package.json": {
-    "ast_hash": "613cfcbb4e9c4db415060d26fa77317a",
+    "ast_hash": "bf8341ca79bd2337a6cff177ffdb8676",
     "semantic_hash": ""
   },
   "packages/addon-kit/package.json": {
@@ -1484,7 +1484,7 @@
     "semantic_hash": ""
   },
   "AGENTS.md": {
-    "ast_hash": "4ce21f5e9a93c4c97daf22165d1a8e28",
+    "ast_hash": "29e7dff31b89cd40279722dfb108d1ab",
     "semantic_hash": ""
   },
   "CHANGELOG.md": {
@@ -1644,11 +1644,11 @@
     "semantic_hash": ""
   },
   ".githooks/pre-commit": {
-    "ast_hash": "e66f8045fdd08402d9a4b7d4f290f2bf",
+    "ast_hash": "b0e0677ed514f511e6afc44cfc30b9d4",
     "semantic_hash": ""
   },
   "scripts/normalize-graphify.mjs": {
-    "ast_hash": "5fe48110c7b90ad9f6bfb8f319c1ef4f",
+    "ast_hash": "7933073d5bf46e9c19fa926cf07ca9eb",
     "semantic_hash": ""
   }
 }

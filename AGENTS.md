@@ -73,9 +73,11 @@ bash scripts/test-scaffold.sh base      # ou dashboard
 **If `graphify` is installed** (package `graphifyy` on PyPI, executable `graphify`), run after implementation and validation, and again after any rebase, pull or merge:
 
 ```bash
-graphify update .   # local, deterministic (the .githooks/ pre-commit hook does it too)
+bun run graphify:update   # graphify update . --no-cluster + portability normalize
 git status --short
 ```
+
+Always use `bun run graphify:update` (never raw `graphify update .`): the normalizer step removes machine-local timestamps and absolute-path-derived ids — without it the committed graph would not be portable across machines and worktrees.
 
 Include any resulting `graphify-out/` diff in your PR. **If `graphify` is not installed, skip it** — it is never a requirement, CI never installs or runs it, and nothing fails without it.
 

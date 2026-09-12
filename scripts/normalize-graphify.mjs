@@ -3,15 +3,17 @@
  * Normalize graphify-out/ artifacts for portability.
  *
  * Raw Graphify output embeds machine-local data that must never be committed
- * and would make CI freshness checks flaky:
+ * and would make graphs differ across machines and worktrees:
  *   - manifest.json records per-file `mtime`/`seen` wall-clock timestamps
  *   - some node ids/labels are derived from the ABSOLUTE checkout path
- *     (e.g. `home_loops_dev_...`), leaking local paths and breaking diffs
- *     between machines/worktrees/clones (see #313 graphify integration)
+ *     (e.g. /home/loops/dev/svelteforge-hub/svelteForge ->
+ *     home_loops_dev_svelteforge_hub_svelteforge), leaking local paths and
+ *     breaking diffs between machines/worktrees/clones
  *
- * `graphify update` runs this automatically (see .githooks/pre-commit and
- * scripts/check-graphify.mjs) so the committed graph is byte-stable across
- * machines: two runs on the same sources always produce identical files.
+ * Part of the single graph-update entry point `bun run graphify:update`
+ * (used by both the optional pre-commit hook and manual updates), it makes
+ * the committed graph byte-stable across machines: two runs on the same
+ * sources always produce identical files.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';

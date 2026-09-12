@@ -612,11 +612,19 @@
       "_origin": "ast"
     },
     {
+      "id": "package_scripts_graphify_update",
+      "label": "graphify:update",
+      "file_type": "code",
+      "source_file": "package.json",
+      "source_location": "L18",
+      "_origin": "ast"
+    },
+    {
       "id": "package_devdependencies",
       "label": "devDependencies",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L19",
+      "source_location": "L20",
       "_origin": "ast"
     },
     {
@@ -624,7 +632,7 @@
       "label": "@eslint/js",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L20",
+      "source_location": "L21",
       "_origin": "ast"
     },
     {
@@ -632,7 +640,7 @@
       "label": "@eslint/js",
       "file_type": "concept",
       "source_file": "package.json",
-      "source_location": "L20",
+      "source_location": "L21",
       "_origin": "ast"
     },
     {
@@ -640,7 +648,7 @@
       "label": "@skeletonlabs/skeleton",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L21",
+      "source_location": "L22",
       "_origin": "ast"
     },
     {
@@ -648,7 +656,7 @@
       "label": "@skeletonlabs/skeleton",
       "file_type": "concept",
       "source_file": "package.json",
-      "source_location": "L21",
+      "source_location": "L22",
       "_origin": "ast"
     },
     {
@@ -656,7 +664,7 @@
       "label": "@skeletonlabs/skeleton-svelte",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L22",
+      "source_location": "L23",
       "_origin": "ast"
     },
     {
@@ -664,7 +672,7 @@
       "label": "@skeletonlabs/skeleton-svelte",
       "file_type": "concept",
       "source_file": "package.json",
-      "source_location": "L22",
+      "source_location": "L23",
       "_origin": "ast"
     },
     {
@@ -672,7 +680,7 @@
       "label": "@sveltejs/vite-plugin-svelte",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L23",
+      "source_location": "L24",
       "_origin": "ast"
     },
     {
@@ -680,7 +688,7 @@
       "label": "@sveltejs/vite-plugin-svelte",
       "file_type": "concept",
       "source_file": "package.json",
-      "source_location": "L23",
+      "source_location": "L24",
       "_origin": "ast"
     },
     {
@@ -688,7 +696,7 @@
       "label": "@testing-library/jest-dom",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L24",
+      "source_location": "L25",
       "_origin": "ast"
     },
     {
@@ -696,7 +704,7 @@
       "label": "@testing-library/jest-dom",
       "file_type": "concept",
       "source_file": "package.json",
-      "source_location": "L24",
+      "source_location": "L25",
       "_origin": "ast"
     },
     {
@@ -704,7 +712,7 @@
       "label": "@testing-library/svelte",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L25",
+      "source_location": "L26",
       "_origin": "ast"
     },
     {
@@ -712,7 +720,7 @@
       "label": "@testing-library/svelte",
       "file_type": "concept",
       "source_file": "package.json",
-      "source_location": "L25",
+      "source_location": "L26",
       "_origin": "ast"
     },
     {
@@ -720,7 +728,7 @@
       "label": "@types/bun",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L26",
+      "source_location": "L27",
       "_origin": "ast"
     },
     {
@@ -728,7 +736,7 @@
       "label": "@types/bun",
       "file_type": "concept",
       "source_file": "package.json",
-      "source_location": "L26",
+      "source_location": "L27",
       "_origin": "ast"
     },
     {
@@ -736,7 +744,7 @@
       "label": "@types/jsdom",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L27",
+      "source_location": "L28",
       "_origin": "ast"
     },
     {
@@ -744,7 +752,7 @@
       "label": "@types/jsdom",
       "file_type": "concept",
       "source_file": "package.json",
-      "source_location": "L27",
+      "source_location": "L28",
       "_origin": "ast"
     },
     {
@@ -752,7 +760,7 @@
       "label": "@types/ws",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L28",
+      "source_location": "L29",
       "_origin": "ast"
     },
     {
@@ -760,7 +768,7 @@
       "label": "@types/ws",
       "file_type": "concept",
       "source_file": "package.json",
-      "source_location": "L28",
+      "source_location": "L29",
       "_origin": "ast"
     },
     {
@@ -768,7 +776,7 @@
       "label": "eslint",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L29",
+      "source_location": "L30",
       "_origin": "ast"
     },
     {
@@ -776,7 +784,7 @@
       "label": "eslint",
       "file_type": "concept",
       "source_file": "package.json",
-      "source_location": "L29",
+      "source_location": "L30",
       "_origin": "ast"
     },
     {
@@ -784,7 +792,7 @@
       "label": "eslint-plugin-svelte",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L30",
+      "source_location": "L31",
       "_origin": "ast"
     },
     {
@@ -792,7 +800,7 @@
       "label": "eslint-plugin-svelte",
       "file_type": "concept",
       "source_file": "package.json",
-      "source_location": "L30",
+      "source_location": "L31",
       "_origin": "ast"
     },
     {
@@ -800,7 +808,7 @@
       "label": "globals",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L31",
+      "source_location": "L32",
       "_origin": "ast"
     },
     {
@@ -808,7 +816,7 @@
       "label": "globals",
       "file_type": "concept",
       "source_file": "package.json",
-      "source_location": "L31",
+      "source_location": "L32",
       "_origin": "ast"
     },
     {
@@ -816,7 +824,7 @@
       "label": "jsdom",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L32",
+      "source_location": "L33",
       "_origin": "ast"
     },
     {
@@ -824,7 +832,7 @@
       "label": "jsdom",
       "file_type": "concept",
       "source_file": "package.json",
-      "source_location": "L32",
+      "source_location": "L33",
       "_origin": "ast"
     },
     {
@@ -832,7 +840,7 @@
       "label": "sv",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L33",
+      "source_location": "L34",
       "_origin": "ast"
     },
     {
@@ -840,7 +848,7 @@
       "label": "sv",
       "file_type": "concept",
       "source_file": "package.json",
-      "source_location": "L33",
+      "source_location": "L34",
       "_origin": "ast"
     },
     {
@@ -848,7 +856,7 @@
       "label": "svelte",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L34",
+      "source_location": "L35",
       "_origin": "ast"
     },
     {
@@ -856,7 +864,7 @@
       "label": "svelte",
       "file_type": "concept",
       "source_file": "package.json",
-      "source_location": "L34",
+      "source_location": "L35",
       "_origin": "ast"
     },
     {
@@ -864,7 +872,7 @@
       "label": "typescript",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L35",
+      "source_location": "L36",
       "_origin": "ast"
     },
     {
@@ -872,7 +880,7 @@
       "label": "typescript",
       "file_type": "concept",
       "source_file": "package.json",
-      "source_location": "L35",
+      "source_location": "L36",
       "_origin": "ast"
     },
     {
@@ -880,7 +888,7 @@
       "label": "typescript-eslint",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L36",
+      "source_location": "L37",
       "_origin": "ast"
     },
     {
@@ -888,7 +896,7 @@
       "label": "typescript-eslint",
       "file_type": "concept",
       "source_file": "package.json",
-      "source_location": "L36",
+      "source_location": "L37",
       "_origin": "ast"
     },
     {
@@ -896,7 +904,7 @@
       "label": "vitest",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L37",
+      "source_location": "L38",
       "_origin": "ast"
     },
     {
@@ -904,7 +912,7 @@
       "label": "vitest",
       "file_type": "concept",
       "source_file": "package.json",
-      "source_location": "L37",
+      "source_location": "L38",
       "_origin": "ast"
     },
     {
@@ -912,7 +920,7 @@
       "label": "ws",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L38",
+      "source_location": "L39",
       "_origin": "ast"
     },
     {
@@ -920,7 +928,7 @@
       "label": "ws",
       "file_type": "concept",
       "source_file": "package.json",
-      "source_location": "L38",
+      "source_location": "L39",
       "_origin": "ast"
     },
     {
@@ -928,7 +936,7 @@
       "label": "dependencies",
       "file_type": "code",
       "source_file": "package.json",
-      "source_location": "L40",
+      "source_location": "L41",
       "_origin": "ast"
     },
     {
@@ -17795,7 +17803,7 @@
       "label": "SCRIPT_ROOT",
       "file_type": "code",
       "source_file": "scripts/normalize-graphify.mjs",
-      "source_location": "L20",
+      "source_location": "L22",
       "_origin": "ast"
     },
     {
@@ -17803,7 +17811,7 @@
       "label": "OUT",
       "file_type": "code",
       "source_file": "scripts/normalize-graphify.mjs",
-      "source_location": "L21",
+      "source_location": "L23",
       "_origin": "ast"
     },
     {
@@ -17811,7 +17819,7 @@
       "label": "MANIFEST",
       "file_type": "code",
       "source_file": "scripts/normalize-graphify.mjs",
-      "source_location": "L23",
+      "source_location": "L25",
       "_origin": "ast"
     },
     {
@@ -17819,7 +17827,7 @@
       "label": "GRAPH",
       "file_type": "code",
       "source_file": "scripts/normalize-graphify.mjs",
-      "source_location": "L24",
+      "source_location": "L26",
       "_origin": "ast"
     },
     {
@@ -17827,7 +17835,7 @@
       "label": "normalizeManifest()",
       "file_type": "code",
       "source_file": "scripts/normalize-graphify.mjs",
-      "source_location": "L27",
+      "source_location": "L29",
       "_callable": true,
       "_origin": "ast"
     },
@@ -17836,7 +17844,7 @@
       "label": "normalizeGraph()",
       "file_type": "code",
       "source_file": "scripts/normalize-graphify.mjs",
-      "source_location": "L46",
+      "source_location": "L48",
       "_callable": true,
       "_origin": "ast"
     },
@@ -17845,7 +17853,7 @@
       "label": "slug()",
       "file_type": "code",
       "source_file": "scripts/normalize-graphify.mjs",
-      "source_location": "L111",
+      "source_location": "L113",
       "_callable": true,
       "_origin": "ast"
     },
@@ -21480,7 +21488,7 @@
       "file_type": "document",
       "node_kind": "heading",
       "source_file": "AGENTS.md",
-      "source_location": "L90",
+      "source_location": "L92",
       "_origin": "ast"
     },
     {
@@ -21489,7 +21497,7 @@
       "file_type": "document",
       "node_kind": "heading",
       "source_file": "AGENTS.md",
-      "source_location": "L96",
+      "source_location": "L98",
       "_origin": "ast"
     },
     {
@@ -21498,7 +21506,7 @@
       "file_type": "document",
       "node_kind": "heading",
       "source_file": "AGENTS.md",
-      "source_location": "L102",
+      "source_location": "L104",
       "_origin": "ast"
     },
     {
@@ -21507,7 +21515,7 @@
       "file_type": "document",
       "node_kind": "heading",
       "source_file": "AGENTS.md",
-      "source_location": "L114",
+      "source_location": "L116",
       "_origin": "ast"
     },
     {
@@ -21516,7 +21524,7 @@
       "file_type": "document",
       "node_kind": "heading",
       "source_file": "AGENTS.md",
-      "source_location": "L121",
+      "source_location": "L123",
       "_origin": "ast"
     },
     {
@@ -21525,7 +21533,7 @@
       "file_type": "document",
       "node_kind": "heading",
       "source_file": "AGENTS.md",
-      "source_location": "L130",
+      "source_location": "L132",
       "_origin": "ast"
     },
     {
@@ -21534,7 +21542,7 @@
       "file_type": "document",
       "node_kind": "heading",
       "source_file": "AGENTS.md",
-      "source_location": "L138",
+      "source_location": "L140",
       "_origin": "ast"
     },
     {
@@ -25498,12 +25506,22 @@
       "_origin": "ast"
     },
     {
+      "source": "package_scripts",
+      "target": "package_scripts_graphify_update",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "package.json",
+      "source_location": "L18",
+      "weight": 1,
+      "_origin": "ast"
+    },
+    {
       "source": "package",
       "target": "package_devdependencies",
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "package.json",
-      "source_location": "L19",
+      "source_location": "L20",
       "weight": 1,
       "_origin": "ast"
     },
@@ -25513,7 +25531,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "package.json",
-      "source_location": "L20",
+      "source_location": "L21",
       "weight": 1,
       "_origin": "ast"
     },
@@ -25523,7 +25541,7 @@
       "relation": "imports",
       "confidence": "EXTRACTED",
       "source_file": "package.json",
-      "source_location": "L20",
+      "source_location": "L21",
       "weight": 1,
       "context": "import",
       "_origin": "ast"
@@ -25534,7 +25552,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "package.json",
-      "source_location": "L21",
+      "source_location": "L22",
       "weight": 1,
       "_origin": "ast"
     },
@@ -25544,7 +25562,7 @@
       "relation": "imports",
       "confidence": "EXTRACTED",
       "source_file": "package.json",
-      "source_location": "L21",
+      "source_location": "L22",
       "weight": 1,
       "context": "import",
       "_origin": "ast"
@@ -25555,7 +25573,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "package.json",
-      "source_location": "L22",
+      "source_location": "L23",
       "weight": 1,
       "_origin": "ast"
     },
@@ -25565,7 +25583,7 @@
       "relation": "imports",
       "confidence": "EXTRACTED",
       "source_file": "package.json",
-      "source_location": "L22",
+      "source_location": "L23",
       "weight": 1,
       "context": "import",
       "_origin": "ast"
@@ -25576,7 +25594,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "package.json",
-      "source_location": "L23",
+      "source_location": "L24",
       "weight": 1,
       "_origin": "ast"
     },
@@ -25586,7 +25604,7 @@
       "relation": "imports",
       "confidence": "EXTRACTED",
       "source_file": "package.json",
-      "source_location": "L23",
+      "source_location": "L24",
       "weight": 1,
       "context": "import",
       "_origin": "ast"
@@ -25597,7 +25615,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "package.json",
-      "source_location": "L24",
+      "source_location": "L25",
       "weight": 1,
       "_origin": "ast"
     },
@@ -25607,7 +25625,7 @@
       "relation": "imports",
       "confidence": "EXTRACTED",
       "source_file": "package.json",
-      "source_location": "L24",
+      "source_location": "L25",
       "weight": 1,
       "context": "import",
       "_origin": "ast"
@@ -25618,7 +25636,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "package.json",
-      "source_location": "L25",
+      "source_location": "L26",
       "weight": 1,
       "_origin": "ast"
     },
@@ -25628,7 +25646,7 @@
       "relation": "imports",
       "confidence": "EXTRACTED",
       "source_file": "package.json",
-      "source_location": "L25",
+      "source_location": "L26",
       "weight": 1,
       "context": "import",
       "_origin": "ast"
@@ -25639,7 +25657,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "package.json",
-      "source_location": "L26",
+      "source_location": "L27",
       "weight": 1,
       "_origin": "ast"
     },
@@ -25649,7 +25667,7 @@
       "relation": "imports",
       "confidence": "EXTRACTED",
       "source_file": "package.json",
-      "source_location": "L26",
+      "source_location": "L27",
       "weight": 1,
       "context": "import",
       "_origin": "ast"
@@ -25660,7 +25678,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "package.json",
-      "source_location": "L27",
+      "source_location": "L28",
       "weight": 1,
       "_origin": "ast"
     },
@@ -25670,7 +25688,7 @@
       "relation": "imports",
       "confidence": "EXTRACTED",
       "source_file": "package.json",
-      "source_location": "L27",
+      "source_location": "L28",
       "weight": 1,
       "context": "import",
       "_origin": "ast"
@@ -25681,7 +25699,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "package.json",
-      "source_location": "L28",
+      "source_location": "L29",
       "weight": 1,
       "_origin": "ast"
     },
@@ -25691,7 +25709,7 @@
       "relation": "imports",
       "confidence": "EXTRACTED",
       "source_file": "package.json",
-      "source_location": "L28",
+      "source_location": "L29",
       "weight": 1,
       "context": "import",
       "_origin": "ast"
@@ -25702,7 +25720,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "package.json",
-      "source_location": "L29",
+      "source_location": "L30",
       "weight": 1,
       "_origin": "ast"
     },
@@ -25712,7 +25730,7 @@
       "relation": "imports",
       "confidence": "EXTRACTED",
       "source_file": "package.json",
-      "source_location": "L29",
+      "source_location": "L30",
       "weight": 1,
       "context": "import",
       "_origin": "ast"
@@ -25723,7 +25741,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "package.json",
-      "source_location": "L30",
+      "source_location": "L31",
       "weight": 1,
       "_origin": "ast"
     },
@@ -25733,7 +25751,7 @@
       "relation": "imports",
       "confidence": "EXTRACTED",
       "source_file": "package.json",
-      "source_location": "L30",
+      "source_location": "L31",
       "weight": 1,
       "context": "import",
       "_origin": "ast"
@@ -25744,7 +25762,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "package.json",
-      "source_location": "L31",
+      "source_location": "L32",
       "weight": 1,
       "_origin": "ast"
     },
@@ -25754,7 +25772,7 @@
       "relation": "imports",
       "confidence": "EXTRACTED",
       "source_file": "package.json",
-      "source_location": "L31",
+      "source_location": "L32",
       "weight": 1,
       "context": "import",
       "_origin": "ast"
@@ -25765,7 +25783,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "package.json",
-      "source_location": "L32",
+      "source_location": "L33",
       "weight": 1,
       "_origin": "ast"
     },
@@ -25775,7 +25793,7 @@
       "relation": "imports",
       "confidence": "EXTRACTED",
       "source_file": "package.json",
-      "source_location": "L32",
+      "source_location": "L33",
       "weight": 1,
       "context": "import",
       "_origin": "ast"
@@ -25786,7 +25804,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "package.json",
-      "source_location": "L33",
+      "source_location": "L34",
       "weight": 1,
       "_origin": "ast"
     },
@@ -25796,7 +25814,7 @@
       "relation": "imports",
       "confidence": "EXTRACTED",
       "source_file": "package.json",
-      "source_location": "L33",
+      "source_location": "L34",
       "weight": 1,
       "context": "import",
       "_origin": "ast"
@@ -25807,7 +25825,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "package.json",
-      "source_location": "L34",
+      "source_location": "L35",
       "weight": 1,
       "_origin": "ast"
     },
@@ -25817,7 +25835,7 @@
       "relation": "imports",
       "confidence": "EXTRACTED",
       "source_file": "package.json",
-      "source_location": "L34",
+      "source_location": "L35",
       "weight": 1,
       "context": "import",
       "_origin": "ast"
@@ -25828,7 +25846,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "package.json",
-      "source_location": "L35",
+      "source_location": "L36",
       "weight": 1,
       "_origin": "ast"
     },
@@ -25838,7 +25856,7 @@
       "relation": "imports",
       "confidence": "EXTRACTED",
       "source_file": "package.json",
-      "source_location": "L35",
+      "source_location": "L36",
       "weight": 1,
       "context": "import",
       "_origin": "ast"
@@ -25849,7 +25867,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "package.json",
-      "source_location": "L36",
+      "source_location": "L37",
       "weight": 1,
       "_origin": "ast"
     },
@@ -25859,7 +25877,7 @@
       "relation": "imports",
       "confidence": "EXTRACTED",
       "source_file": "package.json",
-      "source_location": "L36",
+      "source_location": "L37",
       "weight": 1,
       "context": "import",
       "_origin": "ast"
@@ -25870,7 +25888,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "package.json",
-      "source_location": "L37",
+      "source_location": "L38",
       "weight": 1,
       "_origin": "ast"
     },
@@ -25880,7 +25898,7 @@
       "relation": "imports",
       "confidence": "EXTRACTED",
       "source_file": "package.json",
-      "source_location": "L37",
+      "source_location": "L38",
       "weight": 1,
       "context": "import",
       "_origin": "ast"
@@ -25891,7 +25909,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "package.json",
-      "source_location": "L38",
+      "source_location": "L39",
       "weight": 1,
       "_origin": "ast"
     },
@@ -25901,7 +25919,7 @@
       "relation": "imports",
       "confidence": "EXTRACTED",
       "source_file": "package.json",
-      "source_location": "L38",
+      "source_location": "L39",
       "weight": 1,
       "context": "import",
       "_origin": "ast"
@@ -25912,7 +25930,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "package.json",
-      "source_location": "L40",
+      "source_location": "L41",
       "weight": 1,
       "_origin": "ast"
     },
@@ -51751,7 +51769,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "scripts/normalize-graphify.mjs",
-      "source_location": "L20",
+      "source_location": "L22",
       "weight": 1,
       "_origin": "ast"
     },
@@ -51761,7 +51779,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "scripts/normalize-graphify.mjs",
-      "source_location": "L21",
+      "source_location": "L23",
       "weight": 1,
       "_origin": "ast"
     },
@@ -51771,7 +51789,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "scripts/normalize-graphify.mjs",
-      "source_location": "L23",
+      "source_location": "L25",
       "weight": 1,
       "_origin": "ast"
     },
@@ -51781,7 +51799,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "scripts/normalize-graphify.mjs",
-      "source_location": "L24",
+      "source_location": "L26",
       "weight": 1,
       "_origin": "ast"
     },
@@ -51791,7 +51809,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "scripts/normalize-graphify.mjs",
-      "source_location": "L27",
+      "source_location": "L29",
       "weight": 1,
       "_origin": "ast"
     },
@@ -51801,7 +51819,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "scripts/normalize-graphify.mjs",
-      "source_location": "L46",
+      "source_location": "L48",
       "weight": 1,
       "_origin": "ast"
     },
@@ -51811,7 +51829,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "scripts/normalize-graphify.mjs",
-      "source_location": "L111",
+      "source_location": "L113",
       "weight": 1,
       "_origin": "ast"
     },
@@ -51822,7 +51840,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "scripts/normalize-graphify.mjs",
-      "source_location": "L53",
+      "source_location": "L55",
       "weight": 1,
       "_origin": "ast"
     },
@@ -58994,7 +59012,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "AGENTS.md",
-      "source_location": "L90",
+      "source_location": "L92",
       "weight": 1,
       "_origin": "ast"
     },
@@ -59004,7 +59022,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "AGENTS.md",
-      "source_location": "L96",
+      "source_location": "L98",
       "weight": 1,
       "_origin": "ast"
     },
@@ -59014,7 +59032,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "AGENTS.md",
-      "source_location": "L102",
+      "source_location": "L104",
       "weight": 1,
       "_origin": "ast"
     },
@@ -59024,7 +59042,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "AGENTS.md",
-      "source_location": "L114",
+      "source_location": "L116",
       "weight": 1,
       "_origin": "ast"
     },
@@ -59034,7 +59052,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "AGENTS.md",
-      "source_location": "L121",
+      "source_location": "L123",
       "weight": 1,
       "_origin": "ast"
     },
@@ -59044,7 +59062,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "AGENTS.md",
-      "source_location": "L130",
+      "source_location": "L132",
       "weight": 1,
       "_origin": "ast"
     },
@@ -59054,7 +59072,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "AGENTS.md",
-      "source_location": "L138",
+      "source_location": "L140",
       "weight": 1,
       "_origin": "ast"
     },
