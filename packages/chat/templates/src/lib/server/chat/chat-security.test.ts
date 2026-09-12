@@ -10,6 +10,51 @@ vi.mock('$env/dynamic/private', async () => {
 	return { env: { DATABASE_URL: m ? m[1].trim() : undefined } };
 });
 
+// #401 — thin recorder: a Proxy over the real drizzle instance that snapshots
+// every SELECT the service builds via toSQL() right before it executes. The
+// tests then replay a captured query raw (db.$client.unsafe) to prove facts
+// about the SQL itself (row volume, DISTINCT ON) that results alone cannot.
+const recorded = vi.hoisted(() => [] as { sql: string; params: unknown[] }[]);
+
+vi.mock('$lib/server/db', async (importOriginal) => {
+	const actual = await importOriginal<typeof import('$lib/server/db')>();
+	// Wraps a drizzle query builder: chained builders (objects returned by
+	// .from()/.where()/…) get wrapped too; awaiting (`then`) snapshots the
+	// fully built query first, then delegates to the real execution.
+	const recordBuilder = (builder: object): object =>
+		new Proxy(builder, {
+			get(target, prop) {
+				if (prop === 'then') {
+					const query = (target as { toSQL(): { sql: string; params: unknown[] } }).toSQL();
+					recorded.push(query);
+					return (target as { then: (...args: unknown[]) => unknown }).then.bind(target);
+				}
+				const value = Reflect.get(target, prop, target);
+				if (typeof value === 'function') {
+					return (...args: unknown[]) => {
+						const result = (value as (...a: unknown[]) => unknown).apply(target, args);
+						return result !== null && typeof result === 'object'
+							? recordBuilder(result as object)
+							: result;
+					};
+				}
+				return value;
+			}
+		});
+	return {
+		...actual,
+		db: new Proxy(actual.db, {
+			get(target, prop) {
+				if (prop === 'select') {
+					return (...args: unknown[]) =>
+						recordBuilder((target as { select: (...a: unknown[]) => object }).select(...args));
+				}
+				return Reflect.get(target, prop, target);
+			}
+		})
+	};
+});
+
 import { chat } from './index';
 import { db } from '$lib/server/db';
 import { conversations } from './schema';
@@ -90,16 +135,32 @@ describe('chat membership & per-user read state (#281)', () => {
 			// Small delays guarantee distinct created_at (ms precision), so
 			// "newest first" and "last message = 2nd" are deterministic.
 			const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-			const expected: { id: string; last: string }[] = [];
+			const expected: { id: string; last: string; unread: number }[] = [];
 			for (let i = 0; i < 3; i++) {
 				const conv = await chat.createConversation({ participantIds: [A, B], type: 'direct' });
 				await chat.sendMessage({ conversationId: conv.id, authorId: A, content: `conv${i}-first` });
 				await sleep(5);
 				await chat.sendMessage({ conversationId: conv.id, authorId: A, content: `conv${i}-second` });
 				await sleep(5);
-				expected.push({ id: conv.id, last: `conv${i}-second` });
+				expected.push({ id: conv.id, last: `conv${i}-second`, unread: 2 });
 			}
 
+			// conv0 becomes a busy conversation: 6 messages total. The
+			// last-message read must stay bounded by the CONVERSATION count,
+			// never grow with the messages table (#401).
+			const busy = expected[0].id;
+			await chat.sendMessage({ conversationId: busy, authorId: A, content: 'conv0-extra1' });
+			await sleep(5);
+			await chat.sendMessage({ conversationId: busy, authorId: A, content: 'conv0-extra2' });
+			await sleep(5);
+			await chat.sendMessage({ conversationId: busy, authorId: A, content: 'conv0-extra3' });
+			await sleep(5);
+			await chat.sendMessage({ conversationId: busy, authorId: A, content: 'conv0-last' });
+			expected[0].last = 'conv0-last';
+			expected[0].unread = 6;
+
+			// Capture the queries listConversations builds.
+			recorded.length = 0;
 			const list = await chat.listConversations(A);
 
 			// Exactly the 3 conversations.
@@ -108,13 +169,24 @@ describe('chat membership & per-user read state (#281)', () => {
 			// Ordered newest conversation first.
 			expect(list.map((c) => c.id)).toEqual([...expected].reverse().map((c) => c.id));
 
-			// Last message per conversation = the 2nd message;
-			// unread = 2 (no read entry BY A yet — authorship is not a read).
+			// Last message per conversation = the newest message (conv0 has
+			// 6, the others 2); unread = message count (no read entry BY A
+			// yet — authorship is not a read).
 			for (const conv of list) {
 				const exp = expected.find((e) => e.id === conv.id);
 				expect(conv.lastMessage?.content).toBe(exp!.last);
-				expect(conv.unreadCount).toBe(2);
+				expect(conv.unreadCount).toBe(exp!.unread);
 			}
+
+			// The last-message read is a DISTINCT ON query (one id per
+			// conversation_id), so replaying it raw returns exactly 3 rows —
+			// the conversation count — even though conv0 holds 6 messages and
+			// the table holds 10. The old implementation returned EVERY
+			// message and deduplicated in JS: unbounded rows (#401).
+			const lastQuery = recorded.find((q) => /distinct on/i.test(q.sql));
+			expect(lastQuery).toBeDefined();
+			const rawRows = await db.$client.unsafe(lastQuery!.sql, lastQuery!.params);
+			expect(rawRows.length).toBe(3);
 		});
 	});
 });
