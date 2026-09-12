@@ -6,7 +6,7 @@
 	"author": "Ludo (https://lelab.dev)",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/lelabdev/svelteforge.git",
+		"url": "git+https://github.com/lelabdev/svforge.git",
 		"directory": "packages/notifications"
 	},
 	"exports": {
