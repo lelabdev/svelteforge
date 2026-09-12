@@ -1476,7 +1476,7 @@
     "semantic_hash": ""
   },
   ".github/workflows/ci.yml": {
-    "ast_hash": "aa4c2885cd68fffdb182d95469397233",
+    "ast_hash": "fcd780353b1ca37199638623e83030cb",
     "semantic_hash": ""
   },
   ".github/workflows/publish.yml": {
@@ -1484,7 +1484,7 @@
     "semantic_hash": ""
   },
   "AGENTS.md": {
-    "ast_hash": "c12b364c74649e28aac65fa2e4440f68",
+    "ast_hash": "7d25e36cae285fc7989a4f70a2852004",
     "semantic_hash": ""
   },
   "CHANGELOG.md": {
@@ -1644,11 +1644,11 @@
     "semantic_hash": ""
   },
   ".githooks/pre-commit": {
-    "ast_hash": "b22b766616a608774ab0712817cb3594",
+    "ast_hash": "12240a89f85bcbf4e9a66531fb766243",
     "semantic_hash": ""
   },
   "scripts/check-graphify.mjs": {
-    "ast_hash": "051a93bc727ccf8893af7a34220dbe81",
+    "ast_hash": "25ec319be3969dd5224d3080caa83713",
     "semantic_hash": ""
   },
   "scripts/normalize-graphify.mjs": {

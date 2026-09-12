@@ -3,6 +3,7 @@ dist/
 src/templates.ts
 frontend/
 tests/__gen__/
+.worktrees/
 
 # Graphify knowledge graph (updated by `graphify update .`, committed) —
 # keep the canonical graph artifacts, ignore volatile/local-only outputs.
@@ -15,5 +16,7 @@ graphify-out/2026-*/
 graphify-out/20*-*
 graphify-out/graph.html
 graphify-out/GRAPH_TREE.html
+graphify-out/GRAPH_REPORT.md
+graphify-out/.graphify_labels.json
 graphify-out/*.svg
 graphify-out/*.sig

@@ -17752,7 +17752,7 @@
       "label": "run()",
       "file_type": "code",
       "source_file": "scripts/check-graphify.mjs",
-      "source_location": "L29",
+      "source_location": "L28",
       "_callable": true,
       "_origin": "ast"
     },
@@ -17761,7 +17761,7 @@
       "label": "fail()",
       "file_type": "code",
       "source_file": "scripts/check-graphify.mjs",
-      "source_location": "L35",
+      "source_location": "L36",
       "_callable": true,
       "_origin": "ast"
     },
@@ -17770,7 +17770,7 @@
       "label": "checkGraphify()",
       "file_type": "code",
       "source_file": "scripts/check-graphify.mjs",
-      "source_location": "L41",
+      "source_location": "L42",
       "_callable": true,
       "_origin": "ast"
     },
@@ -17779,7 +17779,7 @@
       "label": "checkGraphifyFreshness()",
       "file_type": "code",
       "source_file": "scripts/check-graphify.mjs",
-      "source_location": "L59",
+      "source_location": "L63",
       "_callable": true,
       "_origin": "ast"
     },
@@ -21548,7 +21548,7 @@
       "file_type": "document",
       "node_kind": "heading",
       "source_file": "AGENTS.md",
-      "source_location": "L80",
+      "source_location": "L90",
       "_origin": "ast"
     },
     {
@@ -21557,7 +21557,7 @@
       "file_type": "document",
       "node_kind": "heading",
       "source_file": "AGENTS.md",
-      "source_location": "L86",
+      "source_location": "L96",
       "_origin": "ast"
     },
     {
@@ -21566,7 +21566,7 @@
       "file_type": "document",
       "node_kind": "heading",
       "source_file": "AGENTS.md",
-      "source_location": "L92",
+      "source_location": "L102",
       "_origin": "ast"
     },
     {
@@ -21575,7 +21575,7 @@
       "file_type": "document",
       "node_kind": "heading",
       "source_file": "AGENTS.md",
-      "source_location": "L104",
+      "source_location": "L114",
       "_origin": "ast"
     },
     {
@@ -21584,7 +21584,7 @@
       "file_type": "document",
       "node_kind": "heading",
       "source_file": "AGENTS.md",
-      "source_location": "L111",
+      "source_location": "L121",
       "_origin": "ast"
     },
     {
@@ -21593,7 +21593,7 @@
       "file_type": "document",
       "node_kind": "heading",
       "source_file": "AGENTS.md",
-      "source_location": "L120",
+      "source_location": "L130",
       "_origin": "ast"
     },
     {
@@ -21602,7 +21602,7 @@
       "file_type": "document",
       "node_kind": "heading",
       "source_file": "AGENTS.md",
-      "source_location": "L128",
+      "source_location": "L138",
       "_origin": "ast"
     },
     {
@@ -51779,7 +51779,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "scripts/check-graphify.mjs",
-      "source_location": "L29",
+      "source_location": "L28",
       "weight": 1,
       "_origin": "ast"
     },
@@ -51789,7 +51789,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "scripts/check-graphify.mjs",
-      "source_location": "L35",
+      "source_location": "L36",
       "weight": 1,
       "_origin": "ast"
     },
@@ -51799,7 +51799,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "scripts/check-graphify.mjs",
-      "source_location": "L41",
+      "source_location": "L42",
       "weight": 1,
       "_origin": "ast"
     },
@@ -51809,7 +51809,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "scripts/check-graphify.mjs",
-      "source_location": "L59",
+      "source_location": "L63",
       "weight": 1,
       "_origin": "ast"
     },
@@ -51820,7 +51820,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "scripts/check-graphify.mjs",
-      "source_location": "L42",
+      "source_location": "L43",
       "weight": 1,
       "_origin": "ast"
     },
@@ -51831,7 +51831,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "scripts/check-graphify.mjs",
-      "source_location": "L44",
+      "source_location": "L45",
       "weight": 1,
       "_origin": "ast"
     },
@@ -51842,7 +51842,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "scripts/check-graphify.mjs",
-      "source_location": "L60",
+      "source_location": "L64",
       "weight": 1,
       "_origin": "ast"
     },
@@ -51853,7 +51853,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "scripts/check-graphify.mjs",
-      "source_location": "L62",
+      "source_location": "L66",
       "weight": 1,
       "_origin": "ast"
     },
@@ -51864,7 +51864,7 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "scripts/check-graphify.mjs",
-      "source_location": "L64",
+      "source_location": "L68",
       "weight": 1,
       "_origin": "ast"
     },
@@ -59187,7 +59187,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "AGENTS.md",
-      "source_location": "L80",
+      "source_location": "L90",
       "weight": 1,
       "_origin": "ast"
     },
@@ -59197,7 +59197,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "AGENTS.md",
-      "source_location": "L86",
+      "source_location": "L96",
       "weight": 1,
       "_origin": "ast"
     },
@@ -59207,7 +59207,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "AGENTS.md",
-      "source_location": "L92",
+      "source_location": "L102",
       "weight": 1,
       "_origin": "ast"
     },
@@ -59217,7 +59217,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "AGENTS.md",
-      "source_location": "L104",
+      "source_location": "L114",
       "weight": 1,
       "_origin": "ast"
     },
@@ -59227,7 +59227,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "AGENTS.md",
-      "source_location": "L111",
+      "source_location": "L121",
       "weight": 1,
       "_origin": "ast"
     },
@@ -59237,7 +59237,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "AGENTS.md",
-      "source_location": "L120",
+      "source_location": "L130",
       "weight": 1,
       "_origin": "ast"
     },
@@ -59247,7 +59247,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "AGENTS.md",
-      "source_location": "L128",
+      "source_location": "L138",
       "weight": 1,
       "_origin": "ast"
     },

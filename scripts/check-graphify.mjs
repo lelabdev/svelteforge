@@ -22,13 +22,14 @@ import { fileURLToPath } from 'node:url';
 const SCRIPT_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
 export const FIX_COMMAND = 'graphify update . && git add graphify-out';
-export const FIX_ADVICE =
-	`Run graphify update . and commit graphify-out/.`;
+export const FIX_ADVICE = 'Run graphify update . and commit graphify-out/.';
 const PINNED_VERSION = '0.9.59';
 
 function run(command, args) {
 	const result = spawnSync(command, args, { cwd: SCRIPT_ROOT, encoding: 'utf8' });
-	if (result.error) throw result.error;
+	// ENOENT and similar spawn failures are returned, not thrown: the caller
+	// owns the remediation message (an uncaught throw here printed a raw
+	// stack trace in CI instead of the install instructions).
 	return result;
 }
 
@@ -42,16 +43,19 @@ function checkGraphify() {
 	const result = run('graphify', ['--version']);
 	if (result.error || result.status !== 0) {
 		fail(
-			`graphify CLI not found. Install it with:\n  uv tool install graphifyy==${PINNED_VERSION}\n(package: graphifyy, executable: graphify)`
+			`graphify CLI not found or not executable (${result.error?.code ?? 'unknown error'}). Install the pinned version with:\n` +
+				`  uv tool install graphifyy==${PINNED_VERSION}\n` +
+				`(package: graphifyy, executable: graphify)`
 		);
 		return false;
 	}
 	const version = (result.stdout || '').trim().replace(/^graphify\s+/, '');
 	if (version !== PINNED_VERSION) {
-		console.warn(
-			`graphify version mismatch: found ${version}, CI pins ${PINNED_VERSION}. ` +
-				`Update with: uv tool install graphifyy==${PINNED_VERSION}`
+		fail(
+			`graphify version mismatch: found ${version}, this repository pins ${PINNED_VERSION}.\n` +
+				`  uv tool install graphifyy==${PINNED_VERSION}`
 		);
+		return false;
 	}
 	return true;
 }
@@ -60,7 +64,7 @@ export function checkGraphifyFreshness() {
 	if (!checkGraphify()) return false;
 
 	const update = run('graphify', ['update', '.', '--no-cluster']);
-	if (update.status !== 0) {
+	if (update.error || update.status !== 0) {
 		fail(`graphify update . --no-cluster exited ${update.status}:\n${update.stderr || update.stdout}`);
 		return false;
 	}
