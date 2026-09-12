@@ -1,24 +1,21 @@
 #!/bin/sh
-# Graphify knowledge-graph pre-commit hook.
+# Graphify knowledge-graph pre-commit hook (OPTIONAL).
 #
-# Contract: the commit must carry a knowledge graph that describes exactly
-# the code IN the commit. `graphify update .` reads the working tree, so a
-# partially staged commit would otherwise bake a graph of unseen code into
-# the commit. To keep that impossible:
+# Graphify is an optional local aid: if the `graphify` binary is not
+# installed, this hook exits 0 and the commit proceeds untouched — Graphify
+# is never a repository requirement and contributors are never told to
+# install anything. The committed graph simply reflects the latest
+# contributor who chose to update it.
 #
-#   1. if any source file has unstaged modifications (worktree vs index),
-#      the commit is REFUSED with a clear message — stage or stash first;
-#   2. otherwise the worktree equals the index, and running the local,
-#      deterministic update (`graphify update . --no-cluster`) describes the
-#      staged snapshot exactly.
-#
-# Untracked files are not part of the commit and graphify indexes them too,
-# so untracked source files must also be absent — they are listed in the
-# refusal message.
+# When Graphify IS installed and the contributor activated the hook
+# (`git config core.hooksPath .githooks`), the hook keeps one safety
+# property: the graph must describe exactly the code IN the commit.
+# `graphify update .` reads the working tree, so the commit is refused when
+# the worktree differs from the index (unstaged modifications or untracked
+# source files) — otherwise the update describes unseen code.
 #
 # Staging is pathspec-limited to graphify-out/ tracked files — never a
-# blanket `git add .`. If the update produced no diff, there is simply
-# nothing to stage and the commit proceeds unchanged.
+# blanket `git add .`.
 
 set -eu
 
@@ -26,11 +23,8 @@ repo="$(git rev-parse --show-toplevel)"
 cd "$repo"
 
 if ! command -v graphify >/dev/null 2>&1; then
-	echo "graphify: command not found — the knowledge graph cannot be updated." >&2
-	echo "Install it with:" >&2
-	echo "  uv tool install graphifyy" >&2
-	echo "(package: graphifyy, executable: graphify; then retry the commit)" >&2
-	exit 1
+	echo "graphify: not installed — skipping knowledge-graph update."
+	exit 0
 fi
 
 unstaged="$(git diff --name-only --diff-filter=ACMR -- . ':!graphify-out')"
@@ -46,7 +40,7 @@ if [ -n "$unstaged" ] || [ -n "$untracked" ]; then
 		echo "  untracked source files (graphify indexes them):" >&2
 		echo "$untracked" | sed 's/^/    /' >&2
 	}
-	echo "Stage (git add) or remove these, or commit with --no-verify for graph-only work." >&2
+	echo "Stage (git add) or remove these, or commit with --no-verify to skip the graph update." >&2
 	exit 1
 fi
 

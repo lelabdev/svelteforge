@@ -17716,74 +17716,6 @@
       "_origin": "ast"
     },
     {
-      "id": "scripts_check_graphify",
-      "label": "check-graphify.mjs",
-      "file_type": "code",
-      "source_file": "scripts/check-graphify.mjs",
-      "source_location": "L1",
-      "_origin": "ast"
-    },
-    {
-      "id": "scripts_check_graphify_script_root",
-      "label": "SCRIPT_ROOT",
-      "file_type": "code",
-      "source_file": "scripts/check-graphify.mjs",
-      "source_location": "L22",
-      "_origin": "ast"
-    },
-    {
-      "id": "scripts_check_graphify_fix_command",
-      "label": "FIX_COMMAND",
-      "file_type": "code",
-      "source_file": "scripts/check-graphify.mjs",
-      "source_location": "L24",
-      "_origin": "ast"
-    },
-    {
-      "id": "scripts_check_graphify_fix_advice",
-      "label": "FIX_ADVICE",
-      "file_type": "code",
-      "source_file": "scripts/check-graphify.mjs",
-      "source_location": "L25",
-      "_origin": "ast"
-    },
-    {
-      "id": "scripts_check_graphify_run",
-      "label": "run()",
-      "file_type": "code",
-      "source_file": "scripts/check-graphify.mjs",
-      "source_location": "L28",
-      "_callable": true,
-      "_origin": "ast"
-    },
-    {
-      "id": "scripts_check_graphify_fail",
-      "label": "fail()",
-      "file_type": "code",
-      "source_file": "scripts/check-graphify.mjs",
-      "source_location": "L36",
-      "_callable": true,
-      "_origin": "ast"
-    },
-    {
-      "id": "scripts_check_graphify_checkgraphify",
-      "label": "checkGraphify()",
-      "file_type": "code",
-      "source_file": "scripts/check-graphify.mjs",
-      "source_location": "L42",
-      "_callable": true,
-      "_origin": "ast"
-    },
-    {
-      "id": "scripts_check_graphify_checkgraphifyfreshness",
-      "label": "checkGraphifyFreshness()",
-      "file_type": "code",
-      "source_file": "scripts/check-graphify.mjs",
-      "source_location": "L63",
-      "_callable": true,
-      "_origin": "ast"
-    },
-    {
       "id": "scripts_gen_modules_table",
       "label": "gen-modules-table.mjs",
       "file_type": "code",
@@ -21534,8 +21466,8 @@
       "_origin": "ast"
     },
     {
-      "id": "agents_graphify_knowledge_graph",
-      "label": "Graphify knowledge graph",
+      "id": "agents_graphify_knowledge_graph_optional",
+      "label": "Graphify knowledge graph (optional)",
       "file_type": "document",
       "node_kind": "heading",
       "source_file": "AGENTS.md",
@@ -51744,131 +51676,6 @@
       "_origin": "ast"
     },
     {
-      "source": "scripts_check_graphify",
-      "target": "scripts_check_graphify_script_root",
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/check-graphify.mjs",
-      "source_location": "L22",
-      "weight": 1,
-      "_origin": "ast"
-    },
-    {
-      "source": "scripts_check_graphify",
-      "target": "scripts_check_graphify_fix_command",
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/check-graphify.mjs",
-      "source_location": "L24",
-      "weight": 1,
-      "_origin": "ast"
-    },
-    {
-      "source": "scripts_check_graphify",
-      "target": "scripts_check_graphify_fix_advice",
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/check-graphify.mjs",
-      "source_location": "L25",
-      "weight": 1,
-      "_origin": "ast"
-    },
-    {
-      "source": "scripts_check_graphify",
-      "target": "scripts_check_graphify_run",
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/check-graphify.mjs",
-      "source_location": "L28",
-      "weight": 1,
-      "_origin": "ast"
-    },
-    {
-      "source": "scripts_check_graphify",
-      "target": "scripts_check_graphify_fail",
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/check-graphify.mjs",
-      "source_location": "L36",
-      "weight": 1,
-      "_origin": "ast"
-    },
-    {
-      "source": "scripts_check_graphify",
-      "target": "scripts_check_graphify_checkgraphify",
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/check-graphify.mjs",
-      "source_location": "L42",
-      "weight": 1,
-      "_origin": "ast"
-    },
-    {
-      "source": "scripts_check_graphify",
-      "target": "scripts_check_graphify_checkgraphifyfreshness",
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/check-graphify.mjs",
-      "source_location": "L63",
-      "weight": 1,
-      "_origin": "ast"
-    },
-    {
-      "source": "scripts_check_graphify_checkgraphify",
-      "target": "scripts_check_graphify_run",
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/check-graphify.mjs",
-      "source_location": "L43",
-      "weight": 1,
-      "_origin": "ast"
-    },
-    {
-      "source": "scripts_check_graphify_checkgraphify",
-      "target": "scripts_check_graphify_fail",
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/check-graphify.mjs",
-      "source_location": "L45",
-      "weight": 1,
-      "_origin": "ast"
-    },
-    {
-      "source": "scripts_check_graphify_checkgraphifyfreshness",
-      "target": "scripts_check_graphify_checkgraphify",
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/check-graphify.mjs",
-      "source_location": "L64",
-      "weight": 1,
-      "_origin": "ast"
-    },
-    {
-      "source": "scripts_check_graphify_checkgraphifyfreshness",
-      "target": "scripts_check_graphify_run",
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/check-graphify.mjs",
-      "source_location": "L66",
-      "weight": 1,
-      "_origin": "ast"
-    },
-    {
-      "source": "scripts_check_graphify_checkgraphifyfreshness",
-      "target": "scripts_check_graphify_fail",
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "scripts/check-graphify.mjs",
-      "source_location": "L68",
-      "weight": 1,
-      "_origin": "ast"
-    },
-    {
       "source": "scripts_gen_modules_table",
       "target": "scripts_gen_modules_table_dirname",
       "relation": "contains",
@@ -59173,7 +58980,7 @@
     },
     {
       "source": "agents_agents_md_svelteforge",
-      "target": "agents_graphify_knowledge_graph",
+      "target": "agents_graphify_knowledge_graph_optional",
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "AGENTS.md",

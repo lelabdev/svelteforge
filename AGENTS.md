@@ -66,26 +66,26 @@ bash scripts/test-scaffold.sh base      # ou dashboard
 
 **TDD obligatoire** (voir CONTRIBUTING.md) : Red (test qui échoue pour la bonne raison) → Green → Refactor. Les tests "existence-only" (grep du source) ne comptent pas comme couverture — écrire des tests comportementaux (appel de fonction, fichier généré réel). Cf. #101, #191.
 
-## Graphify knowledge graph
+## Graphify knowledge graph (optional)
 
-`graphify-out/` is committed (official Graphify recommendation): every clone/worktree starts from an existing graph. Only files maintained by the deterministic local workflow are tracked (`graph.json`, `manifest.json`); rendered reports (`GRAPH_REPORT.md`, `graph.html`, labels, cache, backups) stay gitignored.
+`graphify-out/graph.json` and `manifest.json` are committed as an **optional shared aid**: every clone/worktree starts from an existing graph. The committed graph simply reflects the latest contributor who chose to update it — it is not guaranteed fresh and CI does not check it. Only the files maintained by the deterministic local workflow are tracked; rendered reports (`GRAPH_REPORT.md`, `graph.html`, labels, cache, backups) stay gitignored.
 
-**Systematic, no task-size exception** — after implementation and validation, BEFORE the final commit of a PR:
+**If `graphify` is installed** (package `graphifyy` on PyPI, executable `graphify`), run after implementation and validation, and again after any rebase, pull or merge:
 
 ```bash
-graphify update .   # local, deterministic (the .githooks/ pre-commit hook already does it)
+graphify update .   # local, deterministic (the .githooks/ pre-commit hook does it too)
 git status --short
 ```
 
-Include any resulting `graphify-out/` diff in the same PR. After a **rebase, pull or merge**, run `graphify update .` again before declaring the branch ready. CI checks freshness (`scripts/check-graphify.mjs`, pinned `graphifyy==0.9.59`) and fails with `Run graphify update . and commit graphify-out/.` when the graph is stale — CI never commits the graph for you. If `graphify` is missing: `uv tool install graphifyy` (package `graphifyy`, executable `graphify`).
+Include any resulting `graphify-out/` diff in your PR. **If `graphify` is not installed, skip it** — it is never a requirement, CI never installs or runs it, and nothing fails without it.
 
-**Hook activation (required once per clone/worktree)** — committing `.githooks/pre-commit` does NOT activate it by itself:
+**Hook (optional)** — committing `.githooks/pre-commit` does NOT activate it by itself; opt in per clone/worktree with:
 
 ```bash
 git config core.hooksPath .githooks
 ```
 
-The hook refuses commits with unstaged or untracked source changes (the graph must describe exactly the code in the commit — a partially staged commit would bake in a graph of unseen code). Stage everything relevant before committing, or use `--no-verify` for graph-only work.
+When activated AND graphify is installed, the hook updates the graph in each commit and refuses commits with unstaged or untracked source changes (the graph must describe exactly the code in the commit). Without graphify it exits 0 and the commit proceeds untouched.
 
 ## Testing profiles du template dashboard (#180/#181)
 
