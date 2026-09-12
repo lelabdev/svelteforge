@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeAll, vi } from 'vitest';
+import type postgres from 'postgres';
 
 // $env/dynamic/private is a SvelteKit virtual module — not resolvable by the
 // bare vitest environment. Read DATABASE_URL from the project .env (created
@@ -185,7 +186,13 @@ describe('chat membership & per-user read state (#281)', () => {
 			// message and deduplicated in JS: unbounded rows (#401).
 			const lastQuery = recorded.find((q) => /distinct on/i.test(q.sql));
 			expect(lastQuery).toBeDefined();
-			const rawRows = await db.$client.unsafe(lastQuery!.sql, lastQuery!.params);
+			// postgres.js `unsafe` expects ParameterOrJSON[] — the recorder stores
+		// drizzle's toSQL() params as unknown[] (they are values like uuids and
+		// counts here), so cast them at the replay call site.
+		const rawRows = await db.$client.unsafe(
+			lastQuery!.sql,
+			lastQuery!.params as postgres.ParameterOrJSON<never>[]
+		);
 			expect(rawRows.length).toBe(3);
 		});
 	});
