@@ -78,7 +78,7 @@ describe('svforge upgrade — shipped recipes (#327)', () => {
 	it('writes src AND root files on first upgrade, with changelog release notes (#348)', async () => {
 		const result = await upgrade('base', project);
 		expect(result.updatedCount).toBeGreaterThan(0);
-		expect(result.changes.map((change) => change.version)).toEqual(['1.2.0']);
+		expect(result.changes.map((change) => change.version)).toEqual(['2.0.1']);
 		expect(changelogPackageOf('base')).toBe('svforge');
 
 		// A src file AND a root file exist at their canonical destinations.
@@ -187,7 +187,7 @@ describe('svforge upgrade — shipped recipes (#327)', () => {
 		// The result is machine-readable end to end.
 		const json = JSON.parse(JSON.stringify(result));
 		expect(json.summary.add).toBeGreaterThan(0);
-		expect(json.changes[0].version).toBe('1.2.0');
+		expect(json.changes[0].version).toBe('2.0.1');
 	});
 
 	it('dashboard upgrade never delivers playwright files to a vitest project (#186)', async () => {
