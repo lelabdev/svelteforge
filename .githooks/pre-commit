@@ -1,0 +1,40 @@
+#!/bin/sh
+# Graphify knowledge-graph pre-commit hook.
+#
+# Runs the local, deterministic code-graph update (`graphify update .`) on the
+# current worktree and stages any changed tracked files under graphify-out/
+# into the commit being prepared. 100% local: no LLM backend, no network, no
+# API key. Silently exiting when graphify is missing would let the graph rot,
+# so a missing binary fails loudly with the official install command.
+#
+# Staging is pathspec-limited to graphify-out/ tracked files — never a
+# blanket `git add .`. If the update produced no diff, there is simply
+# nothing to stage and the commit proceeds unchanged.
+
+set -eu
+
+repo="$(git rev-parse --show-toplevel)"
+cd "$repo"
+
+if ! command -v graphify >/dev/null 2>&1; then
+	echo "graphify: command not found — the knowledge graph cannot be updated." >&2
+	echo "Install it with:" >&2
+	echo "  uv tool install graphifyy" >&2
+	echo "(package: graphifyy, executable: graphify; then retry the commit)" >&2
+	exit 1
+fi
+
+# Regenerate the graph from THIS worktree. --no-cluster keeps the run fully
+# deterministic and local (clustering would invoke LLM community naming).
+graphify update . --no-cluster >/dev/null
+
+# Stage updates and deletions of already-tracked graph files, plus the
+# canonical graph set in case a file was regenerated from scratch.
+git add -u -- graphify-out
+for canonical in graphify-out/graph.json graphify-out/manifest.json graphify-out/GRAPH_REPORT.md; do
+	[ -f "$canonical" ] && git add -- "$canonical"
+done
+
+if ! git diff --cached --quiet -- graphify-out; then
+	echo "graphify: staged updated knowledge graph from graphify-out/"
+fi

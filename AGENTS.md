@@ -66,6 +66,17 @@ bash scripts/test-scaffold.sh base      # ou dashboard
 
 **TDD obligatoire** (voir CONTRIBUTING.md) : Red (test qui échoue pour la bonne raison) → Green → Refactor. Les tests "existence-only" (grep du source) ne comptent pas comme couverture — écrire des tests comportementaux (appel de fonction, fichier généré réel). Cf. #101, #191.
 
+## Graphify knowledge graph
+
+`graphify-out/` is committed (official Graphify recommendation): every clone/worktree starts from an existing graph. **Systematic, no task-size exception** — after implementation and validation, BEFORE the final commit of a PR:
+
+```bash
+graphify update .   # local, deterministic (the .githooks/ pre-commit hook already does it)
+git status --short
+```
+
+Include any resulting `graphify-out/` diff in the same PR. After a **rebase, pull or merge**, run `graphify update .` again before declaring the branch ready. CI checks freshness (`scripts/check-graphify.mjs`) and fails with `Run graphify update . and commit graphify-out/.` when the graph is stale — CI never commits the graph for you. If `graphify` is missing: `uv tool install graphifyy` (package `graphifyy`, executable `graphify`). Never commit `cost.json`, `cache/`, backups or rendered HTML (they stay gitignored).
+
 ## Testing profiles du template dashboard (#180/#181)
 
 - Défaut : **Vitest** (baseline auth + admin, `bun run test` dans le projet scaffoldé)

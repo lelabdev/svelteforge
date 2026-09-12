@@ -4,5 +4,16 @@ src/templates.ts
 frontend/
 tests/__gen__/
 
-# Graphify knowledge graph — locally regenerable artifact (graphify update .)
-graphify-out/
+# Graphify knowledge graph (updated by `graphify update .`, committed) —
+# keep the canonical graph artifacts, ignore volatile/local-only outputs.
+graphify-out/cost.json
+graphify-out/cache/
+graphify-out/memory/
+graphify-out/reflections/
+graphify-out/raw/
+graphify-out/2026-*/
+graphify-out/20*-*
+graphify-out/graph.html
+graphify-out/GRAPH_TREE.html
+graphify-out/*.svg
+graphify-out/*.sig
