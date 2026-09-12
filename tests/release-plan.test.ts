@@ -137,6 +137,35 @@ describe('independent release plan (#330)', () => {
 		expect(() => preflightPackage(pkg, ROOT, asNpm(broken))).toThrow(/dist\/index\.d\.ts/);
 	});
 
+	it('reads npm pack output in the object-keyed shape returned by npm 12+ (#398)', () => {
+		const pkg = { name: 'svforge', version: '1.2.0', directory: 'packages/svforge' };
+		const files = ['README.md', 'package.json', 'LICENSE', 'dist/index.js', 'dist/index.d.ts', 'bin/svforge.mjs'];
+		const record = { files: files.map((path) => ({ path })) };
+		const keyed = () => ({ status: 0, stdout: JSON.stringify({ svforge: record }), stderr: '' });
+		expect(preflightPackage(pkg, ROOT, asNpm(keyed)).fileCount).toBe(files.length);
+
+		// Fallback: no entry matches the package name — take the first entry with a files array.
+		const otherKey = () => ({ status: 0, stdout: JSON.stringify({ '@svforge/ui_toast': record }), stderr: '' });
+		expect(preflightPackage(pkg, ROOT, asNpm(otherKey)).fileCount).toBe(files.length);
+
+		// The object-keyed shape must also surface missing required files.
+		const brokenKeyed = () => ({ status: 0, stdout: JSON.stringify({ svforge: { files: files.filter((path) => path !== 'dist/index.js').map((path) => ({ path })) } }), stderr: '' });
+		expect(() => preflightPackage(pkg, ROOT, asNpm(brokenKeyed))).toThrow(/dist\/index\.js/);
+	});
+
+	it('throws an actionable error on unknown or empty npm pack output (#398)', () => {
+		const pkg = { name: 'svforge', version: '1.2.0', directory: 'packages/svforge' };
+		const empty = () => ({ status: 0, stdout: '', stderr: '' });
+		expect(() => preflightPackage(pkg, ROOT, asNpm(empty))).toThrow(/svforge/);
+		expect(() => preflightPackage(pkg, ROOT, asNpm(empty))).toThrow(/npm pack/i);
+
+		const invalidJson = () => ({ status: 0, stdout: 'npm notice name: svforge', stderr: '' });
+		expect(() => preflightPackage(pkg, ROOT, asNpm(invalidJson))).toThrow(/svforge/);
+
+		const missingFiles = () => ({ status: 0, stdout: JSON.stringify({ svforge: { name: 'svforge' } }), stderr: '' });
+		expect(() => preflightPackage(pkg, ROOT, asNpm(missingFiles))).toThrow(/svforge/);
+	});
+
 	it('resumes a partial release without republishing immutable versions', () => {
 		const plan = {
 			packages: [
