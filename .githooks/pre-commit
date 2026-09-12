@@ -28,6 +28,10 @@ fi
 # deterministic and local (clustering would invoke LLM community naming).
 graphify update . --no-cluster >/dev/null
 
+# Scrub machine-local data (mtimes, absolute-path-derived ids) so the
+# committed graph is byte-stable across machines, clones and worktrees.
+node "$repo/scripts/normalize-graphify.mjs" >/dev/null
+
 # Stage updates and deletions of already-tracked graph files, plus the
 # canonical graph set in case a file was regenerated from scratch.
 git add -u -- graphify-out

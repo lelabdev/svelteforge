@@ -15,6 +15,7 @@
  * (scripts/check-generated.mjs, #329). It never commits or pushes anything.
  */
 import { spawnSync } from 'node:child_process';
+import { join } from 'node:path';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -63,6 +64,10 @@ export function checkGraphifyFreshness(root = SCRIPT_ROOT) {
 		fail(`graphify update . --no-cluster exited ${update.status}:\n${update.stderr || update.stdout}`);
 		return false;
 	}
+
+	// Scrub machine-local data exactly like the pre-commit hook does, so the
+	// comparison below is against the same normalized form contributors commit.
+	run('node', [join(SCRIPT_ROOT, 'scripts', 'normalize-graphify.mjs')]);
 
 	// Freshness = the committed graph matches a local regeneration. Only the
 	// tracked graph set is diffed; ignored local artifacts (cache/, backups)
