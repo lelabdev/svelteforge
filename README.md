@@ -2,6 +2,11 @@
 
 # SVForge
 
+[![npm: svforge](https://img.shields.io/npm/v/svforge?label=svforge&logo=npm)](https://www.npmjs.com/package/svforge)
+[![npm: @svforge/addon-kit](https://img.shields.io/npm/v/@svforge/addon-kit?label=@svforge%2Faddon-kit&logo=npm)](https://www.npmjs.com/package/@svforge/addon-kit)
+[![npm: @svforge/chat](https://img.shields.io/npm/v/@svforge/chat?label=@svforge%2Fchat&logo=npm)](https://www.npmjs.com/package/@svforge/chat)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 **Production-ready foundations for SvelteKit projects.**
 
 Start with SvelteKit. Add a solid project structure, a design system, auth/data foundations, optional modules, and context that helps coding agents reuse what is already there.
