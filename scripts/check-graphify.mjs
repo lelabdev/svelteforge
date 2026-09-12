@@ -56,7 +56,7 @@ function checkGraphify() {
 	return true;
 }
 
-export function checkGraphifyFreshness(root = SCRIPT_ROOT) {
+export function checkGraphifyFreshness() {
 	if (!checkGraphify()) return false;
 
 	const update = run('graphify', ['update', '.', '--no-cluster']);
