@@ -1476,7 +1476,7 @@
     "semantic_hash": ""
   },
   ".github/workflows/ci.yml": {
-    "ast_hash": "fcd780353b1ca37199638623e83030cb",
+    "ast_hash": "b2849acc1f0d343c1347fb7175f129ad",
     "semantic_hash": ""
   },
   ".github/workflows/publish.yml": {

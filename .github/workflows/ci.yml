@@ -68,6 +68,9 @@ jobs:
       # silently repaired. Installs the pinned CLI (local AST analysis only:
       # no LLM backend, no network, no API key), regenerates the graph and
       # fails on any diff. Never commits or pushes from CI.
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
       - name: Install graphify CLI (pinned)
         run: uv tool install graphifyy==0.9.59
 
