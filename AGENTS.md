@@ -66,6 +66,29 @@ bash scripts/test-scaffold.sh base      # ou dashboard
 
 **TDD obligatoire** (voir CONTRIBUTING.md) : Red (test qui échoue pour la bonne raison) → Green → Refactor. Les tests "existence-only" (grep du source) ne comptent pas comme couverture — écrire des tests comportementaux (appel de fonction, fichier généré réel). Cf. #101, #191.
 
+## Graphify knowledge graph (optional)
+
+`graphify-out/graph.json` and `manifest.json` are committed as an **optional shared aid**: every clone/worktree starts from an existing graph. The committed graph simply reflects the latest contributor who chose to update it — it is not guaranteed fresh and CI does not check it. Only the files maintained by the deterministic local workflow are tracked; rendered reports (`GRAPH_REPORT.md`, `graph.html`, labels, cache, backups) stay gitignored.
+
+**If `graphify` is installed** (package `graphifyy` on PyPI, executable `graphify`), run after implementation and validation, and again after any rebase, pull or merge:
+
+```bash
+bun run graphify:update   # graphify update . --no-cluster + portability normalize
+git status --short
+```
+
+Always use `bun run graphify:update` (never raw `graphify update .`): the normalizer step removes machine-local timestamps and absolute-path-derived ids — without it the committed graph would not be portable across machines and worktrees.
+
+Include any resulting `graphify-out/` diff in your PR. **If `graphify` is not installed, skip it** — it is never a requirement, CI never installs or runs it, and nothing fails without it.
+
+**Hook (optional)** — committing `.githooks/pre-commit` does NOT activate it by itself; opt in per clone/worktree with:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+When activated AND graphify is installed, the hook updates the graph in each commit and refuses commits with unstaged or untracked source changes (the graph must describe exactly the code in the commit). Without graphify it exits 0 and the commit proceeds untouched.
+
 ## Testing profiles du template dashboard (#180/#181)
 
 - Défaut : **Vitest** (baseline auth + admin, `bun run test` dans le projet scaffoldé)

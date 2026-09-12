@@ -1,0 +1,64 @@
+#!/bin/sh
+# Graphify knowledge-graph pre-commit hook (OPTIONAL).
+#
+# Graphify is an optional local aid: if the `graphify` binary is not
+# installed, this hook exits 0 and the commit proceeds untouched — Graphify
+# is never a repository requirement and contributors are never told to
+# install anything. The committed graph simply reflects the latest
+# contributor who chose to update it.
+#
+# When Graphify IS installed and the contributor activated the hook
+# (`git config core.hooksPath .githooks`), the hook keeps one safety
+# property: the graph must describe exactly the code IN the commit.
+# `graphify update .` reads the working tree, so the commit is refused when
+# the worktree differs from the index (unstaged modifications or untracked
+# source files) — otherwise the update describes unseen code.
+#
+# Staging is pathspec-limited to graphify-out/ tracked files — never a
+# blanket `git add .`.
+
+set -eu
+
+repo="$(git rev-parse --show-toplevel)"
+cd "$repo"
+
+if ! command -v graphify >/dev/null 2>&1; then
+	echo "graphify: not installed — skipping knowledge-graph update."
+	exit 0
+fi
+
+unstaged="$(git diff --name-only --diff-filter=ACMR -- . ':!graphify-out')"
+untracked="$(git ls-files --others --exclude-standard -- . ':!graphify-out')"
+
+if [ -n "$unstaged" ] || [ -n "$untracked" ]; then
+	echo "commit refused: the graph must describe the code in this commit, but:" >&2
+	[ -n "$unstaged" ] && {
+		echo "  unstaged source modifications:" >&2
+		echo "$unstaged" | sed 's/^/    /' >&2
+	}
+	[ -n "$untracked" ] && {
+		echo "  untracked source files (graphify indexes them):" >&2
+		echo "$untracked" | sed 's/^/    /' >&2
+	}
+	echo "Stage (git add) or remove these, or commit with --no-verify to skip the graph update." >&2
+	exit 1
+fi
+
+# Regenerate the graph from THIS worktree/index snapshot. The single source
+# of truth is the repository script (same one AGENTS.md documents):
+#   bun run graphify:update
+# = `graphify update . --no-cluster` (fully deterministic and local;
+# clustering would invoke LLM community naming) + the portability
+# normalizer that strips machine-local timestamps and absolute-path ids.
+bun run graphify:update >/dev/null
+
+# Stage updates and deletions of already-tracked graph files, plus the
+# canonical graph set in case a file was regenerated from scratch.
+git add -u -- graphify-out
+for canonical in graphify-out/graph.json graphify-out/manifest.json; do
+	[ -f "$canonical" ] && git add -- "$canonical"
+done
+
+if ! git diff --cached --quiet -- graphify-out; then
+	echo "graphify: staged updated knowledge graph from graphify-out/"
+fi
