@@ -190,7 +190,7 @@ The templates ship opinionated defaults so a scaffold renders, builds and type-c
 
 **Theme** — the palette, surfaces, radius and typography roles are ordinary Skeleton v5 theme values. Replace them directly in `svelteforge-theme.css`; nothing else in the architecture changes.
 
-**Fonts** — the three `@fontsource-variable/*` imports in `src/routes/layout.css` are the only place fonts are declared (Space Grotesk and Inter are mapped to heading/body roles in the theme; Fira Code is applied to `code`/`pre` because Skeleton has no dedicated code role). Swap an import and its role mapping to change a font, or delete both to drop one.
+**Fonts** — the three `@fontsource-variable/*` imports in `src/routes/layout.css` are the only place fonts are declared (Space Grotesk and Inter are mapped to heading/body roles in the theme; Fira Code is mapped to the native `--font-mono` token in the `@theme` block of `src/routes/layout.css` — Skeleton's own code/pre/kbd styles (and Tailwind's `font-mono` utility) consume it, with no global `code`/`pre` overrides). Swap an import and its role mapping to change a font, or delete both to drop one.
 
 **i18n (Paraglide)** — `messages/<locale>.json` catalogs are the AI-first, diffable source of truth for static UI copy. Components consume the generated messages; agents and humans edit the JSON, never the generated `src/lib/paraglide/` output. `fr` and `en` are the initial locale set, not the only supported locales:
 
@@ -281,6 +281,7 @@ The Better Auth stack is pinned (never `latest`) and upgraded automatically — 
 ```text
 packages/
 ├── svforge/          # base + dashboard templates and CLI helpers
+├── addon-kit/        # @svforge/addon-kit — shared upgrade/recipe engine
 ├── realtime/
 ├── audit/
 ├── notifications/

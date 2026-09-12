@@ -131,7 +131,7 @@ async function main() {
 		return;
 	}
 
-	console.error('Usage: svforge <doctor|check [--strict]|preset|upgrade>');
+	console.error('Usage: svforge <doctor|check [--strict]|preset|context|upgrade>');
 	process.exitCode = 1;
 }
 
