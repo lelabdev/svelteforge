@@ -23,7 +23,7 @@ describe('package changelog (#348)', () => {
 		const result = validateChangelog(withoutSvforge, packages);
 
 		expect(result.valid).toBe(false);
-		expect(result.errors).toContain('svforge@1.2.0: missing current release entry.');
+		expect(result.errors).toContain('svforge@2.0.1: missing current release entry.');
 	});
 
 	it('selects only the installed-to-target package releases', () => {
