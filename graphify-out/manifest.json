@@ -1652,7 +1652,7 @@
     "semantic_hash": ""
   },
   "scripts/normalize-graphify.mjs": {
-    "ast_hash": "981ad003f5e55c2aa6aae6ab15df6b7c",
+    "ast_hash": "5fe48110c7b90ad9f6bfb8f319c1ef4f",
     "semantic_hash": ""
   }
 }

@@ -78,6 +78,29 @@ function normalizeGraph() {
 		return { ...link, ...(source !== link.source ? { source } : {}), ...(target !== link.target ? { target } : {}) };
 	});
 
+	// Build outputs must not depend on machine build state: when dist/ exists
+	// it is gitignored (not indexed), when it does not exist a dynamic import
+	// of it still mints a phantom node. Drop dist/-derived nodes in both
+	// cases, then drop links left dangling by the removal (or already
+	// dangling on checkouts where the target was never indexed).
+	const isBuildArtifact = (node) =>
+		typeof node.source_file === 'string' && /(^|\/)dist\//.test(node.source_file);
+	const removedIds = new Set();
+	graph.nodes = graph.nodes.filter((node) => {
+		if (isBuildArtifact(node)) {
+			removedIds.add(node.id);
+			return false;
+		}
+		return true;
+	});
+	const nodeIds = new Set(graph.nodes.map((node) => node.id));
+	graph.links = graph.links.filter(
+		(link) => nodeIds.has(link.source) && nodeIds.has(link.target)
+	);
+	if (removedIds.size) {
+		console.error(`[normalize-graphify] dropped ${removedIds.size} build-output node(s)`);
+	}
+
 	if (rewritten) {
 		console.error(`[normalize-graphify] rewrote ${rewritten} absolute-path identifiers`);
 	}
